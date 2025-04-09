@@ -1,8 +1,10 @@
-#include <iostream>
+#include "renderer.hh"
 
+//defines
+#define window_width 1920
+#define window_height 1080
 int main () {
 
-  std::cout << "init" << std::endl;
+  Renderer main_renderer(1920,1080);
   
-  return 0;
 }
