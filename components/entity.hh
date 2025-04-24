@@ -1,0 +1,34 @@
+#pragma once
+
+#include "material.hh"
+#include <iostream>
+
+#include <GLFW/glfw3.h>
+#include <glm/ext/matrix_transform.hpp>
+#include <glm/ext/vector_float3.hpp>
+#include <glm/geometric.hpp>
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
+
+// stdlib
+#include <cmath>
+#include <cstring>
+#include <iostream>
+#include <string>
+#include <thread>
+#include <chrono>
+#include <vector>
+#include <cstdint>
+
+// assimp
+#include <assimp/Importer.hpp>
+#include <assimp/material.h>
+#include <assimp/postprocess.h>
+#include <assimp/scene.h>
+
+class Entity {
+public:
+  std::unique_ptr<Material> material;
+  
+};

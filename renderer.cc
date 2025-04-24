@@ -1,5 +1,10 @@
 #include "renderer.hh"
 
+//components
+#include "components/material.hh"
+#include "components/entity.hh"
+#include "components/importer.hh"
+
 #include <iostream>
 
 #include "glad/glad.h"
@@ -223,6 +228,17 @@ Renderer::Renderer(uint window_width, uint window_height) {
     else {
       glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
     }
+
+    /// tmp for texting area
+
+    std::unique_ptr<Material> test_material = std::make_unique<Material_Phong>();
+    std::unique_ptr test_entity = std::make_unique<Entity>();
+
+    test_entity->material = std::move(test_material);
+    
+    std::cout << "test mat type" << test_entity->material.get()->get_type() << std::endl;
+    
+    /// end tmp for texting
     
     while (!glfwWindowShouldClose(window)) {
       
