@@ -1,4 +1,5 @@
 #include "shader.hh"
+#include "../glad/glad.h"
 
 Shader::Shader(const std::string& vertexPath, const std::string& fragmentPath, const std::string& geometryPath) {
     std::string vertexCode;

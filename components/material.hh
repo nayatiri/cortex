@@ -5,14 +5,6 @@
 // my files
 #include "../shaders/shader.hh"
 
-#include <GLFW/glfw3.h>
-#include <glm/ext/matrix_transform.hpp>
-#include <glm/ext/vector_float3.hpp>
-#include <glm/geometric.hpp>
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-#include <glm/gtc/type_ptr.hpp>
-
 // stdlib
 #include <cmath>
 #include <cstring>
@@ -23,49 +15,46 @@
 #include <vector>
 #include <cstdint>
 
-// assimp
-#include <assimp/Importer.hpp>
-#include <assimp/material.h>
-#include <assimp/postprocess.h>
-#include <assimp/scene.h>
-
 #include <cstdint>
 
 enum e_mat_type {
   E_PBR,
+  E_PBR_TEX,
   E_PHONG,
   E_PHONG_TEX,
-  E_FLAT,
-  E_FLAT_TEX
+  E_FACE,
+  E_FACE_TEX
 };
 
-struct s_material_pbr {
+class Material {
+public:
+  //horrible impl, but like impossible to do with polymorphism if i want a material to be a member var in the mesh
 
-  Shader m_shader_linked_shader_class;
-  
-};
-struct s_material_pbr_tex {
-  
-  Shader m_shader_linked_shader_class;
-  
-};
-struct s_material_phong {
+  e_mat_type m_material_type;
 
-  Shader m_shader_linked_shader_class;
-  
-};
-struct s_material_phong_tex {
-  
-  Shader m_shader_linked_shader_class;
+  Material(e_mat_type material_type);
 
-};
-struct s_material_face {
+  //pbr with textures
+  const char* m_material_pbr_tex_albedo_path;
+  const char* m_material_pbr_tex_metallic_path;
+  const char* m_material_pbr_tex_roughness_path;
+  const char* m_material_pbr_tex_normal_path;
+  const char* m_material_pbr_tex_displacement_path;
 
-  Shader m_shader_linked_shader_class;
-  
-};
-struct s_material_face_tex {
+  void material_pbr_tex_initialize();
 
-  Shader m_shader_linked_shader_class;
+  //phong with textures
+  const char* m_material_phong_tex_path;
+  float m_material_phong_tex_diffuse_pow;
+  float m_material_phong_tex_specular_pow;
+
+  //phong without textures
+  unsigned int m_material_phong_base_color;
+  float m_material_phong_diffuse_pow;
+  float m_material_phong_specular_pow;
+
+  //flat shading
+
+  unsigned int m_material_flat_base_color;
   
 };

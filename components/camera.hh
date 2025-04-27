@@ -1,8 +1,5 @@
 #pragma once
 
-#include "material.hh"
-#include "mesh.hh"
-
 #include <glm/ext/matrix_float4x4.hpp>
 #include <iostream>
 
@@ -31,17 +28,12 @@
 #include <assimp/postprocess.h>
 #include <assimp/scene.h>
 
-class Entity {
-public:
+class Camera {
 
-  bool is_initialized();
+  bool m_view_mat_initialized = false;
+  glm::mat4 m_view_matrix;
 
-  std::vector<Material> m_material;
-
-  std::vector<Shader> m_shader;
-  
-  std::vector<Mesh> m_mesh;
-
-  glm::mat4 m_model_matrix;
+  bool m_proj_mat_initialized = false;
+  glm::mat4 m_projection_matrix;
   
 };

@@ -1,10 +1,6 @@
 #include "renderer.hh"
 
 //components
-#include "components/material.hh"
-#include "components/entity.hh"
-#include "components/importer.hh"
-
 #include <iostream>
 
 #include "glad/glad.h"
@@ -33,6 +29,13 @@
 #include <assimp/material.h>
 #include <assimp/postprocess.h>
 #include <assimp/scene.h>
+
+//components (custom)
+#include "components/material.hh"
+#include "components/entity.hh"
+#include "components/importer.hh"
+#include "shaders/shader.hh"
+
 
 /////////////////////
 // CALLBACK FUNCTIONS
@@ -201,10 +204,7 @@ Renderer::Renderer(uint window_width, uint window_height) {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     
     // format for class usage
-    
     glfwSetFramebufferSizeCallback(window, Renderer::framebuffer_size_callback);
-    
-    // set the user pointer to this instance
     glfwSetWindowUserPointer(window, this);
     
     // set callbacks using lambda functions
@@ -222,7 +222,8 @@ Renderer::Renderer(uint window_width, uint window_height) {
     });
     
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-    
+
+    //debug render mode
     if (m_render_mode_wireframe)
       glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
     else {
@@ -231,15 +232,29 @@ Renderer::Renderer(uint window_width, uint window_height) {
 
     /// tmp for texting area
 
-    std::unique_ptr<Material> test_material = std::make_unique<Material_Phong>();
-    std::unique_ptr test_entity = std::make_unique<Entity>();
-
-    test_entity->material = std::move(test_material);
-    
-    std::cout << "test mat type" << test_entity->material.get()->get_type() << std::endl;
+    Material material(E_PBR);
     
     /// end tmp for texting
+
+    //prepare vbos of loaded scene, if it contains necessary items
+    //TODO: move into function that can be called at runtime to update vbos
+    if(m_loaded_scene.m_loaded_entities.size() > 0 &&
+       m_loaded_scene.m_loaded_lights.size() > 0 ) {
+
+      for(auto entity_to_render : m_loaded_scene.m_loaded_entities) {
+
+	for(auto mesh_of_entity : entity_to_render.m_mesh) {
+
+	  //init vbos mesh using its material
+
+	}
+
+      }
+
+    }
+
     
+    //main render loop
     while (!glfwWindowShouldClose(window)) {
       
       processInput(window);

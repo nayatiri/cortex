@@ -1,9 +1,8 @@
 #pragma once
 
-#include <iostream>
-
 #include "glad/glad.h"
 #include "libs/tiny_gltf.h"
+#include "components/scene.hh"
 
 #include <GLFW/glfw3.h>
 #include <glm/ext/matrix_transform.hpp>
@@ -20,6 +19,7 @@
 #include <string>
 #include <vector>
 #include <cstdint>
+#include <iostream>
 
 // assimp
 #include <assimp/Importer.hpp>
@@ -56,6 +56,10 @@ public:
 
   // Render properties
   float m_render_mode_wireframe = false;
+
+  // Scene management
+
+  Scene m_loaded_scene;
   
   /////////////////////
   // CALLBACK FUNCTIONS
