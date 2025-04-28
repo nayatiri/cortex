@@ -3,8 +3,8 @@
 //components
 #include <iostream>
 
-#include "glad/glad.h"
-#include "libs/tiny_gltf.h"
+#include "./glad/glad.h"
+#include "./libs/tiny_gltf.h"
 
 #include <GLFW/glfw3.h>
 #include <glm/ext/matrix_transform.hpp>
@@ -31,10 +31,10 @@
 #include <assimp/scene.h>
 
 //components (custom)
-#include "components/material.hh"
-#include "components/entity.hh"
-#include "components/importer.hh"
-#include "shaders/shader.hh"
+#include "./components/material.hh"
+#include "./components/entity.hh"
+#include "./components/importer.hh"
+#include "./shaders/shader.hh"
 
 
 /////////////////////

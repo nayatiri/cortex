@@ -31,6 +31,8 @@ public:
   std::vector<float> m_tangents_array;
   std::vector<float> m_bitangents_array;
 
+  GLuint m_mesh_vao;
+  
   GLuint m_vertices_glid;
   GLuint m_tex_coords_glid;
   GLuint m_normals_glid;

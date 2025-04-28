@@ -1,8 +1,8 @@
 #pragma once
 
-#include "glad/glad.h"
-#include "libs/tiny_gltf.h"
-#include "components/scene.hh"
+#include "./glad/glad.h"
+#include "./libs/tiny_gltf.h"
+#include "./components/scene.hh"
 
 #include <GLFW/glfw3.h>
 #include <glm/ext/matrix_transform.hpp>
