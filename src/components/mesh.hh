@@ -29,7 +29,7 @@ public:
   std::vector<float> m_tex_coords_array;
   std::vector<float> m_normals_array;
   std::vector<float> m_tangents_array;
-  std::vector<float> m_bitangents_array;
+  std::vector<float> m_binormals_array;
 
   GLuint m_mesh_vao;
   
@@ -37,6 +37,6 @@ public:
   GLuint m_tex_coords_glid;
   GLuint m_normals_glid;
   GLuint m_tangents_glid;
-  GLuint m_bitangents_glid;
+  GLuint m_binormals_glid;
   
 };

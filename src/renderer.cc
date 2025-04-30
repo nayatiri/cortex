@@ -35,7 +35,7 @@
 #include "./components/entity.hh"
 #include "./components/importer.hh"
 #include "./shaders/shader.hh"
-
+#include "./components/utility.hh"
 
 /////////////////////
 // CALLBACK FUNCTIONS
@@ -240,13 +240,77 @@ Renderer::Renderer(uint window_width, uint window_height) {
     //TODO: move into function that can be called at runtime to update vbos
     if(m_loaded_scene.m_loaded_entities.size() > 0 &&
        m_loaded_scene.m_loaded_lights.size() > 0 ) {
-
+      
       for(auto entity_to_render : m_loaded_scene.m_loaded_entities) {
-
+	
 	for(auto mesh_of_entity : entity_to_render.m_mesh) {
 
-	  //init vbos mesh using its material
+	  ////////////////////////////
+	  // GENERATE MISSING GEOMETRY
+	  ////////////////////////////
+	  
+	  //calculate mesh vertex normals + track vertex count for lolz
+	  
+	  mesh_of_entity.m_normals_array = calculate_vert_normals(mesh_of_entity.m_vertices_array);
+	  //total_vertices = total_vertices + sub_mesh.mesh_vertices.size();
+	  
+	  //calculate vertex tangents / binormals
+	  tan_bin_glob retglob = calculate_vert_tan_bin(mesh_of_entity.m_vertices_array,
+						        mesh_of_entity.m_normals_array,
+						        mesh_of_entity.m_tex_coords_array);
+	  
+	  mesh_of_entity.m_binormals_array = retglob.vert_binormals;
+	  mesh_of_entity.m_tangents_array = retglob.vert_tangents;
+	  
+	  // vao
+	  glGenVertexArrays(1, &mesh_of_entity.m_mesh_vao);
+	  glBindVertexArray(mesh_of_entity.m_mesh_vao);
+	  
+	  // vbo mesh (vertices)
+	  glGenBuffers(1, &mesh_of_entity.m_vertices_glid);
+	  glBindBuffer(GL_ARRAY_BUFFER, mesh_of_entity.m_vertices_glid);
+	  glBufferData(GL_ARRAY_BUFFER, mesh_of_entity.m_vertices_array.size() * sizeof(float),
+		       mesh_of_entity.m_vertices_array.data(), GL_STATIC_DRAW);
+	  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float),
+				(void *)0);
+	  glEnableVertexAttribArray(0);	  
+	  
+	  // vbo mesh (tex coords)
+	  //TODO fix layout of vertexattribpointer
+	  glGenBuffers(1, &mesh_of_entity.m_tex_coords_glid);
+	  glBindBuffer(GL_ARRAY_BUFFER, mesh_of_entity.m_tex_coords_glid);
+	  glBufferData(GL_ARRAY_BUFFER, mesh_of_entity.m_tex_coords_array.size() * sizeof(float),
+		       mesh_of_entity.m_tex_coords_array.data(), GL_STATIC_DRAW);
+	  glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float),
+				(void *)0);
+	  glEnableVertexAttribArray(1);	  
 
+	  // vbo mesh (normals)
+	  glGenBuffers(1, &mesh_of_entity.m_normals_glid);
+	  glBindBuffer(GL_ARRAY_BUFFER, mesh_of_entity.m_normals_glid);
+	  glBufferData(GL_ARRAY_BUFFER, mesh_of_entity.m_normals_array.size() * sizeof(float),
+		       mesh_of_entity.m_normals_array.data(), GL_STATIC_DRAW);
+	  glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float),
+				(void *)0);
+	  glEnableVertexAttribArray(2);
+
+	  // vbo mesh (tangents)
+	  glGenBuffers(1, &mesh_of_entity.m_tangents_glid);
+	  glBindBuffer(GL_ARRAY_BUFFER, mesh_of_entity.m_tangents_glid);
+	  glBufferData(GL_ARRAY_BUFFER, mesh_of_entity.m_tangents_array.size() * sizeof(float),
+		       mesh_of_entity.m_tangents_array.data(), GL_STATIC_DRAW);
+	  glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float),
+				(void *)0);
+	  glEnableVertexAttribArray(3);
+
+	  // vbo mesh (bitangents)
+	  glGenBuffers(1, &mesh_of_entity.m_binormals_glid);
+	  glBindBuffer(GL_ARRAY_BUFFER, mesh_of_entity.m_binormals_glid);
+	  glBufferData(GL_ARRAY_BUFFER, mesh_of_entity.m_binormals_array.size() * sizeof(float),
+		       mesh_of_entity.m_binormals_array.data(), GL_STATIC_DRAW);
+	  glVertexAttribPointer(4, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float),
+				(void *)0);
+	  glEnableVertexAttribArray(4);	 
 	}
 
       }
