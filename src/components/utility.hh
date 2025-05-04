@@ -1,8 +1,6 @@
 #pragma once
 
-#include "../libs/tiny_gltf.h"
-
-
+#include "../components/mesh.hh"
 #include <GLFW/glfw3.h>
 #include <glm/ext/matrix_transform.hpp>
 #include <glm/ext/vector_float3.hpp>
@@ -21,6 +19,12 @@
 #include <vector>
 #include <cstdint>
 
+#define TINYGLTF_IMPLEMENTATION
+#define STB_IMAGE_IMPLEMENTATION
+#define STB_IMAGE_WRITE_IMPLEMENTATION
+#define TINYGLTF_NOEXCEPTION
+#define JSON_NOEXCEPTION
+#include "../libs/tiny_gltf.h"
 
 struct tan_bin_glob {
 
@@ -166,4 +170,110 @@ tan_bin_glob calculate_vert_tan_bin(std::vector<float> mesh_vertices,
   return_glob.vert_tangents = vert_tangents;
 
   return return_glob;
+}
+
+// Tex to slot
+GLuint bind_texture_to_slot(std::string to_load, unsigned int slot) {
+  printf("trying to load texture into slot :%d\n", slot);
+  int width, height, nrChannels;
+  unsigned char *data =
+      stbi_load(to_load.c_str(), &width, &height, &nrChannels, 0);
+
+  unsigned int texture;
+  glGenTextures(1, &texture);
+  glActiveTexture(GL_TEXTURE0 + slot);
+  glBindTexture(GL_TEXTURE_2D, texture);
+
+  if (data) {
+    printf("deserialized image successfully.\n");
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB,
+                 GL_UNSIGNED_BYTE, data);
+    //    glGenerateMipmap(GL_TEXTURE_2D); //later
+  } else {
+    std::cout << "Failed to load texture" << std::endl;
+  }
+
+  stbi_image_free(data);
+  glBindTexture(GL_TEXTURE_2D, texture);
+
+  return texture;
+}
+
+Mesh load_primitive_mesh_from_gltf(const std::string file_path) {
+  Mesh primitive_mesh;
+
+  tinygltf::Model model;
+  tinygltf::TinyGLTF loader;
+
+  std::string err;
+  std::string warn;
+
+  bool ret = loader.LoadASCIIFromFile(&model, &err, &warn, file_path);
+  
+  if (!warn.empty()) {
+    printf("Warn: %s\n", warn.c_str());
+  }
+  
+  if (!err.empty()) {
+    printf("Err: %s\n", err.c_str());
+  }
+
+  for(auto& found_mesh : model.meshes) {
+
+    std::cout << "found a  mesh in file, deserializing..." << std::endl;
+
+    for(auto& mesh_primitives: found_mesh.primitives) {
+
+      std::cout << "found a  primitive in mesh , deserializing..." << std::endl;
+
+      if (mesh_primitives.attributes.find("POSITION") != mesh_primitives.attributes.end()) {
+	int accessorIndex = mesh_primitives.attributes.at("POSITION");
+	const tinygltf::Accessor& accessor = model.accessors[accessorIndex];
+	const tinygltf::BufferView& bufferView = model.bufferViews[accessor.bufferView];
+	const tinygltf::Buffer& buffer = model.buffers[bufferView.buffer];
+	
+	size_t vertexCount = accessor.count;
+	size_t byteStride = accessor.ByteStride(bufferView);
+	const float* data = reinterpret_cast<const float*>(&buffer.data[bufferView.byteOffset + accessor.byteOffset]);
+
+	primitive_mesh.m_vertices_array.reserve(vertexCount * 3 + 1);
+        primitive_mesh.m_vertices_array.assign(data, data + vertexCount * 3); // Assuming 3 floats per vertex (x, y, z)
+      }
+
+      if (mesh_primitives.attributes.find("NORMAL") != mesh_primitives.attributes.end()) {
+	int normalAccessorIndex = mesh_primitives.attributes.at("NORMAL");
+	const tinygltf::Accessor& normalAccessor = model.accessors[normalAccessorIndex];
+	const tinygltf::BufferView& normalBufferView = model.bufferViews[normalAccessor.bufferView];
+	const tinygltf::Buffer& normalBuffer = model.buffers[normalBufferView.buffer];
+	
+	// Calculate the number of normals
+	size_t normalCount = normalAccessor.count;
+	const float* normalDataPtr = reinterpret_cast<const float*>(&normalBuffer.data[normalBufferView.byteOffset + normalAccessor.byteOffset]);
+	
+	// Copy normal data into the vector
+	primitive_mesh.m_normals_array.reserve(normalCount * 3 + 1);
+        primitive_mesh.m_normals_array.assign(normalDataPtr, normalDataPtr + normalCount * 3); // Assuming 3 floats per normal (nx, ny, nz)
+      }
+      
+    }
+
+  }
+
+  return primitive_mesh;
+}
+
+void log_success(std::string input) {
+  std::cout << "\033[1;32m[S] " << input << "\033[0m" << std::endl;
+}
+
+void log_debug(std::string input) {
+  std::cout << "\033[1;37m[D] " << input << "\033[0m" << std::endl;
+}
+
+void log_debug_sub(std::string input) {
+  std::cout << "\033[1;90m[D] - " << input << "\033[0m" << std::endl;
+}
+
+void log_error(std::string input) {
+  std::cout << "\033[1;31m[E] " << input << "\033[0m" << std::endl;
 }

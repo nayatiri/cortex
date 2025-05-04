@@ -1,8 +1,5 @@
 #include "material.hh"
 
-#define STB_IMAGE_IMPLEMENTATION
-#include "../libs/stb_image.h"
-
 #include <GLFW/glfw3.h>
 #include <glm/ext/vector_float3.hpp>
 #include <glm/ext/quaternion_geometric.hpp>
@@ -17,31 +14,27 @@
 #include <string>
 
 //material constructor
-Material::Material(e_mat_type material_type) { m_material_type = material_type;}
+Material::Material(e_mat_type material_type) {
 
-// Tex to slot
-GLuint bind_texture_to_slot(std::string to_load, unsigned int slot) {
-  printf("trying to load texture into slot :%d\n", slot);
-  int width, height, nrChannels;
-  unsigned char *data =
-      stbi_load(to_load.c_str(), &width, &height, &nrChannels, 0);
+  m_material_type = material_type;
 
-  unsigned int texture;
-  glGenTextures(1, &texture);
-  glActiveTexture(GL_TEXTURE0 + slot);
-  glBindTexture(GL_TEXTURE_2D, texture);
+  switch(m_material_type) {
+    
+  case E_FACE: {
 
-  if (data) {
-    printf("deserialized image successfully.\n");
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB,
-                 GL_UNSIGNED_BYTE, data);
-    //    glGenerateMipmap(GL_TEXTURE_2D); //later
-  } else {
-    std::cout << "Failed to load texture" << std::endl;
+    Shader mat_shader("shader/flat.vert", "shader/flat.vert");
+    
+    m_shader = mat_shader;
+    
+    break;
   }
+  case E_FACE_TEX: {break;}
+  case E_PBR: {break;}
+  case E_PBR_TEX: {break;}
+  case E_PHONG: {break;}
+  case E_PHONG_TEX: {break;}
 
-  stbi_image_free(data);
-  glBindTexture(GL_TEXTURE_2D, texture);
-
-  return texture;
+  }
+  
 }
+

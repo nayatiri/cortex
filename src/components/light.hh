@@ -29,7 +29,7 @@ enum e_light_type {
 };
 
 class Light {
-
+public:
   e_light_type m_light_type;
 
   float m_strength;

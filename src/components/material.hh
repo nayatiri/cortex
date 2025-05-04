@@ -34,6 +34,8 @@ public:
 
   Material(e_mat_type material_type);
 
+  Shader m_shader;
+  
   //pbr with textures
   const char* m_material_pbr_tex_albedo_path;
   const char* m_material_pbr_tex_metallic_path;

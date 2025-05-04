@@ -26,6 +26,7 @@ class Scene {
 public:
 
   void add_entity_to_scene(Entity to_add);
+  void add_light_to_scene(Light to_add);
   
   std::vector<Entity> m_loaded_entities; 
   std::vector<Light> m_loaded_lights;
