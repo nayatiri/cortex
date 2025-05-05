@@ -36,8 +36,6 @@ public:
 
   bool is_initialized();
 
-  std::vector<Material> m_material;
-
   std::vector<Shader> m_shader;
   
   std::vector<Mesh> m_mesh;

@@ -19,10 +19,14 @@
 #include <cstdint>
 #include <iostream>
 
+#include "../components/material.hh"
+
 class Mesh {
 
 public:
 
+  Mesh(Material use_material);
+  
   void deserialize(char* file_path);
   
   std::vector<float> m_vertices_array;
@@ -32,6 +36,7 @@ public:
   std::vector<float> m_binormals_array;
 
   GLuint m_mesh_vao;
+  Material m_material;
   
   GLuint m_vertices_glid;
   GLuint m_tex_coords_glid;

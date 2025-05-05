@@ -32,7 +32,7 @@ public:
 
   e_mat_type m_material_type;
 
-  Material(e_mat_type material_type);
+  Material(e_mat_type material_type, Shader use_shader);
 
   Shader m_shader;
   

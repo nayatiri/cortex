@@ -241,7 +241,9 @@ Renderer::Renderer(uint window_width, uint window_height) {
 
   /// SCENE SETUP
 
-  Material material_face(E_FACE);
+
+  Shader use_shader("../shaders/shader_src/flat.vert", "../shaders/shader_src/flat.frag");
+  Material material_face(E_FACE, use_shader);
 
   material_face.m_material_flat_base_color = 0xAA0099;
 
@@ -355,12 +357,30 @@ Renderer::Renderer(uint window_width, uint window_height) {
         glEnableVertexAttribArray(4);
       }
     }
+
+    log_success("done initializing VBOs for all entities!");
+
   }  else {
 
     log_error("scene doesnt contain at least one light + entity, not initializing vbos");
 
   }
 
+  //////////////////////////////
+  //Initialize shader programs
+  //////////////////////////////
+
+    log_debug("Initializing Shader Programs for scene...");
+    for (auto entity_to_render : m_loaded_scene.m_loaded_entities) {
+      log_debug_sub("Found active scene.");
+      for (auto mesh_of_entity : entity_to_render.m_mesh) {
+        log_debug_sub("Found meshmaterial in active scene.");
+
+
+      }
+
+    }
+  
   // main render loop
   while (!glfwWindowShouldClose(window)) {
 

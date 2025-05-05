@@ -14,27 +14,9 @@
 #include <string>
 
 //material constructor
-Material::Material(e_mat_type material_type) {
-
+Material::Material(e_mat_type material_type, Shader use_shader) : m_shader(use_shader) {
+  
   m_material_type = material_type;
-
-  switch(m_material_type) {
-    
-  case E_FACE: {
-
-    Shader mat_shader("shader/flat.vert", "shader/flat.vert");
-    
-    m_shader = mat_shader;
-    
-    break;
-  }
-  case E_FACE_TEX: {break;}
-  case E_PBR: {break;}
-  case E_PBR_TEX: {break;}
-  case E_PHONG: {break;}
-  case E_PHONG_TEX: {break;}
-
-  }
   
 }
 
