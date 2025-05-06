@@ -269,8 +269,8 @@ Mesh load_primitive_mesh_from_gltf(const std::string file_path) {
 
   // loading mesh data
   // TMP load flat shading
-  Shader shader_to_use("../shaders/shader_src/flat.vert",
-                       "../shaders/shader_src/flat.frag",
+  Shader shader_to_use("src/shaders/shader_src/flat.vert",
+                       "src/shaders/shader_src/flat.frag",
                        "");
   Material mat_to_use(E_FACE, shader_to_use);
   Mesh primitive_mesh(mat_to_use);

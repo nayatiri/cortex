@@ -240,13 +240,6 @@ Renderer::Renderer(uint window_width, uint window_height) {
   }
 
   /// SCENE SETUP
-
-
-  Shader use_shader("../shaders/shader_src/flat.vert", "../shaders/shader_src/flat.frag");
-  Material material_face(E_FACE, use_shader);
-
-  material_face.m_material_flat_base_color = 0xAA0099;
-
   Mesh first_mesh = load_primitive_mesh_from_gltf("models/cube.gltf");
   Entity first_entity;
   first_entity.m_mesh.push_back(first_mesh);

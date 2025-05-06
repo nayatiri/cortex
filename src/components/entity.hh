@@ -35,8 +35,6 @@ class Entity {
 public:
 
   bool is_initialized();
-
-  std::vector<Shader> m_shader;
   
   std::vector<Mesh> m_mesh;
 
