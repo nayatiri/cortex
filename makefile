@@ -1,7 +1,7 @@
 CXX = g++
 CXXFLAGS = -std=c++20 -O0 -g
 LDFLAGS = -lglfw -ldl -lpthread -lX11 -lXxf86vm -lXrandr -lXi -lGL
-SRC = src/main.cpp src/renderer.cc src/components/*.cc src/shaders/shader.cc src/glad/glad.c 
+SRC = src/main.cpp src/components/logging.hh src/renderer.cc src/components/*.cc src/shaders/shader.cc src/glad/glad.c 
 TARGET = build/cortex
 
 .PHONY: test clean

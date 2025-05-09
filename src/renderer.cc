@@ -24,12 +24,6 @@
 #include <thread>
 #include <vector>
 
-// assimp
-#include <assimp/Importer.hpp>
-#include <assimp/material.h>
-#include <assimp/postprocess.h>
-#include <assimp/scene.h>
-
 // components (custom)
 #include "./components/entity.hh"
 #include "./components/importer.hh"
@@ -37,6 +31,7 @@
 #include "./components/utility.hh"
 #include "./shaders/shader.hh"
 #include "components/light.hh"
+#include "components/logging.hh"
 #include "components/scene.hh"
 
 /////////////////////
@@ -65,6 +60,8 @@ void Renderer::mouse_callback(GLFWwindow *window, double xpos, double ypos) {
     return;
   }
 
+  log_debug("mouse callback");
+  
   float xoffset = xpos - m_lastX;
   float yoffset = m_lastY - ypos;
 
@@ -125,7 +122,9 @@ void Renderer::processInput(GLFWwindow *window) {
     log_success("shutting down window.");
   }
 
-  float cameraSpeed = m_camera_base_speed * 10.0f * m_deltaTime;
+  //  float cameraSpeed = m_camera_base_speed * 10.0f * m_deltaTime;
+  float cameraSpeed = 10.0f;
+  //TMP
   if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
     m_cameraPos +=
         cameraSpeed *
@@ -177,6 +176,8 @@ void Renderer::processInput(GLFWwindow *window) {
 }
 
 Renderer::Renderer(uint window_width, uint window_height) {
+
+  m_cameraPos = glm::vec3(1.0f);
 
   log_debug("initializing window");
 
@@ -242,6 +243,7 @@ Renderer::Renderer(uint window_width, uint window_height) {
   /// SCENE SETUP
   Mesh first_mesh = load_primitive_mesh_from_gltf("models/cube.gltf");
   Entity first_entity;
+    Entity second_entity;
   first_entity.m_mesh.push_back(first_mesh);
 
   Scene main_scene;
@@ -263,9 +265,9 @@ Renderer::Renderer(uint window_width, uint window_height) {
       m_loaded_scene.m_loaded_lights.size() > 0) {
 
     log_debug("Initializing VBOs for scene...");
-    for (auto entity_to_render : m_loaded_scene.m_loaded_entities) {
+    for (auto& entity_to_render : m_loaded_scene.m_loaded_entities) {
       log_debug_sub("Found active scene.");
-      for (auto mesh_of_entity : entity_to_render.m_mesh) {
+      for (auto& mesh_of_entity : entity_to_render.m_mesh) {
         log_debug_sub("Found mesh in active scene.");
         ////////////////////////////
         // GENERATE MISSING GEOMETRY
@@ -293,11 +295,22 @@ Renderer::Renderer(uint window_width, uint window_height) {
 	  mesh_of_entity.m_tangents_array.resize(mesh_of_entity.m_vertices_array.size());
 	  
 	}
+
+
+	GLenum error = glGetError();
+	if (error != GL_NO_ERROR) {
+	  log_error("before vao!");
+	}
 	
         // vao
         glGenVertexArrays(1, &mesh_of_entity.m_mesh_vao);
         glBindVertexArray(mesh_of_entity.m_mesh_vao);
-
+        
+        error = glGetError();
+	if (error != GL_NO_ERROR) {
+	  log_error("couldnt create VAO for mesh!");
+	}
+	
         // vbo mesh (vertices)
         glGenBuffers(1, &mesh_of_entity.m_vertices_glid);
         glBindBuffer(GL_ARRAY_BUFFER, mesh_of_entity.m_vertices_glid);
@@ -364,11 +377,12 @@ Renderer::Renderer(uint window_width, uint window_height) {
   //////////////////////////////
 
     log_debug("Initializing Shader Programs for scene...");
-    for (auto entity_to_render : m_loaded_scene.m_loaded_entities) {
+    for (auto& entity_to_render : m_loaded_scene.m_loaded_entities) {
       log_debug_sub("Found active scene.");
-      for (auto mesh_of_entity : entity_to_render.m_mesh) {
+      for (auto& mesh_of_entity : entity_to_render.m_mesh) {
         log_debug_sub("Found meshmaterial in active scene.");
 
+	mesh_of_entity.m_material.m_shader.use();
 
       }
 
@@ -376,15 +390,77 @@ Renderer::Renderer(uint window_width, uint window_height) {
   
   // main render loop
   while (!glfwWindowShouldClose(window)) {
-
+    
     processInput(window);
 
-    glfwPollEvents();
+    glViewport(0,0,window_width,window_height);    
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    // bungie (deltatime)
+    float currentFrame = glfwGetTime();
+    m_deltaTime = currentFrame - m_lastFrame;
+    m_lastFrame = currentFrame;
+
+    glm::mat4 view_mat = glm::lookAt(m_cameraPos,m_cameraLookAt + m_cameraPos , m_cameraUp);
+
+        // projection matrix
+    int tmp_height = 0, tmp_width = 0;
+    glfwGetWindowSize(window, &tmp_height, &tmp_height);
+    glm::mat4 projection_mat = glm::perspective(
+						glm::radians(120.0f),
+						(float)tmp_width / (float)tmp_height,
+						0.5f, 7.5f);
+
+    
+    // render meshes
+    for(auto& entity : m_loaded_scene.m_loaded_entities) {
+
+      for(auto& mesh : entity.m_mesh) {
+	
+	std::cout << "draw mesh: " << m_cameraPos.x << std::endl;
+	
+	mesh.m_material.m_shader.use();
+	
+	glm::mat4 mesh_transform = entity.m_model_matrix;
+
+	GLint model_mat_loc = glGetUniformLocation(mesh.m_material.m_shader.m_shader_id, "model");
+	glUniformMatrix3fv(model_mat_loc,1,GL_FALSE,glm::value_ptr(entity.m_model_matrix));
+
+	GLint camera_mat_loc = glGetUniformLocation(mesh.m_material.m_shader.m_shader_id, "view");
+	glUniformMatrix3fv(camera_mat_loc,1,GL_FALSE,glm::value_ptr(view_mat));
+
+        GLint camera_pos_loc = glGetUniformLocation(mesh.m_material.m_shader.m_shader_id, "viewPosition");
+	glUniform3f(camera_pos_loc, m_cameraPos.x,m_cameraPos.y,m_cameraPos.z);
+	
+	GLint projection_mat_loc = glGetUniformLocation(mesh.m_material.m_shader.m_shader_id, "projection");
+	glUniformMatrix3fv(projection_mat_loc,1,GL_FALSE,glm::value_ptr(projection_mat));
+
+        mesh.m_material.m_shader.use();
+
+	glBindVertexArray(mesh.m_mesh_vao);
+	if(glIsVertexArray(mesh.m_mesh_vao) == GL_FALSE) {
+	  log_error("no valid VAO id! cant render mesh.");
+	}
+
+	if (model_mat_loc == -1 || camera_mat_loc == -1 || projection_mat_loc == -1) {
+	  log_error("could not resolve uniform location for matrices. cant render mesh.");
+        }
+
+        glDrawArrays(GL_TRIANGLES,0,mesh.m_vertices_array.size());
+
+      }
+
+    }
+    
+    // draw to schgween!!
+    glfwSwapBuffers(window);
+    glfwPollEvents();    
   }
 
   log_success("shutdown signal recieved, ended gracefully.");
-
+  glfwTerminate();
+  
   return;
 }

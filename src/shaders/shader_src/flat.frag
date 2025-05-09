@@ -19,5 +19,6 @@ void main()
 
     vec3 finalColor = surfaceColor * diff;
 
-    color = vec4(finalColor, 1.0);
+    //color = vec4(finalColor, 1.0);
+    color = vec4(1.0,1.0,1.0,1.0);
 }

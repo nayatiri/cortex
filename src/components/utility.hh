@@ -1,5 +1,6 @@
 #pragma once
 
+#include "../components/logging.hh"
 #include "../components/mesh.hh"
 #include "../shaders/shader.hh"
 #include <GLFW/glfw3.h>
@@ -328,20 +329,4 @@ Mesh load_primitive_mesh_from_gltf(const std::string file_path) {
   }
 
   return primitive_mesh;
-}
-
-void log_success(std::string input) {
-  std::cout << "\033[1;32m[S] " << input << "\033[0m" << std::endl;
-}
-
-void log_debug(std::string input) {
-  std::cout << "\033[1;37m[D] " << input << "\033[0m" << std::endl;
-}
-
-void log_debug_sub(std::string input) {
-  std::cout << "\033[1;90m[D] - " << input << "\033[0m" << std::endl;
-}
-
-void log_error(std::string input) {
-  std::cout << "\033[1;31m[E] " << input << "\033[0m" << std::endl;
 }

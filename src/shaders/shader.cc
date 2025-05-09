@@ -1,9 +1,11 @@
 #include "shader.hh"
 #include "../glad/glad.h"
+#include "../components/logging.hh"
 
 Shader::Shader(const std::string &vertexPath, const std::string &fragmentPath,
                const std::string &geometryPath) {
-  std::cout << "loading shader program." << std::endl;
+
+  log_debug("initializing shader program.");
   std::string vertexCode;
   std::string fragmentCode;
   std::string geometryCode;
@@ -88,6 +90,7 @@ void Shader::compile(const char *vertexCode, const char *fragmentCode,
   }
 
   ID = glCreateProgram();
+  m_shader_id = ID;
   glAttachShader(ID, vertex);
   glAttachShader(ID, fragment);
   if (geometryCode) {

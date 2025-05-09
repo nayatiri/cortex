@@ -1,0 +1,27 @@
+CXX = g++
+CXXFLAGS = -std=c++20 -O0 -g
+LDFLAGS = -lglfw -ldl -lpthread -lX11 -lXxf86vm -lXrandr -lXi -lGL
+SRC = src/main.cpp src/renderer.cc src/components/*.cc src/shaders/shader.cc src/glad/glad.c 
+PCH = src/libs/pch.h.gch
+TARGET = build/cortex
+
+# Find all header files in src/libs that end with .h or .hh
+HEADERS = $(wildcard src/libs/*.h src/libs/*.hh)
+
+.PHONY: test clean
+
+# Rule to build the precompiled header
+$(PCH): src/libs/pch.h $(HEADERS)
+	$(CXX) -x c++-header src/libs/pch.h -o $@
+
+# Rule to build the target
+$(TARGET): $(SRC) $(PCH)
+	$(CXX) $(CXXFLAGS) -o $@ $^ $(LDFLAGS)
+
+# Rule to run tests
+test: $(TARGET)
+	./$(TARGET)
+
+# Rule to clean up build artifacts
+clean:
+	rm -f $(TARGET) $(PCH)

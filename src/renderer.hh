@@ -21,18 +21,12 @@
 #include <cstdint>
 #include <iostream>
 
-// assimp
-#include <assimp/Importer.hpp>
-#include <assimp/material.h>
-#include <assimp/postprocess.h>
-#include <assimp/scene.h>
-
 class Renderer {
 public:
   bool m_should_shutdown = false;
 
   // Window control
-  bool m_is_mouse_grabbed = false;
+  bool m_is_mouse_grabbed = true;
   bool m_is_mouse_on_cooldown = false;
   bool m_first_mouse = true;
   bool m_last_mouse_state = false;
