@@ -3,7 +3,7 @@
 #include <iostream>
 
 // my files
-#include "../shaders/shader.hh"
+#include "../shaders/shaderclass.hh"
 
 // stdlib
 #include <cmath>

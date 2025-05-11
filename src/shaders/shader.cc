@@ -2,7 +2,7 @@
 #include "../glad/glad.h"
 #include "../components/logging.hh"
 
-Shader::Shader(const std::string &vertexPath, const std::string &fragmentPath,
+Shader_old::Shader_old(const std::string &vertexPath, const std::string &fragmentPath,
                const std::string &geometryPath) {
 
   log_debug("initializing shader program.");
@@ -46,9 +46,9 @@ Shader::Shader(const std::string &vertexPath, const std::string &fragmentPath,
           geometryCode.empty() ? nullptr : geometryCode.c_str());
 }
 
-void Shader::use() { glUseProgram(ID); }
+void Shader_old::use() { glUseProgram(ID); }
 
-void Shader::compile(const char *vertexCode, const char *fragmentCode,
+void Shader_old::compile(const char *vertexCode, const char *fragmentCode,
                      const char *geometryCode) {
   unsigned int vertex, fragment, geometry;
 
@@ -105,14 +105,14 @@ void Shader::compile(const char *vertexCode, const char *fragmentCode,
   }
 }
 
-void Shader::setBool(const std::string &name, bool value) const {
+void Shader_old::setBool(const std::string &name, bool value) const {
   glUniform1i(glGetUniformLocation(ID, name.c_str()), (int)value);
 }
 
-void Shader::setInt(const std::string &name, int value) const {
+void Shader_old::setInt(const std::string &name, int value) const {
   glUniform1i(glGetUniformLocation(ID, name.c_str()), value);
 }
 
-void Shader::setFloat(const std::string &name, float value) const {
+void Shader_old::setFloat(const std::string &name, float value) const {
   glUniform1f(glGetUniformLocation(ID, name.c_str()), value);
 }

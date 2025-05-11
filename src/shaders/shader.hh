@@ -5,10 +5,10 @@
 #include <sstream>
 #include <iostream>
 
-class Shader {
+class Shader_old {
 public:
   
-  Shader(const std::string& vertexPath, const std::string& fragmentPath, const std::string& geometryPath = "");
+  Shader_old(const std::string& vertexPath, const std::string& fragmentPath, const std::string& geometryPath = "");
   
   void use();
   uint m_shader_id;

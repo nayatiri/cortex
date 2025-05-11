@@ -29,7 +29,7 @@
 #include "./components/importer.hh"
 #include "./components/material.hh"
 #include "./components/utility.hh"
-#include "./shaders/shader.hh"
+#include "shaders/shaderclass.hh"
 #include "components/light.hh"
 #include "components/logging.hh"
 #include "components/scene.hh"
@@ -59,8 +59,6 @@ void Renderer::mouse_callback(GLFWwindow *window, double xpos, double ypos) {
   if (!m_is_mouse_grabbed) {
     return;
   }
-
-  log_debug("mouse callback");
   
   float xoffset = xpos - m_lastX;
   float yoffset = m_lastY - ypos;
@@ -103,6 +101,8 @@ void Renderer::mouse_callback(GLFWwindow *window, double xpos, double ypos) {
   m_direction.y = sin(glm::radians(m_pitch));
   m_direction.z = sin(glm::radians(m_yaw)) * cos(glm::radians(m_pitch));
   m_cameraLookAt = glm::normalize(m_direction);
+  log_debug("mouse callback");
+
 }
 
 void Renderer::framebuffer_size_callback(GLFWwindow *window, int width,
@@ -241,9 +241,27 @@ Renderer::Renderer(uint window_width, uint window_height) {
   }
 
   /// SCENE SETUP
-  Mesh first_mesh = load_primitive_mesh_from_gltf("models/cube.gltf");
+  // Define the cube vertices
+    std::vector<float> cubeVerticesArray = {
+        -1.5f, -1.5f, -1.5f, // Vertex 0
+         1.5f, -1.5f, -1.5f, // Vertex 1
+         1.5f,  1.5f, -1.5f, // Vertex 2
+        -1.5f,  1.5f, -1.5f, // Vertex 3
+        -1.5f, -1.5f,  1.5f, // Vertex 4
+         1.5f, -1.5f,  1.5f, // Vertex 5
+         1.5f,  1.5f,  1.5f, // Vertex 6
+        -1.5f,  1.5f,  1.5f  // Vertex 7
+    };
+  
+  // You can now use cubeVertices in your OpenGL application
+    
+  Shader use_shader("src/shaders/shader_src/flat.vert","src/shaders/shader_src/flat.frag");
+  Material use_mat(E_FACE, use_shader);
+  Mesh first_mesh(use_mat);
+
+  first_mesh.m_vertices_array = cubeVerticesArray;
+  
   Entity first_entity;
-    Entity second_entity;
   first_entity.m_mesh.push_back(first_mesh);
 
   Scene main_scene;
@@ -394,9 +412,9 @@ Renderer::Renderer(uint window_width, uint window_height) {
     processInput(window);
 
     glViewport(0,0,window_width,window_height);    
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    //glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    //glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+    //    glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
     // bungie (deltatime)
     float currentFrame = glfwGetTime();
@@ -419,22 +437,21 @@ Renderer::Renderer(uint window_width, uint window_height) {
 
       for(auto& mesh : entity.m_mesh) {
 	
-	std::cout << "draw mesh: " << m_cameraPos.x << std::endl;
-	
 	mesh.m_material.m_shader.use();
 	
 	glm::mat4 mesh_transform = entity.m_model_matrix;
 
-	GLint model_mat_loc = glGetUniformLocation(mesh.m_material.m_shader.m_shader_id, "model");
-	glUniformMatrix3fv(model_mat_loc,1,GL_FALSE,glm::value_ptr(entity.m_model_matrix));
-
-	GLint camera_mat_loc = glGetUniformLocation(mesh.m_material.m_shader.m_shader_id, "view");
+	GLint model_mat_loc = glGetUniformLocation(mesh.m_material.m_shader.ID, "model");
+	glUniformMatrix3fv(model_mat_loc,1,GL_FALSE,glm::value_ptr(glm::mat4(1.0f)));
+	//TMP
+	
+	GLint camera_mat_loc = glGetUniformLocation(mesh.m_material.m_shader.ID, "view");
 	glUniformMatrix3fv(camera_mat_loc,1,GL_FALSE,glm::value_ptr(view_mat));
 
-        GLint camera_pos_loc = glGetUniformLocation(mesh.m_material.m_shader.m_shader_id, "viewPosition");
+        GLint camera_pos_loc = glGetUniformLocation(mesh.m_material.m_shader.ID, "viewPosition");
 	glUniform3f(camera_pos_loc, m_cameraPos.x,m_cameraPos.y,m_cameraPos.z);
 	
-	GLint projection_mat_loc = glGetUniformLocation(mesh.m_material.m_shader.m_shader_id, "projection");
+	GLint projection_mat_loc = glGetUniformLocation(mesh.m_material.m_shader.ID, "projection");
 	glUniformMatrix3fv(projection_mat_loc,1,GL_FALSE,glm::value_ptr(projection_mat));
 
         mesh.m_material.m_shader.use();

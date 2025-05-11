@@ -39,7 +39,7 @@ std::vector<float> calculate_vert_normals(std::vector<float> mesh_vertices) {
   std::vector<float> mesh_normals;
   size_t numVertices = mesh_vertices.size() / 3;
   vertexNormals.resize(numVertices, glm::vec3(0.0f));
-
+  mesh_normals.reserve(numVertices*3);
   for (size_t i = 0; i < mesh_vertices.size(); i += 9) {
 
     glm::vec3 v0(mesh_vertices[i], mesh_vertices[i + 1],
@@ -271,8 +271,8 @@ Mesh load_primitive_mesh_from_gltf(const std::string file_path) {
   // loading mesh data
   // TMP load flat shading
   Shader shader_to_use("src/shaders/shader_src/flat.vert",
-                       "src/shaders/shader_src/flat.frag",
-                       "");
+                       "src/shaders/shader_src/flat.frag");
+  
   Material mat_to_use(E_FACE, shader_to_use);
   Mesh primitive_mesh(mat_to_use);
   for (auto &found_mesh : model.meshes) {
