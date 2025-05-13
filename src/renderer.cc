@@ -120,9 +120,8 @@ void Renderer::processInput(GLFWwindow *window) {
     log_success("shutting down window.");
   }
 
-  //  float cameraSpeed = m_camera_base_speed * 10.0f * m_deltaTime;
-  float cameraSpeed = 10.0f;
-  // TMP
+  float cameraSpeed = m_camera_base_speed * 10.0f * m_deltaTime;
+
   if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
     m_cameraPos +=
         cameraSpeed *
@@ -477,7 +476,7 @@ Renderer::Renderer(uint window_width, uint window_height) {
 
     glViewport(0, 0, window_width, window_height);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    // glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+    glClearColor(0.3f, 0.3f, 0.3f, 1.0f);
     //     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
     // bungie (deltatime)
@@ -485,11 +484,11 @@ Renderer::Renderer(uint window_width, uint window_height) {
     m_deltaTime = currentFrame - m_lastFrame;
     m_lastFrame = currentFrame;
 
-    glm::mat4 view_mat = glm::lookAt(m_cameraPos, m_cameraLookAt, m_cameraUp);
+    glm::mat4 view_mat = glm::lookAt(m_cameraPos, m_cameraLookAt + m_cameraPos, m_cameraUp);
 
     // projection matrix
     int tmp_height = 0, tmp_width = 0;
-    glfwGetWindowSize(window, &tmp_height, &tmp_height);
+    glfwGetWindowSize(window, &tmp_width, &tmp_height);
     //    std::cout << tmp_height << " h - w " << tmp_width << std::endl;
     glm::mat4 projection_mat =
         glm::perspective(glm::radians(90.0f),
