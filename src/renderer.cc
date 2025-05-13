@@ -29,10 +29,10 @@
 #include "./components/importer.hh"
 #include "./components/material.hh"
 #include "./components/utility.hh"
-#include "shaders/shaderclass.hh"
 #include "components/light.hh"
 #include "components/logging.hh"
 #include "components/scene.hh"
+#include "shaders/shaderclass.hh"
 
 /////////////////////
 // CALLBACK FUNCTIONS
@@ -48,7 +48,7 @@ void Renderer::scroll_callback(GLFWwindow *window, double xoffset,
 
   m_camera_base_speed =
       m_camera_base_speed + static_cast<float>(yoffset) * 0.1f;
-  
+
   if (m_camera_base_speed < 0.1f) {
     m_camera_base_speed = 0.1f;
   }
@@ -59,7 +59,7 @@ void Renderer::mouse_callback(GLFWwindow *window, double xpos, double ypos) {
   if (!m_is_mouse_grabbed) {
     return;
   }
-  
+
   float xoffset = xpos - m_lastX;
   float yoffset = m_lastY - ypos;
 
@@ -101,8 +101,6 @@ void Renderer::mouse_callback(GLFWwindow *window, double xpos, double ypos) {
   m_direction.y = sin(glm::radians(m_pitch));
   m_direction.z = sin(glm::radians(m_yaw)) * cos(glm::radians(m_pitch));
   m_cameraLookAt = glm::normalize(m_direction);
-  log_debug("mouse callback");
-
 }
 
 void Renderer::framebuffer_size_callback(GLFWwindow *window, int width,
@@ -124,7 +122,7 @@ void Renderer::processInput(GLFWwindow *window) {
 
   //  float cameraSpeed = m_camera_base_speed * 10.0f * m_deltaTime;
   float cameraSpeed = 10.0f;
-  //TMP
+  // TMP
   if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
     m_cameraPos +=
         cameraSpeed *
@@ -205,7 +203,7 @@ Renderer::Renderer(uint window_width, uint window_height) {
   // setup
   glViewport(0, 0, window_width, window_height);
   glEnable(GL_DEPTH_TEST);
-
+  // TMP
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 
@@ -233,6 +231,11 @@ Renderer::Renderer(uint window_width, uint window_height) {
 
   glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
+  GLenum error = glGetError();
+  if (error != GL_NO_ERROR) {
+    log_error("error after setup!");
+  }
+
   // debug render mode
   if (m_render_mode_wireframe)
     glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
@@ -242,25 +245,66 @@ Renderer::Renderer(uint window_width, uint window_height) {
 
   /// SCENE SETUP
   // Define the cube vertices
-    std::vector<float> cubeVerticesArray = {
-        -1.5f, -1.5f, -1.5f, // Vertex 0
-         1.5f, -1.5f, -1.5f, // Vertex 1
-         1.5f,  1.5f, -1.5f, // Vertex 2
-        -1.5f,  1.5f, -1.5f, // Vertex 3
-        -1.5f, -1.5f,  1.5f, // Vertex 4
-         1.5f, -1.5f,  1.5f, // Vertex 5
-         1.5f,  1.5f,  1.5f, // Vertex 6
-        -1.5f,  1.5f,  1.5f  // Vertex 7
-    };
-  
+  std::vector<float> cubeVerticesArray = {
+      // Front face
+      -0.5f, -0.5f, 0.5f, // Bottom-left
+      0.5f, -0.5f, 0.5f,  // Bottom-right
+      0.5f, 0.5f, 0.5f,   // Top-right
+      0.5f, 0.5f, 0.5f,   // Top-right
+      -0.5f, 0.5f, 0.5f,  // Top-left
+      -0.5f, -0.5f, 0.5f, // Bottom-left
+
+      // Back face
+      -0.5f, -0.5f, -0.5f, // Bottom-left
+      -0.5f, 0.5f, -0.5f,  // Top-left
+      0.5f, 0.5f, -0.5f,   // Top-right
+      0.5f, 0.5f, -0.5f,   // Top-right
+      0.5f, -0.5f, -0.5f,  // Bottom-right
+      -0.5f, -0.5f, -0.5f, // Bottom-left
+
+      // Left face
+      -0.5f, -0.5f, -0.5f, // Bottom-back
+      -0.5f, -0.5f, 0.5f,  // Bottom-front
+      -0.5f, 0.5f, 0.5f,   // Top-front
+      -0.5f, 0.5f, 0.5f,   // Top-front
+      -0.5f, 0.5f, -0.5f,  // Top-back
+      -0.5f, -0.5f, -0.5f, // Bottom-back
+
+      // Right face
+      0.5f, -0.5f, -0.5f, // Bottom-back
+      0.5f, 0.5f, -0.5f,  // Top-back
+      0.5f, 0.5f, 0.5f,   // Top-front
+      0.5f, 0.5f, 0.5f,   // Top-front
+      0.5f, -0.5f, 0.5f,  // Bottom-front
+      0.5f, -0.5f, -0.5f, // Bottom-back
+
+      // Top face
+      -0.5f, 0.5f, 0.5f,  // Top-left-front
+      0.5f, 0.5f, 0.5f,   // Top-right-front
+      0.5f, 0.5f, -0.5f,  // Top-right-back
+      0.5f, 0.5f, -0.5f,  // Top-right-back
+      -0.5f, 0.5f, -0.5f, // Top-left-back
+      -0.5f, 0.5f, 0.5f,  // Top-left-front
+
+      // Bottom face
+      -0.5f, -0.5f, 0.5f,  // Bottom-left-front
+      -0.5f, -0.5f, -0.5f, // Bottom-left-back
+      0.5f, -0.5f, -0.5f,  // Bottom-right-back
+      0.5f, -0.5f, -0.5f,  // Bottom-right-back
+      0.5f, -0.5f, 0.5f,   // Bottom-right-front
+      -0.5f, -0.5f, 0.5f   // Bottom-left-front
+  };
+
   // You can now use cubeVertices in your OpenGL application
-    
-  Shader use_shader("src/shaders/shader_src/flat.vert","src/shaders/shader_src/flat.frag");
+
+  Shader use_shader("src/shaders/shader_src/flat.vert",
+                    "src/shaders/shader_src/flat.frag");
+  use_shader.use();
   Material use_mat(E_FACE, use_shader);
   Mesh first_mesh(use_mat);
 
   first_mesh.m_vertices_array = cubeVerticesArray;
-  
+
   Entity first_entity;
   first_entity.m_mesh.push_back(first_mesh);
 
@@ -271,11 +315,16 @@ Renderer::Renderer(uint window_width, uint window_height) {
   main_light.m_light_type = E_POINT_LIGHT;
   main_light.m_color = 0xFFFFFF;
   main_light.m_strength = 10;
-  
+
   m_loaded_scene.add_entity_to_scene(first_entity);
   m_loaded_scene.add_light_to_scene(main_light);
-  
+
   /// END SCENE SETUP
+
+  error = glGetError();
+  if (error != GL_NO_ERROR) {
+    log_error("error after scene init!");
+  }
 
   // prepare vbos of loaded scene, if it contains necessary items
   // TODO: move into function that can be called at runtime to update vbos
@@ -283,9 +332,9 @@ Renderer::Renderer(uint window_width, uint window_height) {
       m_loaded_scene.m_loaded_lights.size() > 0) {
 
     log_debug("Initializing VBOs for scene...");
-    for (auto& entity_to_render : m_loaded_scene.m_loaded_entities) {
+    for (auto &entity_to_render : m_loaded_scene.m_loaded_entities) {
       log_debug_sub("Found active scene.");
-      for (auto& mesh_of_entity : entity_to_render.m_mesh) {
+      for (auto &mesh_of_entity : entity_to_render.m_mesh) {
         log_debug_sub("Found mesh in active scene.");
         ////////////////////////////
         // GENERATE MISSING GEOMETRY
@@ -295,40 +344,41 @@ Renderer::Renderer(uint window_width, uint window_height) {
         mesh_of_entity.m_normals_array =
             calculate_vert_normals(mesh_of_entity.m_vertices_array);
 
-	if(mesh_of_entity.m_tex_coords_array.size() > 0) {
-	  
-	  // calculate vertex tangents / binormals
-	  tan_bin_glob retglob = calculate_vert_tan_bin(
-							mesh_of_entity.m_vertices_array, mesh_of_entity.m_normals_array,
-							mesh_of_entity.m_tex_coords_array);
-	  
-	  mesh_of_entity.m_binormals_array = retglob.vert_binormals;
-	  mesh_of_entity.m_tangents_array = retglob.vert_tangents;
-	  
-	} else {
+        if (mesh_of_entity.m_tex_coords_array.size() > 0) {
 
-	  log_error("imported mesh has missing UV coordinates, using fallback coords.");
+          // calculate vertex tangents / binormals
+          tan_bin_glob retglob = calculate_vert_tan_bin(
+              mesh_of_entity.m_vertices_array, mesh_of_entity.m_normals_array,
+              mesh_of_entity.m_tex_coords_array);
 
-	  mesh_of_entity.m_binormals_array.resize(mesh_of_entity.m_vertices_array.size());
-	  mesh_of_entity.m_tangents_array.resize(mesh_of_entity.m_vertices_array.size());
-	  
-	}
+          mesh_of_entity.m_binormals_array = retglob.vert_binormals;
+          mesh_of_entity.m_tangents_array = retglob.vert_tangents;
 
+        } else {
 
-	GLenum error = glGetError();
-	if (error != GL_NO_ERROR) {
-	  log_error("before vao!");
-	}
-	
+          log_error("imported mesh has missing UV coordinates, using fallback "
+                    "coords.");
+
+          mesh_of_entity.m_binormals_array.resize(
+              mesh_of_entity.m_vertices_array.size());
+          mesh_of_entity.m_tangents_array.resize(
+              mesh_of_entity.m_vertices_array.size());
+        }
+
+        error = glGetError();
+        if (error != GL_NO_ERROR) {
+          log_error("before vao!");
+        }
+
         // vao
         glGenVertexArrays(1, &mesh_of_entity.m_mesh_vao);
         glBindVertexArray(mesh_of_entity.m_mesh_vao);
-        
+
         error = glGetError();
-	if (error != GL_NO_ERROR) {
-	  log_error("couldnt create VAO for mesh!");
-	}
-	
+        if (error != GL_NO_ERROR) {
+          log_error("couldnt create VAO for mesh!");
+        }
+
         // vbo mesh (vertices)
         glGenBuffers(1, &mesh_of_entity.m_vertices_glid);
         glBindBuffer(GL_ARRAY_BUFFER, mesh_of_entity.m_vertices_glid);
@@ -338,9 +388,11 @@ Renderer::Renderer(uint window_width, uint window_height) {
         glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float),
                               (void *)0);
         glEnableVertexAttribArray(0);
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
 
         // vbo mesh (tex coords)
         // TODO fix layout of vertexattribpointer
+	
         glGenBuffers(1, &mesh_of_entity.m_tex_coords_glid);
         glBindBuffer(GL_ARRAY_BUFFER, mesh_of_entity.m_tex_coords_glid);
         glBufferData(GL_ARRAY_BUFFER,
@@ -349,6 +401,7 @@ Renderer::Renderer(uint window_width, uint window_height) {
         glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float),
                               (void *)0);
         glEnableVertexAttribArray(1);
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
 
         // vbo mesh (normals)
         glGenBuffers(1, &mesh_of_entity.m_normals_glid);
@@ -359,6 +412,7 @@ Renderer::Renderer(uint window_width, uint window_height) {
         glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float),
                               (void *)0);
         glEnableVertexAttribArray(2);
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
 
         // vbo mesh (tangents)
         glGenBuffers(1, &mesh_of_entity.m_tangents_glid);
@@ -369,6 +423,7 @@ Renderer::Renderer(uint window_width, uint window_height) {
         glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float),
                               (void *)0);
         glEnableVertexAttribArray(3);
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
 
         // vbo mesh (bitangents)
         glGenBuffers(1, &mesh_of_entity.m_binormals_glid);
@@ -379,105 +434,128 @@ Renderer::Renderer(uint window_width, uint window_height) {
         glVertexAttribPointer(4, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float),
                               (void *)0);
         glEnableVertexAttribArray(4);
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
       }
     }
 
     log_success("done initializing VBOs for all entities!");
 
-  }  else {
+  } else {
 
-    log_error("scene doesnt contain at least one light + entity, not initializing vbos");
+    log_error("scene doesnt contain at least one light + entity, not "
+              "initializing vbos");
+  }
 
+  error = glGetError();
+  if (error != GL_NO_ERROR) {
+    log_error("error after scene vbo creation!");
   }
 
   //////////////////////////////
-  //Initialize shader programs
+  // Initialize shader programs
   //////////////////////////////
 
-    log_debug("Initializing Shader Programs for scene...");
-    for (auto& entity_to_render : m_loaded_scene.m_loaded_entities) {
-      log_debug_sub("Found active scene.");
-      for (auto& mesh_of_entity : entity_to_render.m_mesh) {
-        log_debug_sub("Found meshmaterial in active scene.");
+  log_debug("Initializing Shader Programs for scene...");
+  for (auto &entity_to_render : m_loaded_scene.m_loaded_entities) {
+    log_debug_sub("Found active scene.");
+    for (auto &mesh_of_entity : entity_to_render.m_mesh) {
+      log_debug_sub("Found meshmaterial in active scene.");
 
-	mesh_of_entity.m_material.m_shader.use();
-
-      }
-
+      mesh_of_entity.m_material.m_shader.use();
     }
-  
+  }
+
+  error = glGetError();
+  if (error != GL_NO_ERROR) {
+    log_error("error after shader init!");
+  }
+
   // main render loop
   while (!glfwWindowShouldClose(window)) {
-    
+
     processInput(window);
 
-    glViewport(0,0,window_width,window_height);    
-    //glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    //glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
-    //    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    glViewport(0, 0, window_width, window_height);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    // glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+    //     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
     // bungie (deltatime)
     float currentFrame = glfwGetTime();
     m_deltaTime = currentFrame - m_lastFrame;
     m_lastFrame = currentFrame;
 
-    glm::mat4 view_mat = glm::lookAt(m_cameraPos,m_cameraLookAt + m_cameraPos , m_cameraUp);
+    glm::mat4 view_mat = glm::lookAt(m_cameraPos, m_cameraLookAt, m_cameraUp);
 
-        // projection matrix
+    // projection matrix
     int tmp_height = 0, tmp_width = 0;
     glfwGetWindowSize(window, &tmp_height, &tmp_height);
-    glm::mat4 projection_mat = glm::perspective(
-						glm::radians(120.0f),
-						(float)tmp_width / (float)tmp_height,
-						0.5f, 7.5f);
+    //    std::cout << tmp_height << " h - w " << tmp_width << std::endl;
+    glm::mat4 projection_mat =
+        glm::perspective(glm::radians(90.0f),
+                         (float)tmp_width / (float)tmp_height, 0.1f, 100.0f);
 
-    
     // render meshes
-    for(auto& entity : m_loaded_scene.m_loaded_entities) {
+    for (auto &entity : m_loaded_scene.m_loaded_entities) {
 
-      for(auto& mesh : entity.m_mesh) {
-	
-	mesh.m_material.m_shader.use();
-	
-	glm::mat4 mesh_transform = entity.m_model_matrix;
+      for (auto &mesh : entity.m_mesh) {
 
-	GLint model_mat_loc = glGetUniformLocation(mesh.m_material.m_shader.ID, "model");
-	glUniformMatrix3fv(model_mat_loc,1,GL_FALSE,glm::value_ptr(glm::mat4(1.0f)));
-	//TMP
-	
-	GLint camera_mat_loc = glGetUniformLocation(mesh.m_material.m_shader.ID, "view");
-	glUniformMatrix3fv(camera_mat_loc,1,GL_FALSE,glm::value_ptr(view_mat));
-
-        GLint camera_pos_loc = glGetUniformLocation(mesh.m_material.m_shader.ID, "viewPosition");
-	glUniform3f(camera_pos_loc, m_cameraPos.x,m_cameraPos.y,m_cameraPos.z);
-	
-	GLint projection_mat_loc = glGetUniformLocation(mesh.m_material.m_shader.ID, "projection");
-	glUniformMatrix3fv(projection_mat_loc,1,GL_FALSE,glm::value_ptr(projection_mat));
-
-        mesh.m_material.m_shader.use();
-
-	glBindVertexArray(mesh.m_mesh_vao);
-	if(glIsVertexArray(mesh.m_mesh_vao) == GL_FALSE) {
-	  log_error("no valid VAO id! cant render mesh.");
-	}
-
-	if (model_mat_loc == -1 || camera_mat_loc == -1 || projection_mat_loc == -1) {
-	  log_error("could not resolve uniform location for matrices. cant render mesh.");
+        glBindVertexArray(mesh.m_mesh_vao);
+        if (glIsVertexArray(mesh.m_mesh_vao) == GL_FALSE) {
+          log_error("no valid VAO id! cant render mesh.");
         }
 
-        glDrawArrays(GL_TRIANGLES,0,mesh.m_vertices_array.size());
+        mesh.m_material.m_shader.use();
+        use_shader.use();
+        // wrd
+        glm::mat4 mesh_transform = entity.m_model_matrix;
 
+        GLint model_mat_loc =
+            glGetUniformLocation(mesh.m_material.m_shader.ID, "model");
+        glUniformMatrix4fv(model_mat_loc, 1, GL_FALSE,
+                           glm::value_ptr(glm::mat4(1.0f)));
+        // TMP
+
+        GLint camera_mat_loc =
+            glGetUniformLocation(mesh.m_material.m_shader.ID, "view");
+        glUniformMatrix4fv(camera_mat_loc, 1, GL_FALSE,
+                           glm::value_ptr(view_mat));
+
+        GLint camera_pos_loc =
+            glGetUniformLocation(mesh.m_material.m_shader.ID, "viewPosition");
+        glUniform3f(camera_pos_loc, m_cameraPos.x, m_cameraPos.y,
+                    m_cameraPos.z);
+
+        GLint projection_mat_loc =
+            glGetUniformLocation(mesh.m_material.m_shader.ID, "projection");
+        glUniformMatrix4fv(projection_mat_loc, 1, GL_FALSE,
+                           glm::value_ptr(projection_mat));
+
+        mesh.m_material.m_shader.use();
+        use_shader.use();
+
+        if (model_mat_loc == -1 || camera_mat_loc == -1 ||
+            projection_mat_loc == -1) {
+          log_error("could not resolve uniform location for matrices. cant "
+                    "render mesh.");
+        }
+
+        glDrawArrays(GL_TRIANGLES, 0, mesh.m_vertices_array.size());
+
+        error = glGetError();
+        if (error != GL_NO_ERROR) {
+          log_error("error after rendering!");
+        }
       }
-
     }
-    
+
     // draw to schgween!!
     glfwSwapBuffers(window);
-    glfwPollEvents();    
+    glfwPollEvents();
   }
 
   log_success("shutdown signal recieved, ended gracefully.");
   glfwTerminate();
-  
+
   return;
 }

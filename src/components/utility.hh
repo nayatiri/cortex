@@ -2,7 +2,7 @@
 
 #include "../components/logging.hh"
 #include "../components/mesh.hh"
-#include "../shaders/shader.hh"
+#include "../shaders/shaderclass.hh"
 #include <GLFW/glfw3.h>
 #include <glm/ext/matrix_transform.hpp>
 #include <glm/ext/vector_float3.hpp>
