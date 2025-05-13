@@ -1,2 +1,29 @@
 *~
 *#*
+*.gch
+
+# === Precompiled Headers ===
+*.gch
+
+# === Object Files ===
+*.o
+*.obj
+
+# === Compiled Binary Files ===
+*.exe
+*.out
+*.app
+*.elf
+
+# === Dependency Files ===
+*.d
+
+# === Core Dumps ===
+core
+*.core
+
+# === Logs and Temp Files ===
+*.log
+*.tmp
+*.swp
+*.swo
