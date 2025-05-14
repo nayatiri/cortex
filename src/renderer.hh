@@ -30,6 +30,8 @@ public:
   bool m_is_mouse_on_cooldown = false;
   bool m_first_mouse = true;
   bool m_last_mouse_state = false;
+  int m_viewport_width = 1920;
+  int m_viewport_height = 1080;
   
   // camera
   float m_camera_base_speed = 1.0f;
@@ -64,6 +66,10 @@ public:
   static void framebuffer_size_callback(GLFWwindow *window, int width, int height);
   void processInput(GLFWwindow *window);
 
+  template <typename T> void upload_to_uniform(std::string location, GLuint shader_id, T input);
+
+  void init_scene_vbos();
+  
   /////////////////////
   // RENDER FUNCTIONS
   /////////////////////

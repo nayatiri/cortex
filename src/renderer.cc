@@ -1,6 +1,7 @@
 #include "renderer.hh"
 
 // components
+#include <glm/matrix.hpp>
 #include <iostream>
 
 #include "./glad/glad.h"
@@ -172,6 +173,147 @@ void Renderer::processInput(GLFWwindow *window) {
   return;
 }
 
+void Renderer::init_scene_vbos() {  // prepare vbos of loaded scene, if it contains necessary items
+  // TODO: move into function that can be called at runtime to update vbos
+  if (m_loaded_scene.m_loaded_entities.size() > 0 &&
+      m_loaded_scene.m_loaded_lights.size() > 0) {
+
+    log_debug("Initializing VBOs for scene...");
+    for (auto &entity_to_render : m_loaded_scene.m_loaded_entities) {
+      log_debug_sub("Found active scene.");
+      for (auto &mesh_of_entity : entity_to_render.m_mesh) {
+        log_debug_sub("Found mesh in active scene.");
+        ////////////////////////////
+        // GENERATE MISSING GEOMETRY
+        ////////////////////////////
+
+        // calculate mesh vertex normals + track vertex count for lolz
+        mesh_of_entity.m_normals_array =
+            calculate_vert_normals(mesh_of_entity.m_vertices_array);
+
+        if (mesh_of_entity.m_tex_coords_array.size() > 0) {
+
+          // calculate vertex tangents / binormals
+          tan_bin_glob retglob = calculate_vert_tan_bin(
+              mesh_of_entity.m_vertices_array, mesh_of_entity.m_normals_array,
+              mesh_of_entity.m_tex_coords_array);
+
+          mesh_of_entity.m_binormals_array = retglob.vert_binormals;
+          mesh_of_entity.m_tangents_array = retglob.vert_tangents;
+
+        } else {
+
+          log_error("imported mesh has missing UV coordinates, using fallback "
+                    "coords.");
+
+          mesh_of_entity.m_binormals_array.resize(
+              mesh_of_entity.m_vertices_array.size());
+          mesh_of_entity.m_tangents_array.resize(
+              mesh_of_entity.m_vertices_array.size());
+        }
+
+        GLint error = glGetError();
+        if (error != GL_NO_ERROR) {
+          log_error("before vao!");
+        }
+
+        // vao
+        glGenVertexArrays(1, &mesh_of_entity.m_mesh_vao);
+        glBindVertexArray(mesh_of_entity.m_mesh_vao);
+
+        error = glGetError();
+        if (error != GL_NO_ERROR) {
+          log_error("couldnt create VAO for mesh!");
+        }
+
+        // vbo mesh (vertices)
+        glGenBuffers(1, &mesh_of_entity.m_vertices_glid);
+        glBindBuffer(GL_ARRAY_BUFFER, mesh_of_entity.m_vertices_glid);
+        glBufferData(GL_ARRAY_BUFFER,
+                     mesh_of_entity.m_vertices_array.size() * sizeof(float),
+                     mesh_of_entity.m_vertices_array.data(), GL_STATIC_DRAW);
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float),
+                              (void *)0);
+        glEnableVertexAttribArray(0);
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+        // vbo mesh (tex coords)
+        glGenBuffers(1, &mesh_of_entity.m_tex_coords_glid);
+        glBindBuffer(GL_ARRAY_BUFFER, mesh_of_entity.m_tex_coords_glid);
+        glBufferData(GL_ARRAY_BUFFER,
+                     mesh_of_entity.m_tex_coords_array.size() * sizeof(float),
+                     mesh_of_entity.m_tex_coords_array.data(), GL_STATIC_DRAW);
+        glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float),
+                              (void *)0);
+        glEnableVertexAttribArray(1);
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+        // vbo mesh (normals)
+        glGenBuffers(1, &mesh_of_entity.m_normals_glid);
+        glBindBuffer(GL_ARRAY_BUFFER, mesh_of_entity.m_normals_glid);
+        glBufferData(GL_ARRAY_BUFFER,
+                     mesh_of_entity.m_normals_array.size() * sizeof(float),
+                     mesh_of_entity.m_normals_array.data(), GL_STATIC_DRAW);
+        glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float),
+                              (void *)0);
+        glEnableVertexAttribArray(2);
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+        // vbo mesh (tangents)
+        glGenBuffers(1, &mesh_of_entity.m_tangents_glid);
+        glBindBuffer(GL_ARRAY_BUFFER, mesh_of_entity.m_tangents_glid);
+        glBufferData(GL_ARRAY_BUFFER,
+                     mesh_of_entity.m_tangents_array.size() * sizeof(float),
+                     mesh_of_entity.m_tangents_array.data(), GL_STATIC_DRAW);
+        glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float),
+                              (void *)0);
+        glEnableVertexAttribArray(3);
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+        // vbo mesh (bitangents)
+        glGenBuffers(1, &mesh_of_entity.m_binormals_glid);
+        glBindBuffer(GL_ARRAY_BUFFER, mesh_of_entity.m_binormals_glid);
+        glBufferData(GL_ARRAY_BUFFER,
+                     mesh_of_entity.m_binormals_array.size() * sizeof(float),
+                     mesh_of_entity.m_binormals_array.data(), GL_STATIC_DRAW);
+        glVertexAttribPointer(4, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float),
+                              (void *)0);
+        glEnableVertexAttribArray(4);
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+      }
+    }
+
+    log_success("done initializing VBOs for all entities!");
+
+  } else {
+
+    log_error("scene doesnt contain at least one light + entity, not "
+              "initializing vbos");
+  }
+}
+
+template <typename T>
+void Renderer::upload_to_uniform(std::string location, GLuint shader_id, T input) {
+
+  GLuint loc = glGetUniformLocation(shader_id, location.c_str());
+  
+  if constexpr(std::is_same<T, glm::mat4>::value) {
+    glUniformMatrix4fv(loc , 1, GL_FALSE, glm::value_ptr(input) );
+  } else
+
+  if constexpr(std::is_same<T, glm::vec3>::value) {
+    glUniform3fv(loc, 1, glm::value_ptr(input) );
+  } else 
+
+  if constexpr(std::is_same<T, glm::mat3>::value) {
+    glUniformMatrix3fv(loc, 1, GL_FALSE, glm::value_ptr(input) );
+  } else {
+    log_error("unknown datatype passed to uniform!");
+  }
+  
+  
+};
+
 Renderer::Renderer(uint window_width, uint window_height) {
 
   m_cameraPos = glm::vec3(1.0f);
@@ -200,7 +342,7 @@ Renderer::Renderer(uint window_width, uint window_height) {
   }
 
   // setup
-  glViewport(0, 0, window_width, window_height);
+  glViewport(0, 0, m_viewport_width, m_viewport_height);
   glEnable(GL_DEPTH_TEST);
   // TMP
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
@@ -298,7 +440,7 @@ Renderer::Renderer(uint window_width, uint window_height) {
 
   Shader use_shader("src/shaders/shader_src/flat.vert",
                     "src/shaders/shader_src/flat.frag");
-  use_shader.use();
+  
   Material use_mat(E_FACE, use_shader);
   Mesh first_mesh(use_mat);
 
@@ -314,7 +456,8 @@ Renderer::Renderer(uint window_width, uint window_height) {
   main_light.m_light_type = E_POINT_LIGHT;
   main_light.m_color = 0xFFFFFF;
   main_light.m_strength = 10;
-
+  main_light.m_light_matrix = glm::translate(main_light.m_light_matrix, glm::vec3(10.0f,10.0f,0.0f));
+  
   m_loaded_scene.add_entity_to_scene(first_entity);
   m_loaded_scene.add_light_to_scene(main_light);
 
@@ -325,125 +468,8 @@ Renderer::Renderer(uint window_width, uint window_height) {
     log_error("error after scene init!");
   }
 
-  // prepare vbos of loaded scene, if it contains necessary items
-  // TODO: move into function that can be called at runtime to update vbos
-  if (m_loaded_scene.m_loaded_entities.size() > 0 &&
-      m_loaded_scene.m_loaded_lights.size() > 0) {
-
-    log_debug("Initializing VBOs for scene...");
-    for (auto &entity_to_render : m_loaded_scene.m_loaded_entities) {
-      log_debug_sub("Found active scene.");
-      for (auto &mesh_of_entity : entity_to_render.m_mesh) {
-        log_debug_sub("Found mesh in active scene.");
-        ////////////////////////////
-        // GENERATE MISSING GEOMETRY
-        ////////////////////////////
-
-        // calculate mesh vertex normals + track vertex count for lolz
-        mesh_of_entity.m_normals_array =
-            calculate_vert_normals(mesh_of_entity.m_vertices_array);
-
-        if (mesh_of_entity.m_tex_coords_array.size() > 0) {
-
-          // calculate vertex tangents / binormals
-          tan_bin_glob retglob = calculate_vert_tan_bin(
-              mesh_of_entity.m_vertices_array, mesh_of_entity.m_normals_array,
-              mesh_of_entity.m_tex_coords_array);
-
-          mesh_of_entity.m_binormals_array = retglob.vert_binormals;
-          mesh_of_entity.m_tangents_array = retglob.vert_tangents;
-
-        } else {
-
-          log_error("imported mesh has missing UV coordinates, using fallback "
-                    "coords.");
-
-          mesh_of_entity.m_binormals_array.resize(
-              mesh_of_entity.m_vertices_array.size());
-          mesh_of_entity.m_tangents_array.resize(
-              mesh_of_entity.m_vertices_array.size());
-        }
-
-        error = glGetError();
-        if (error != GL_NO_ERROR) {
-          log_error("before vao!");
-        }
-
-        // vao
-        glGenVertexArrays(1, &mesh_of_entity.m_mesh_vao);
-        glBindVertexArray(mesh_of_entity.m_mesh_vao);
-
-        error = glGetError();
-        if (error != GL_NO_ERROR) {
-          log_error("couldnt create VAO for mesh!");
-        }
-
-        // vbo mesh (vertices)
-        glGenBuffers(1, &mesh_of_entity.m_vertices_glid);
-        glBindBuffer(GL_ARRAY_BUFFER, mesh_of_entity.m_vertices_glid);
-        glBufferData(GL_ARRAY_BUFFER,
-                     mesh_of_entity.m_vertices_array.size() * sizeof(float),
-                     mesh_of_entity.m_vertices_array.data(), GL_STATIC_DRAW);
-        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float),
-                              (void *)0);
-        glEnableVertexAttribArray(0);
-        glBindBuffer(GL_ARRAY_BUFFER, 0);
-
-        // vbo mesh (tex coords)
-        // TODO fix layout of vertexattribpointer
-	
-        glGenBuffers(1, &mesh_of_entity.m_tex_coords_glid);
-        glBindBuffer(GL_ARRAY_BUFFER, mesh_of_entity.m_tex_coords_glid);
-        glBufferData(GL_ARRAY_BUFFER,
-                     mesh_of_entity.m_tex_coords_array.size() * sizeof(float),
-                     mesh_of_entity.m_tex_coords_array.data(), GL_STATIC_DRAW);
-        glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float),
-                              (void *)0);
-        glEnableVertexAttribArray(1);
-        glBindBuffer(GL_ARRAY_BUFFER, 0);
-
-        // vbo mesh (normals)
-        glGenBuffers(1, &mesh_of_entity.m_normals_glid);
-        glBindBuffer(GL_ARRAY_BUFFER, mesh_of_entity.m_normals_glid);
-        glBufferData(GL_ARRAY_BUFFER,
-                     mesh_of_entity.m_normals_array.size() * sizeof(float),
-                     mesh_of_entity.m_normals_array.data(), GL_STATIC_DRAW);
-        glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float),
-                              (void *)0);
-        glEnableVertexAttribArray(2);
-        glBindBuffer(GL_ARRAY_BUFFER, 0);
-
-        // vbo mesh (tangents)
-        glGenBuffers(1, &mesh_of_entity.m_tangents_glid);
-        glBindBuffer(GL_ARRAY_BUFFER, mesh_of_entity.m_tangents_glid);
-        glBufferData(GL_ARRAY_BUFFER,
-                     mesh_of_entity.m_tangents_array.size() * sizeof(float),
-                     mesh_of_entity.m_tangents_array.data(), GL_STATIC_DRAW);
-        glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float),
-                              (void *)0);
-        glEnableVertexAttribArray(3);
-        glBindBuffer(GL_ARRAY_BUFFER, 0);
-
-        // vbo mesh (bitangents)
-        glGenBuffers(1, &mesh_of_entity.m_binormals_glid);
-        glBindBuffer(GL_ARRAY_BUFFER, mesh_of_entity.m_binormals_glid);
-        glBufferData(GL_ARRAY_BUFFER,
-                     mesh_of_entity.m_binormals_array.size() * sizeof(float),
-                     mesh_of_entity.m_binormals_array.data(), GL_STATIC_DRAW);
-        glVertexAttribPointer(4, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float),
-                              (void *)0);
-        glEnableVertexAttribArray(4);
-        glBindBuffer(GL_ARRAY_BUFFER, 0);
-      }
-    }
-
-    log_success("done initializing VBOs for all entities!");
-
-  } else {
-
-    log_error("scene doesnt contain at least one light + entity, not "
-              "initializing vbos");
-  }
+  //initialize scene vbos
+  init_scene_vbos();
 
   error = glGetError();
   if (error != GL_NO_ERROR) {
@@ -474,12 +500,12 @@ Renderer::Renderer(uint window_width, uint window_height) {
 
     processInput(window);
 
-    glViewport(0, 0, window_width, window_height);
+    glViewport(0, 0, m_viewport_width, m_viewport_height);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glClearColor(0.3f, 0.3f, 0.3f, 1.0f);
-    //     glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-    // bungie (deltatime)
+    // bungie employees hate this simple trick
     float currentFrame = glfwGetTime();
     m_deltaTime = currentFrame - m_lastFrame;
     m_lastFrame = currentFrame;
@@ -487,13 +513,12 @@ Renderer::Renderer(uint window_width, uint window_height) {
     glm::mat4 view_mat = glm::lookAt(m_cameraPos, m_cameraLookAt + m_cameraPos, m_cameraUp);
 
     // projection matrix
-    int tmp_height = 0, tmp_width = 0;
-    glfwGetWindowSize(window, &tmp_width, &tmp_height);
+    glfwGetWindowSize(window, &m_viewport_width, &m_viewport_height);
     //    std::cout << tmp_height << " h - w " << tmp_width << std::endl;
     glm::mat4 projection_mat =
-        glm::perspective(glm::radians(90.0f),
-                         (float)tmp_width / (float)tmp_height, 0.1f, 100.0f);
-
+      glm::perspective(glm::radians(90.0f),
+		       (float)m_viewport_width / (float)m_viewport_height, 0.1f, 100.0f);
+    
     // render meshes
     for (auto &entity : m_loaded_scene.m_loaded_entities) {
 
@@ -503,42 +528,22 @@ Renderer::Renderer(uint window_width, uint window_height) {
         if (glIsVertexArray(mesh.m_mesh_vao) == GL_FALSE) {
           log_error("no valid VAO id! cant render mesh.");
         }
-
         mesh.m_material.m_shader.use();
-        use_shader.use();
-        // wrd
-        glm::mat4 mesh_transform = entity.m_model_matrix;
 
-        GLint model_mat_loc =
-            glGetUniformLocation(mesh.m_material.m_shader.ID, "model");
-        glUniformMatrix4fv(model_mat_loc, 1, GL_FALSE,
-                           glm::value_ptr(glm::mat4(1.0f)));
-        // TMP
+	//TMP ghetto light + color
+	glm::vec3 light_position(m_loaded_scene.m_loaded_lights[0].m_light_matrix[3][0],
+				 m_loaded_scene.m_loaded_lights[0].m_light_matrix[3][1],
+				 m_loaded_scene.m_loaded_lights[0].m_light_matrix[3][2]);	
 
-        GLint camera_mat_loc =
-            glGetUniformLocation(mesh.m_material.m_shader.ID, "view");
-        glUniformMatrix4fv(camera_mat_loc, 1, GL_FALSE,
-                           glm::value_ptr(view_mat));
-
-        GLint camera_pos_loc =
-            glGetUniformLocation(mesh.m_material.m_shader.ID, "viewPosition");
-        glUniform3f(camera_pos_loc, m_cameraPos.x, m_cameraPos.y,
-                    m_cameraPos.z);
-
-        GLint projection_mat_loc =
-            glGetUniformLocation(mesh.m_material.m_shader.ID, "projection");
-        glUniformMatrix4fv(projection_mat_loc, 1, GL_FALSE,
-                           glm::value_ptr(projection_mat));
-
-        mesh.m_material.m_shader.use();
-        use_shader.use();
-
-        if (model_mat_loc == -1 || camera_mat_loc == -1 ||
-            projection_mat_loc == -1) {
-          log_error("could not resolve uniform location for matrices. cant "
-                    "render mesh.");
-        }
-
+	upload_to_uniform("surfaceColor", mesh.m_material.m_shader.ID, glm::vec3(0.5,0.8,0.2));
+	
+	//upload matrices
+	upload_to_uniform("model", mesh.m_material.m_shader.ID , entity.m_model_matrix);
+	upload_to_uniform("view", mesh.m_material.m_shader.ID , view_mat);
+	upload_to_uniform("viewPosition", mesh.m_material.m_shader.ID , m_cameraPos);
+	upload_to_uniform("projection", mesh.m_material.m_shader.ID , projection_mat);
+	upload_to_uniform("lightPosition", mesh.m_material.m_shader.ID , light_position);
+		
         glDrawArrays(GL_TRIANGLES, 0, mesh.m_vertices_array.size());
 
         error = glGetError();

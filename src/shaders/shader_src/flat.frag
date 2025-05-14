@@ -18,7 +18,7 @@ void main()
     float diff = max(dot(normal, lightDir), 0.0);
 
     vec3 finalColor = surfaceColor * diff;
-
+    
     color = vec4(finalColor, 1.0);
-
+    
 }

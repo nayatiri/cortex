@@ -35,6 +35,6 @@ public:
   float m_strength;
   uint64_t m_color;
 
-  glm::mat4 m_light_matrix;
+  glm::mat4 m_light_matrix = glm::mat4(1.0f);
   
 };

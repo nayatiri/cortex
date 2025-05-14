@@ -38,6 +38,6 @@ public:
   
   std::vector<Mesh> m_mesh;
 
-  glm::mat4 m_model_matrix;
+  glm::mat4 m_model_matrix = glm::mat4(1.0f);
   
 };
