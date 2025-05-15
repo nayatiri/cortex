@@ -151,15 +151,13 @@ void Renderer::processInput(GLFWwindow *window) {
 
   if (glfwGetKey(window, GLFW_KEY_G) == GLFW_PRESS) {
     if (m_last_mouse_state == false) {
-      m_is_mouse_grabbed = !m_is_mouse_grabbed; // Toggle the state
+      m_is_mouse_grabbed = !m_is_mouse_grabbed;
       if (m_is_mouse_grabbed) {
         m_is_mouse_on_cooldown = true;
-        glfwSetInputMode(window, GLFW_CURSOR,
-                         GLFW_CURSOR_DISABLED); // Grab the mouse
+        glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
       } else {
         m_is_mouse_on_cooldown = true;
-        glfwSetInputMode(window, GLFW_CURSOR,
-                         GLFW_CURSOR_NORMAL); // Release the mouse
+        glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
       }
       m_last_mouse_state = true;
     }
@@ -173,16 +171,21 @@ void Renderer::processInput(GLFWwindow *window) {
   return;
 }
 
-void Renderer::init_scene_vbos() {  // prepare vbos of loaded scene, if it contains necessary items
-  // TODO: move into function that can be called at runtime to update vbos
-  if (m_loaded_scene.m_loaded_entities.size() > 0 &&
-      m_loaded_scene.m_loaded_lights.size() > 0) {
+void Renderer::init_scene_vbos() {
+
+  if (m_active_scene.m_loaded_entities.size() > 0 &&
+      m_active_scene.m_loaded_lights.size() > 0) {
 
     log_debug("Initializing VBOs for scene...");
-    for (auto &entity_to_render : m_loaded_scene.m_loaded_entities) {
+    for (auto &entity_to_render : m_active_scene.m_loaded_entities) {
       log_debug_sub("Found active scene.");
       for (auto &mesh_of_entity : entity_to_render.m_mesh) {
+
+        if (!mesh_of_entity.m_mesh_vbo_needs_refresh)
+          return;
+
         log_debug_sub("Found mesh in active scene.");
+
         ////////////////////////////
         // GENERATE MISSING GEOMETRY
         ////////////////////////////
@@ -280,6 +283,8 @@ void Renderer::init_scene_vbos() {  // prepare vbos of loaded scene, if it conta
                               (void *)0);
         glEnableVertexAttribArray(4);
         glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+        mesh_of_entity.m_mesh_vbo_needs_refresh = false;
       }
     }
 
@@ -293,25 +298,24 @@ void Renderer::init_scene_vbos() {  // prepare vbos of loaded scene, if it conta
 }
 
 template <typename T>
-void Renderer::upload_to_uniform(std::string location, GLuint shader_id, T input) {
+void Renderer::upload_to_uniform(std::string location, GLuint shader_id,
+                                 T input) {
 
   GLuint loc = glGetUniformLocation(shader_id, location.c_str());
-  
-  if constexpr(std::is_same<T, glm::mat4>::value) {
-    glUniformMatrix4fv(loc , 1, GL_FALSE, glm::value_ptr(input) );
+
+  if constexpr (std::is_same<T, glm::mat4>::value) {
+    glUniformMatrix4fv(loc, 1, GL_FALSE, glm::value_ptr(input));
   } else
 
-  if constexpr(std::is_same<T, glm::vec3>::value) {
-    glUniform3fv(loc, 1, glm::value_ptr(input) );
-  } else 
+      if constexpr (std::is_same<T, glm::vec3>::value) {
+    glUniform3fv(loc, 1, glm::value_ptr(input));
+  } else
 
-  if constexpr(std::is_same<T, glm::mat3>::value) {
-    glUniformMatrix3fv(loc, 1, GL_FALSE, glm::value_ptr(input) );
+      if constexpr (std::is_same<T, glm::mat3>::value) {
+    glUniformMatrix3fv(loc, 1, GL_FALSE, glm::value_ptr(input));
   } else {
     log_error("unknown datatype passed to uniform!");
   }
-  
-  
 };
 
 Renderer::Renderer(uint window_width, uint window_height) {
@@ -440,26 +444,42 @@ Renderer::Renderer(uint window_width, uint window_height) {
 
   Shader use_shader("src/shaders/shader_src/phong.vert",
                     "src/shaders/shader_src/phong.frag");
-  
   Material use_mat(E_FACE, use_shader);
   Mesh first_mesh(use_mat);
-
   first_mesh.m_vertices_array = cubeVerticesArray;
-
   Entity first_entity;
+  first_entity.m_model_matrix =
+      glm::translate(first_entity.m_model_matrix, glm::vec3(0.0f, 4.0f, 0.0f));
   first_entity.m_mesh.push_back(first_mesh);
 
+  Entity second_entity;
+  Mesh imported_mesh =
+      testing_load_primitive_mesh_from_gltf("models/cube.gltf");
+  second_entity.m_mesh.push_back(imported_mesh);
+  second_entity.m_model_matrix =
+      glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 0.0f));
+  for (size_t i = 0;
+       i < 12 && i < second_entity.m_mesh[0].m_vertices_array.size(); ++i) {
+    std::cout << "Entry " << i + 1 << ": "
+              << second_entity.m_mesh[0].m_vertices_array[i] << std::endl;
+  }
+
+  // TMP
+  glDisable(GL_CULL_FACE);
+
   Scene main_scene;
-  m_loaded_scene = main_scene;
+  m_active_scene = main_scene;
 
   Light main_light;
   main_light.m_light_type = E_POINT_LIGHT;
   main_light.m_color = 0xFFFFFF;
   main_light.m_strength = 10;
-  main_light.m_light_matrix = glm::translate(main_light.m_light_matrix, glm::vec3(10.0f,10.0f,0.0f));
-  
-  m_loaded_scene.add_entity_to_scene(first_entity);
-  m_loaded_scene.add_light_to_scene(main_light);
+  main_light.m_light_matrix =
+      glm::translate(main_light.m_light_matrix, glm::vec3(10.0f, 10.0f, 0.0f));
+
+  m_active_scene.add_entity_to_scene(first_entity);
+  m_active_scene.add_entity_to_scene(second_entity);
+  m_active_scene.add_light_to_scene(main_light);
 
   /// END SCENE SETUP
 
@@ -468,7 +488,7 @@ Renderer::Renderer(uint window_width, uint window_height) {
     log_error("error after scene init!");
   }
 
-  //initialize scene vbos
+  // initialize scene vbos
   init_scene_vbos();
 
   error = glGetError();
@@ -481,7 +501,7 @@ Renderer::Renderer(uint window_width, uint window_height) {
   //////////////////////////////
 
   log_debug("Initializing Shader Programs for scene...");
-  for (auto &entity_to_render : m_loaded_scene.m_loaded_entities) {
+  for (auto &entity_to_render : m_active_scene.m_loaded_entities) {
     log_debug_sub("Found active scene.");
     for (auto &mesh_of_entity : entity_to_render.m_mesh) {
       log_debug_sub("Found meshmaterial in active scene.");
@@ -510,48 +530,60 @@ Renderer::Renderer(uint window_width, uint window_height) {
     m_deltaTime = currentFrame - m_lastFrame;
     m_lastFrame = currentFrame;
 
-    glm::mat4 view_mat = glm::lookAt(m_cameraPos, m_cameraLookAt + m_cameraPos, m_cameraUp);
+    glm::mat4 view_mat =
+        glm::lookAt(m_cameraPos, m_cameraLookAt + m_cameraPos, m_cameraUp);
 
     // projection matrix
     glfwGetWindowSize(window, &m_viewport_width, &m_viewport_height);
-    //    std::cout << tmp_height << " h - w " << tmp_width << std::endl;
-    glm::mat4 projection_mat =
-      glm::perspective(glm::radians(90.0f),
-		       (float)m_viewport_width / (float)m_viewport_height, 0.1f, 100.0f);
-    
+    glm::mat4 projection_mat = glm::perspective(
+        glm::radians(90.0f), (float)m_viewport_width / (float)m_viewport_height,
+        0.1f, 100.0f);
+
+    ////////////////
+    // pre scene adjustments
+    ///////////////
+
+    m_active_scene.m_loaded_entities[1].m_model_matrix = hipster_rotation_bullshit(m_lastFrame);
+
     // render meshes
-    for (auto &entity : m_loaded_scene.m_loaded_entities) {
+    for (auto &entity : m_active_scene.m_loaded_entities) {
 
       for (auto &mesh : entity.m_mesh) {
 
+        // bind meshes vao context
         glBindVertexArray(mesh.m_mesh_vao);
         if (glIsVertexArray(mesh.m_mesh_vao) == GL_FALSE) {
           log_error("no valid VAO id! cant render mesh.");
         }
         mesh.m_material.m_shader.use();
 
-	//TMP ghetto light + color 
-	std::cout << m_deltaTime << std::endl;
-	m_loaded_scene.m_loaded_lights[0].m_light_matrix = glm::translate(glm::mat4(1.0f), glm::vec3(cos(m_lastFrame/10)* 10, sin(m_lastFrame/10) * 10, 2.0f) );
-	
-	glm::vec3 light_position(m_loaded_scene.m_loaded_lights[0].m_light_matrix[3][0],
-				 m_loaded_scene.m_loaded_lights[0].m_light_matrix[3][1],
-				 m_loaded_scene.m_loaded_lights[0].m_light_matrix[3][2]);	
+        // TMP ghetto light + color
+        m_active_scene.m_loaded_lights[0].m_light_matrix = glm::translate(
+            glm::mat4(1.0f), glm::vec3(cos(m_lastFrame / 10) * 10, 2.0f,
+                                       sin(m_lastFrame / 10) * 10));
+        glm::vec3 light_position(
+            m_active_scene.m_loaded_lights[0].m_light_matrix[3][0],
+            m_active_scene.m_loaded_lights[0].m_light_matrix[3][1],
+            m_active_scene.m_loaded_lights[0].m_light_matrix[3][2]);
+        upload_to_uniform("objectColor", mesh.m_material.m_shader.ID,
+                          glm::vec3(0.5, 0.8, 0.2));
+        upload_to_uniform("lightColor", mesh.m_material.m_shader.ID,
+                          glm::vec3(0.8, 0.8, 0.8));
 
-	upload_to_uniform("objectColor", mesh.m_material.m_shader.ID, glm::vec3(0.5,0.8,0.2));
-	upload_to_uniform("lightColor", mesh.m_material.m_shader.ID, glm::vec3(0.8,0.8,0.8));
-	
-	
+        // upload matrices TMP: model matrix is I
+        upload_to_uniform("model", mesh.m_material.m_shader.ID,
+                          entity.m_model_matrix);
 
-	
-	//upload matrices
-	upload_to_uniform("model", mesh.m_material.m_shader.ID , entity.m_model_matrix);
-	upload_to_uniform("view", mesh.m_material.m_shader.ID , view_mat);
-	upload_to_uniform("viewPosition", mesh.m_material.m_shader.ID , m_cameraPos);
-	upload_to_uniform("projection", mesh.m_material.m_shader.ID , projection_mat);
-	upload_to_uniform("lightPosition", mesh.m_material.m_shader.ID , light_position);
-	upload_to_uniform("viewPos", mesh.m_material.m_shader.ID, m_cameraPos );
-	
+        upload_to_uniform("view", mesh.m_material.m_shader.ID, view_mat);
+        upload_to_uniform("viewPosition", mesh.m_material.m_shader.ID,
+                          m_cameraPos);
+        upload_to_uniform("projection", mesh.m_material.m_shader.ID,
+                          projection_mat);
+        upload_to_uniform("lightPosition", mesh.m_material.m_shader.ID,
+                          light_position);
+        upload_to_uniform("viewPos", mesh.m_material.m_shader.ID, m_cameraPos);
+
+        // we renderin
         glDrawArrays(GL_TRIANGLES, 0, mesh.m_vertices_array.size());
 
         error = glGetError();
@@ -561,7 +593,7 @@ Renderer::Renderer(uint window_width, uint window_height) {
       }
     }
 
-    // draw to schgween!!
+    // draw to screen
     glfwSwapBuffers(window);
     glfwPollEvents();
   }

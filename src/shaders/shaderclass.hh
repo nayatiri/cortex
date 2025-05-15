@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../glad/glad.h"
+#include "../components/logging.hh"
 
 #include <string>
 #include <fstream>
@@ -70,8 +71,8 @@ public:
     // activate the shader
     // ------------------------------------------------------------------------
     void use() 
-    { 
-        glUseProgram(ID); 
+    {
+      glUseProgram(ID); 
     }
     // utility uniform functions
     // ------------------------------------------------------------------------

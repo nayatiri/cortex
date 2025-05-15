@@ -54,8 +54,7 @@ public:
   float m_render_mode_wireframe = false;
 
   // Scene management
-
-  Scene m_loaded_scene;
+  Scene m_active_scene;
   
   /////////////////////
   // CALLBACK FUNCTIONS

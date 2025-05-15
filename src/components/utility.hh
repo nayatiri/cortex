@@ -4,6 +4,7 @@
 #include "../components/mesh.hh"
 #include "../shaders/shaderclass.hh"
 #include <GLFW/glfw3.h>
+#include <bits/types/locale_t.h>
 #include <glm/ext/matrix_transform.hpp>
 #include <glm/ext/vector_float3.hpp>
 #include <glm/geometric.hpp>
@@ -39,7 +40,7 @@ std::vector<float> calculate_vert_normals(std::vector<float> mesh_vertices) {
   std::vector<float> mesh_normals;
   size_t numVertices = mesh_vertices.size() / 3;
   vertexNormals.resize(numVertices, glm::vec3(0.0f));
-  mesh_normals.reserve(numVertices*3);
+  mesh_normals.reserve(numVertices * 3);
   for (size_t i = 0; i < mesh_vertices.size(); i += 9) {
 
     glm::vec3 v0(mesh_vertices[i], mesh_vertices[i + 1],
@@ -203,7 +204,6 @@ GLuint bind_texture_to_slot(std::string to_load, unsigned int slot) {
 }
 
 Mesh load_primitive_mesh_from_gltf(const std::string file_path) {
-
   tinygltf::Model model;
   tinygltf::TinyGLTF loader;
 
@@ -220,113 +220,282 @@ Mesh load_primitive_mesh_from_gltf(const std::string file_path) {
     printf("Err: %s\n", err.c_str());
   }
 
-  // loading material data
   for (const auto &material : model.materials) {
     std::cout << "Material Name: " << material.name << std::endl;
-    // Base color texture
+
     if (material.values.find("baseColorTexture") != material.values.end()) {
-      const auto &baseColorTexture =
-          material.values.at("baseColorTexture").TextureIndex();
-      if (baseColorTexture >= 0) {
-        const auto &texture = model.textures[baseColorTexture];
-        std::cout << "Base Color Texture: " << texture.source << std::endl;
-      }
+      int idx = material.values.at("baseColorTexture").TextureIndex();
+      if (idx >= 0)
+        std::cout << "Base Color Texture: " << model.textures[idx].source
+                  << std::endl;
     }
 
-    // Normal texture
     if (material.values.find("normalTexture") != material.values.end()) {
-      const auto &normalTexture =
-          material.values.at("normalTexture").TextureIndex();
-      if (normalTexture >= 0) {
-        const auto &texture = model.textures[normalTexture];
-        std::cout << "Normal Texture: " << texture.source << std::endl;
-      }
+      int idx = material.values.at("normalTexture").TextureIndex();
+      if (idx >= 0)
+        std::cout << "Normal Texture: " << model.textures[idx].source
+                  << std::endl;
     }
 
-    // Metallic roughness texture
     if (material.values.find("metallicRoughnessTexture") !=
         material.values.end()) {
-      const auto &metallicRoughnessTexture =
-          material.values.at("metallicRoughnessTexture").TextureIndex();
-      if (metallicRoughnessTexture >= 0) {
-        const auto &texture = model.textures[metallicRoughnessTexture];
-        std::cout << "Metallic Roughness Texture: " << texture.source
-                  << std::endl;
-      }
+      int idx = material.values.at("metallicRoughnessTexture").TextureIndex();
+      if (idx >= 0)
+        std::cout << "Metallic Roughness Texture: "
+                  << model.textures[idx].source << std::endl;
     }
 
-    // Occlusion texture
     if (material.values.find("occlusionTexture") != material.values.end()) {
-      const auto &occlusionTexture =
-          material.values.at("occlusionTexture").TextureIndex();
-      if (occlusionTexture >= 0) {
-        const auto &texture = model.textures[occlusionTexture];
-        std::cout << "Occlusion Texture: " << texture.source << std::endl;
-      }
+      int idx = material.values.at("occlusionTexture").TextureIndex();
+      if (idx >= 0)
+        std::cout << "Occlusion Texture: " << model.textures[idx].source
+                  << std::endl;
     }
-
-    // Additional properties can be accessed similarly
   }
 
-  // loading mesh data
-  // TMP load flat shading
-  Shader shader_to_use("src/shaders/shader_src/flat.vert",
-                       "src/shaders/shader_src/flat.frag");
-  
+  Shader shader_to_use("src/shaders/shader_src/phong.vert",
+                       "src/shaders/shader_src/phong.frag");
   Material mat_to_use(E_FACE, shader_to_use);
   Mesh primitive_mesh(mat_to_use);
+
   for (auto &found_mesh : model.meshes) {
+    std::cout << "Found mesh, deserializing..." << std::endl;
 
-    std::cout << "found a  mesh in file, deserializing..." << std::endl;
+    for (auto &primitive : found_mesh.primitives) {
+      std::cout << "Found primitive, deserializing..." << std::endl;
 
-    for (auto &mesh_primitives : found_mesh.primitives) {
+      const auto &posAccessor =
+          model.accessors[primitive.attributes["POSITION"]];
+      const auto &posBufferView = model.bufferViews[posAccessor.bufferView];
+      const auto &posBuffer = model.buffers[posBufferView.buffer];
+      const float *positions = reinterpret_cast<const float *>(
+          &posBuffer.data[posBufferView.byteOffset + posAccessor.byteOffset]);
 
-      std::cout << "found a  primitive in mesh , deserializing..." << std::endl;
-
-      if (mesh_primitives.attributes.find("POSITION") !=
-          mesh_primitives.attributes.end()) {
-        int accessorIndex = mesh_primitives.attributes.at("POSITION");
-        const tinygltf::Accessor &accessor = model.accessors[accessorIndex];
-        const tinygltf::BufferView &bufferView =
-            model.bufferViews[accessor.bufferView];
-        const tinygltf::Buffer &buffer = model.buffers[bufferView.buffer];
-
-        size_t vertexCount = accessor.count;
-        size_t byteStride = accessor.ByteStride(bufferView);
-        const float *data = reinterpret_cast<const float *>(
-            &buffer.data[bufferView.byteOffset + accessor.byteOffset]);
-
-        primitive_mesh.m_vertices_array.reserve(vertexCount * 3 + 1);
-        primitive_mesh.m_vertices_array.assign(
-            data,
-            data + vertexCount * 3); // Assuming 3 floats per vertex (x, y, z)
-      }
-
-      if (mesh_primitives.attributes.find("NORMAL") !=
-          mesh_primitives.attributes.end()) {
-        int normalAccessorIndex = mesh_primitives.attributes.at("NORMAL");
-        const tinygltf::Accessor &normalAccessor =
-            model.accessors[normalAccessorIndex];
-        const tinygltf::BufferView &normalBufferView =
+      const float *normals = nullptr;
+      if (primitive.attributes.find("NORMAL") != primitive.attributes.end()) {
+        const auto &normalAccessor =
+            model.accessors[primitive.attributes["NORMAL"]];
+        const auto &normalBufferView =
             model.bufferViews[normalAccessor.bufferView];
-        const tinygltf::Buffer &normalBuffer =
-            model.buffers[normalBufferView.buffer];
-
-        // Calculate the number of normals
-        size_t normalCount = normalAccessor.count;
-        const float *normalDataPtr = reinterpret_cast<const float *>(
+        const auto &normalBuffer = model.buffers[normalBufferView.buffer];
+        normals = reinterpret_cast<const float *>(
             &normalBuffer.data[normalBufferView.byteOffset +
                                normalAccessor.byteOffset]);
-
-        // Copy normal data into the vector
-        primitive_mesh.m_normals_array.reserve(normalCount * 3 + 1);
-        primitive_mesh.m_normals_array.assign(
-            normalDataPtr,
-            normalDataPtr +
-                normalCount * 3); // Assuming 3 floats per normal (nx, ny, nz)
       }
+
+      std::vector<float> final_vertices;
+      std::vector<float> final_normals;
+
+      if (primitive.indices >= 0) {
+        const auto &indexAccessor = model.accessors[primitive.indices];
+        const auto &indexBufferView =
+            model.bufferViews[indexAccessor.bufferView];
+        const auto &indexBuffer = model.buffers[indexBufferView.buffer];
+        const void *indexData =
+            &indexBuffer
+                 .data[indexBufferView.byteOffset + indexAccessor.byteOffset];
+
+        for (size_t i = 0; i < indexAccessor.count; ++i) {
+          uint32_t index = 0;
+
+          // ich krig nen knax
+          switch (indexAccessor.componentType) {
+          case TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE:
+            index = reinterpret_cast<const uint8_t *>(indexData)[i];
+            break;
+          case TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT:
+            index = reinterpret_cast<const uint16_t *>(indexData)[i];
+            break;
+          case TINYGLTF_COMPONENT_TYPE_UNSIGNED_INT:
+            index = reinterpret_cast<const uint32_t *>(indexData)[i];
+            break;
+          default:
+            std::cerr << "Unsupported index type in GLTF" << std::endl;
+            return primitive_mesh;
+          }
+
+          final_vertices.push_back(positions[index * 3 + 0]);
+          final_vertices.push_back(positions[index * 3 + 1]);
+          final_vertices.push_back(positions[index * 3 + 2]);
+
+          if (normals) {
+            final_normals.push_back(normals[index * 3 + 0]);
+            final_normals.push_back(normals[index * 3 + 1]);
+            final_normals.push_back(normals[index * 3 + 2]);
+          }
+        }
+
+      } else {
+
+        final_vertices.assign(positions, positions + posAccessor.count * 3);
+        if (normals) {
+          const auto &normalAccessor =
+              model.accessors[primitive.attributes["NORMAL"]];
+          final_normals.assign(normals, normals + normalAccessor.count * 3);
+        }
+      }
+
+      primitive_mesh.m_vertices_array = std::move(final_vertices);
+      primitive_mesh.m_normals_array = std::move(final_normals);
     }
   }
 
+  log_success(
+      "gltf file successfully loaded with de-indexed data, returning mesh!");
   return primitive_mesh;
+}
+
+Mesh testing_load_primitive_mesh_from_gltf(const std::string file_path) {
+  tinygltf::Model model;
+  tinygltf::TinyGLTF loader;
+  std::string err, warn;
+
+  bool ret = loader.LoadASCIIFromFile(&model, &err, &warn, file_path);
+
+  if (!warn.empty())
+    printf("Warn: %s\n", warn.c_str());
+  if (!err.empty())
+    printf("Err: %s\n", err.c_str());
+
+  Shader shader_to_use("src/shaders/shader_src/phong.vert",
+                       "src/shaders/shader_src/phong.frag");
+  Material mat_to_use(E_FACE, shader_to_use);
+  Mesh primitive_mesh(mat_to_use);
+
+  for (const auto &found_mesh : model.meshes) {
+    for (const auto &primitive : found_mesh.primitives) {
+      const auto &posAccessor =
+          model.accessors[primitive.attributes.at("POSITION")];
+      const auto &posBufferView = model.bufferViews[posAccessor.bufferView];
+      const auto &posBuffer = model.buffers[posBufferView.buffer];
+      const float *positions = reinterpret_cast<const float *>(
+          &posBuffer.data[posBufferView.byteOffset + posAccessor.byteOffset]);
+
+      const float *normals = nullptr;
+      if (primitive.attributes.count("NORMAL")) {
+        const auto &accessor =
+            model.accessors[primitive.attributes.at("NORMAL")];
+        const auto &view = model.bufferViews[accessor.bufferView];
+        normals = reinterpret_cast<const float *>(
+            &model.buffers[view.buffer]
+                 .data[view.byteOffset + accessor.byteOffset]);
+      }
+
+      const float *tangents = nullptr;
+      if (primitive.attributes.count("TANGENT")) {
+        const auto &accessor =
+            model.accessors[primitive.attributes.at("TANGENT")];
+        const auto &view = model.bufferViews[accessor.bufferView];
+        tangents = reinterpret_cast<const float *>(
+            &model.buffers[view.buffer]
+                 .data[view.byteOffset + accessor.byteOffset]);
+      }
+
+      const float *texcoords = nullptr;
+      if (primitive.attributes.count("TEXCOORD_0")) {
+        const auto &accessor =
+            model.accessors[primitive.attributes.at("TEXCOORD_0")];
+        const auto &view = model.bufferViews[accessor.bufferView];
+        texcoords = reinterpret_cast<const float *>(
+            &model.buffers[view.buffer]
+                 .data[view.byteOffset + accessor.byteOffset]);
+      }
+
+      std::vector<float> final_vertices, final_normals, final_tangents,
+          final_bitangents, final_texcoords;
+
+      auto get_index = [&](int idx) -> uint32_t {
+        const auto &indexAccessor = model.accessors[primitive.indices];
+        const auto &indexView = model.bufferViews[indexAccessor.bufferView];
+        const auto &indexBuffer = model.buffers[indexView.buffer];
+        const uint8_t *base = indexBuffer.data.data() + indexView.byteOffset +
+                              indexAccessor.byteOffset;
+
+        switch (indexAccessor.componentType) {
+        case TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE:
+          return reinterpret_cast<const uint8_t *>(base)[idx];
+        case TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT:
+          return reinterpret_cast<const uint16_t *>(base)[idx];
+        case TINYGLTF_COMPONENT_TYPE_UNSIGNED_INT:
+          return reinterpret_cast<const uint32_t *>(base)[idx];
+        default:
+          throw std::runtime_error("Unsupported index type");
+        }
+      };
+
+      size_t vertex_count = posAccessor.count;
+      if (primitive.indices >= 0) {
+        const auto &indexAccessor = model.accessors[primitive.indices];
+        for (size_t i = 0; i < indexAccessor.count; ++i) {
+          uint32_t idx = get_index(i);
+          // Position
+          final_vertices.insert(final_vertices.end(), &positions[idx * 3],
+                                &positions[idx * 3 + 3]);
+          // Normal
+          if (normals)
+            final_normals.insert(final_normals.end(), &normals[idx * 3],
+                                 &normals[idx * 3 + 3]);
+          // Tangent
+          if (tangents) {
+            final_tangents.insert(final_tangents.end(), &tangents[idx * 4],
+                                  &tangents[idx * 4 + 3]);
+          }
+          // Texcoord
+          if (texcoords)
+            final_texcoords.insert(final_texcoords.end(), &texcoords[idx * 2],
+                                   &texcoords[idx * 2 + 2]);
+        }
+      } else {
+        for (size_t i = 0; i < vertex_count; ++i) {
+          final_vertices.insert(final_vertices.end(), &positions[i * 3],
+                                &positions[i * 3 + 3]);
+          if (normals)
+            final_normals.insert(final_normals.end(), &normals[i * 3],
+                                 &normals[i * 3 + 3]);
+          if (tangents)
+            final_tangents.insert(final_tangents.end(), &tangents[i * 4],
+                                  &tangents[i * 4 + 3]);
+          if (texcoords)
+            final_texcoords.insert(final_texcoords.end(), &texcoords[i * 2],
+                                   &texcoords[i * 2 + 2]);
+        }
+      }
+
+      if (!final_tangents.empty() && !final_normals.empty()) {
+        for (size_t i = 0; i < final_normals.size(); i += 3) {
+          glm::vec3 N(final_normals[i], final_normals[i + 1],
+                      final_normals[i + 2]);
+          glm::vec3 T(final_tangents[i], final_tangents[i + 1],
+                      final_tangents[i + 2]);
+          glm::vec3 B = glm::normalize(glm::cross(N, T));
+          final_bitangents.push_back(B.x);
+          final_bitangents.push_back(B.y);
+          final_bitangents.push_back(B.z);
+        }
+      }
+
+      primitive_mesh.m_vertices_array = std::move(final_vertices);
+      primitive_mesh.m_normals_array = std::move(final_normals);
+      primitive_mesh.m_tangents_array = std::move(final_tangents);
+      primitive_mesh.m_binormals_array = std::move(final_bitangents);
+      primitive_mesh.m_tex_coords_array = std::move(final_texcoords);
+    }
+  }
+
+  log_success("GLTF file fully loaded with expanded vertex attributes!");
+  return primitive_mesh;
+}
+
+glm::mat4 hipster_rotation_bullshit(float m_lastFrame) {
+    float t = m_lastFrame;
+
+    glm::vec3 axis = glm::normalize(glm::vec3(
+        sin(t * 0.5f),
+        cos(t * 0.3f),
+        sin(t * 0.7f)
+    ));
+
+    float angle = sin(t * 0.8f) * glm::radians(90.0f);
+
+    return glm::rotate(glm::mat4(1.0f), angle, axis);
 }

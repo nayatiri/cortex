@@ -25,6 +25,8 @@ class Mesh {
 public:
 
   Mesh(Material use_material);
+
+  bool m_mesh_vbo_needs_refresh = true;
   
   void deserialize(char* file_path);
   
