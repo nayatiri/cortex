@@ -438,8 +438,8 @@ Renderer::Renderer(uint window_width, uint window_height) {
 
   // You can now use cubeVertices in your OpenGL application
 
-  Shader use_shader("src/shaders/shader_src/flat.vert",
-                    "src/shaders/shader_src/flat.frag");
+  Shader use_shader("src/shaders/shader_src/phong.vert",
+                    "src/shaders/shader_src/phong.frag");
   
   Material use_mat(E_FACE, use_shader);
   Mesh first_mesh(use_mat);
@@ -530,12 +530,19 @@ Renderer::Renderer(uint window_width, uint window_height) {
         }
         mesh.m_material.m_shader.use();
 
-	//TMP ghetto light + color
+	//TMP ghetto light + color 
+	std::cout << m_deltaTime << std::endl;
+	m_loaded_scene.m_loaded_lights[0].m_light_matrix = glm::translate(glm::mat4(1.0f), glm::vec3(cos(m_lastFrame/10)* 10, sin(m_lastFrame/10) * 10, 2.0f) );
+	
 	glm::vec3 light_position(m_loaded_scene.m_loaded_lights[0].m_light_matrix[3][0],
 				 m_loaded_scene.m_loaded_lights[0].m_light_matrix[3][1],
 				 m_loaded_scene.m_loaded_lights[0].m_light_matrix[3][2]);	
 
-	upload_to_uniform("surfaceColor", mesh.m_material.m_shader.ID, glm::vec3(0.5,0.8,0.2));
+	upload_to_uniform("objectColor", mesh.m_material.m_shader.ID, glm::vec3(0.5,0.8,0.2));
+	upload_to_uniform("lightColor", mesh.m_material.m_shader.ID, glm::vec3(0.8,0.8,0.8));
+	
+	
+
 	
 	//upload matrices
 	upload_to_uniform("model", mesh.m_material.m_shader.ID , entity.m_model_matrix);
@@ -543,7 +550,8 @@ Renderer::Renderer(uint window_width, uint window_height) {
 	upload_to_uniform("viewPosition", mesh.m_material.m_shader.ID , m_cameraPos);
 	upload_to_uniform("projection", mesh.m_material.m_shader.ID , projection_mat);
 	upload_to_uniform("lightPosition", mesh.m_material.m_shader.ID , light_position);
-		
+	upload_to_uniform("viewPos", mesh.m_material.m_shader.ID, m_cameraPos );
+	
         glDrawArrays(GL_TRIANGLES, 0, mesh.m_vertices_array.size());
 
         error = glGetError();
