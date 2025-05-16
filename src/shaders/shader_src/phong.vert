@@ -14,8 +14,10 @@ uniform vec3 lightPosition;             // Light position
 
 void main()
 {
-    FragPos = vec3(model * vec4(aPos, 1.0)); // Transform vertex position to world space
-    Normal = mat3(transpose(inverse(model))) * aNormal; // Transform normal to world space
+    FragPos = vec3(model * vec4(aPos, 1.0)); 
+    //Normal = mat3(transpose(inverse(model))) * aNormal;
+    Normal = aNormal;
+
     LightPos = lightPosition; // Pass light position to fragment shader
 
     gl_Position = projection * view * model * vec4(FragPos, 1.0); // Final vertex position

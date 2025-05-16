@@ -38,6 +38,7 @@ public:
 
   GLuint m_mesh_vao;
   Material m_material;
+  glm::mat4 m_model_matrix = glm::mat4(1.0f);
   
   GLuint m_vertices_glid;
   GLuint m_tex_coords_glid;

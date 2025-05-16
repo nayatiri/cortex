@@ -181,8 +181,8 @@ void Renderer::init_scene_vbos() {
       log_debug_sub("Found active scene.");
       for (auto &mesh_of_entity : entity_to_render.m_mesh) {
 
-        if (!mesh_of_entity.m_mesh_vbo_needs_refresh)
-          return;
+	if (!mesh_of_entity.m_mesh_vbo_needs_refresh)
+	  return;
 
         log_debug_sub("Found mesh in active scene.");
 
@@ -215,19 +215,9 @@ void Renderer::init_scene_vbos() {
               mesh_of_entity.m_vertices_array.size());
         }
 
-        GLint error = glGetError();
-        if (error != GL_NO_ERROR) {
-          log_error("before vao!");
-        }
-
         // vao
         glGenVertexArrays(1, &mesh_of_entity.m_mesh_vao);
         glBindVertexArray(mesh_of_entity.m_mesh_vao);
-
-        error = glGetError();
-        if (error != GL_NO_ERROR) {
-          log_error("couldnt create VAO for mesh!");
-        }
 
         // vbo mesh (vertices)
         glGenBuffers(1, &mesh_of_entity.m_vertices_glid);
@@ -376,11 +366,6 @@ Renderer::Renderer(uint window_width, uint window_height) {
 
   glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
-  GLenum error = glGetError();
-  if (error != GL_NO_ERROR) {
-    log_error("error after setup!");
-  }
-
   // debug render mode
   if (m_render_mode_wireframe)
     glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
@@ -389,81 +374,10 @@ Renderer::Renderer(uint window_width, uint window_height) {
   }
 
   /// SCENE SETUP
-  // Define the cube vertices
-  std::vector<float> cubeVerticesArray = {
-      // Front face
-      -0.5f, -0.5f, 0.5f, // Bottom-left
-      0.5f, -0.5f, 0.5f,  // Bottom-right
-      0.5f, 0.5f, 0.5f,   // Top-right
-      0.5f, 0.5f, 0.5f,   // Top-right
-      -0.5f, 0.5f, 0.5f,  // Top-left
-      -0.5f, -0.5f, 0.5f, // Bottom-left
-
-      // Back face
-      -0.5f, -0.5f, -0.5f, // Bottom-left
-      -0.5f, 0.5f, -0.5f,  // Top-left
-      0.5f, 0.5f, -0.5f,   // Top-right
-      0.5f, 0.5f, -0.5f,   // Top-right
-      0.5f, -0.5f, -0.5f,  // Bottom-right
-      -0.5f, -0.5f, -0.5f, // Bottom-left
-
-      // Left face
-      -0.5f, -0.5f, -0.5f, // Bottom-back
-      -0.5f, -0.5f, 0.5f,  // Bottom-front
-      -0.5f, 0.5f, 0.5f,   // Top-front
-      -0.5f, 0.5f, 0.5f,   // Top-front
-      -0.5f, 0.5f, -0.5f,  // Top-back
-      -0.5f, -0.5f, -0.5f, // Bottom-back
-
-      // Right face
-      0.5f, -0.5f, -0.5f, // Bottom-back
-      0.5f, 0.5f, -0.5f,  // Top-back
-      0.5f, 0.5f, 0.5f,   // Top-front
-      0.5f, 0.5f, 0.5f,   // Top-front
-      0.5f, -0.5f, 0.5f,  // Bottom-front
-      0.5f, -0.5f, -0.5f, // Bottom-back
-
-      // Top face
-      -0.5f, 0.5f, 0.5f,  // Top-left-front
-      0.5f, 0.5f, 0.5f,   // Top-right-front
-      0.5f, 0.5f, -0.5f,  // Top-right-back
-      0.5f, 0.5f, -0.5f,  // Top-right-back
-      -0.5f, 0.5f, -0.5f, // Top-left-back
-      -0.5f, 0.5f, 0.5f,  // Top-left-front
-
-      // Bottom face
-      -0.5f, -0.5f, 0.5f,  // Bottom-left-front
-      -0.5f, -0.5f, -0.5f, // Bottom-left-back
-      0.5f, -0.5f, -0.5f,  // Bottom-right-back
-      0.5f, -0.5f, -0.5f,  // Bottom-right-back
-      0.5f, -0.5f, 0.5f,   // Bottom-right-front
-      -0.5f, -0.5f, 0.5f   // Bottom-left-front
-  };
-
-  // You can now use cubeVertices in your OpenGL application
-
-  Shader use_shader("src/shaders/shader_src/phong.vert",
-                    "src/shaders/shader_src/phong.frag");
-  Material use_mat(E_FACE, use_shader);
-  Mesh first_mesh(use_mat);
-  first_mesh.m_vertices_array = cubeVerticesArray;
-  Entity first_entity;
-  first_entity.m_model_matrix =
-      glm::translate(first_entity.m_model_matrix, glm::vec3(0.0f, 4.0f, 0.0f));
-  first_entity.m_mesh.push_back(first_mesh);
 
   Entity second_entity;
-  Mesh imported_mesh =
-      testing_load_primitive_mesh_from_gltf("models/cube.gltf");
-  second_entity.m_mesh.push_back(imported_mesh);
-  second_entity.m_model_matrix =
-      glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 0.0f));
-  for (size_t i = 0;
-       i < 12 && i < second_entity.m_mesh[0].m_vertices_array.size(); ++i) {
-    std::cout << "Entry " << i + 1 << ": "
-              << second_entity.m_mesh[0].m_vertices_array[i] << std::endl;
-  }
-
+  second_entity.m_mesh = std::move(load_all_meshes_from_gltf("models/scene.gltf"));
+  
   // TMP
   glDisable(GL_CULL_FACE);
 
@@ -477,24 +391,14 @@ Renderer::Renderer(uint window_width, uint window_height) {
   main_light.m_light_matrix =
       glm::translate(main_light.m_light_matrix, glm::vec3(10.0f, 10.0f, 0.0f));
 
-  m_active_scene.add_entity_to_scene(first_entity);
   m_active_scene.add_entity_to_scene(second_entity);
   m_active_scene.add_light_to_scene(main_light);
 
   /// END SCENE SETUP
 
-  error = glGetError();
-  if (error != GL_NO_ERROR) {
-    log_error("error after scene init!");
-  }
-
   // initialize scene vbos
   init_scene_vbos();
 
-  error = glGetError();
-  if (error != GL_NO_ERROR) {
-    log_error("error after scene vbo creation!");
-  }
 
   //////////////////////////////
   // Initialize shader programs
@@ -510,11 +414,6 @@ Renderer::Renderer(uint window_width, uint window_height) {
     }
   }
 
-  error = glGetError();
-  if (error != GL_NO_ERROR) {
-    log_error("error after shader init!");
-  }
-
   // main render loop
   while (!glfwWindowShouldClose(window)) {
 
@@ -524,6 +423,8 @@ Renderer::Renderer(uint window_width, uint window_height) {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glClearColor(0.3f, 0.3f, 0.3f, 1.0f);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+    check_gl_error("after clearing frame");
 
     // bungie employees hate this simple trick
     float currentFrame = glfwGetTime();
@@ -543,24 +444,28 @@ Renderer::Renderer(uint window_width, uint window_height) {
     // pre scene adjustments
     ///////////////
 
-    m_active_scene.m_loaded_entities[1].m_model_matrix = hipster_rotation_bullshit(m_lastFrame);
+    m_active_scene.m_loaded_entities[0].m_mesh[1].m_model_matrix = hipster_rotation_bullshit(m_lastFrame);
 
     // render meshes
     for (auto &entity : m_active_scene.m_loaded_entities) {
-
       for (auto &mesh : entity.m_mesh) {
-
+        
         // bind meshes vao context
         glBindVertexArray(mesh.m_mesh_vao);
         if (glIsVertexArray(mesh.m_mesh_vao) == GL_FALSE) {
           log_error("no valid VAO id! cant render mesh.");
         }
+
+	check_gl_error("after binding vao");
+	
         mesh.m_material.m_shader.use();
 
+	check_gl_error("after setting shader active");
+	
         // TMP ghetto light + color
         m_active_scene.m_loaded_lights[0].m_light_matrix = glm::translate(
-            glm::mat4(1.0f), glm::vec3(cos(m_lastFrame / 10) * 10, 2.0f,
-                                       sin(m_lastFrame / 10) * 10));
+            glm::mat4(1.0f), glm::vec3(cos(m_lastFrame / 3) * 10, 2.0f,
+                                       sin(m_lastFrame / 3) * 10));
         glm::vec3 light_position(
             m_active_scene.m_loaded_lights[0].m_light_matrix[3][0],
             m_active_scene.m_loaded_lights[0].m_light_matrix[3][1],
@@ -572,7 +477,7 @@ Renderer::Renderer(uint window_width, uint window_height) {
 
         // upload matrices TMP: model matrix is I
         upload_to_uniform("model", mesh.m_material.m_shader.ID,
-                          entity.m_model_matrix);
+                          mesh.m_model_matrix * entity.m_model_matrix);
 
         upload_to_uniform("view", mesh.m_material.m_shader.ID, view_mat);
         upload_to_uniform("viewPosition", mesh.m_material.m_shader.ID,
@@ -583,13 +488,13 @@ Renderer::Renderer(uint window_width, uint window_height) {
                           light_position);
         upload_to_uniform("viewPos", mesh.m_material.m_shader.ID, m_cameraPos);
 
+	check_gl_error("after setting uniforms");
+	
         // we renderin
-        glDrawArrays(GL_TRIANGLES, 0, mesh.m_vertices_array.size());
+        glDrawArrays(GL_TRIANGLES, 0, mesh.m_vertices_array.size()/3);
 
-        error = glGetError();
-        if (error != GL_NO_ERROR) {
-          log_error("error after rendering!");
-        }
+	//	check_gl_error("after glDrawArrays");
+	
       }
     }
 
@@ -603,3 +508,5 @@ Renderer::Renderer(uint window_width, uint window_height) {
 
   return;
 }
+
+
