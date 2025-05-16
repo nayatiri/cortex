@@ -47,8 +47,7 @@ void Renderer::scroll_callback(GLFWwindow *window, double xoffset,
 
   std::cout << "Scroll offset: (" << xoffset << ", " << yoffset << ")\n";
 
-  m_camera_base_speed =
-      m_camera_base_speed + static_cast<float>(yoffset) * 0.1f;
+  m_camera_base_speed += static_cast<float>(yoffset) * 0.1f;
 
   if (m_camera_base_speed < 0.1f) {
     m_camera_base_speed = 0.1f;
@@ -186,26 +185,30 @@ void Renderer::init_scene_vbos() {
 
         log_debug_sub("Found mesh in active scene.");
 
-        ////////////////////////////
-        // GENERATE MISSING GEOMETRY
-        ////////////////////////////
-
-        // calculate mesh vertex normals + track vertex count for lolz
-        mesh_of_entity.m_normals_array =
+	//generate missing geometry if its missing (500iq)
+	if(mesh_of_entity.m_normals_array.size() < 1) {
+	  log_debug("mesh doesnt have normals, calculating them now!");
+	  mesh_of_entity.m_normals_array =
             calculate_vert_normals(mesh_of_entity.m_vertices_array);
+	} 
 
-        if (mesh_of_entity.m_tex_coords_array.size() > 0) {
+	if (mesh_of_entity.m_tex_coords_array.size() > 0) {
 
-          // calculate vertex tangents / binormals
-          tan_bin_glob retglob = calculate_vert_tan_bin(
-              mesh_of_entity.m_vertices_array, mesh_of_entity.m_normals_array,
-              mesh_of_entity.m_tex_coords_array);
+          // calculate vertex tangents / binormals if they are missing and texture coords are present
+          if (mesh_of_entity.m_binormals_array.size() < 2) {
 
-          mesh_of_entity.m_binormals_array = retglob.vert_binormals;
-          mesh_of_entity.m_tangents_array = retglob.vert_tangents;
+	    log_debug("texture coords available, but not tangents. calculating.");
+	    
+	    tan_bin_glob retglob = calculate_vert_tan_bin(
+                mesh_of_entity.m_vertices_array, mesh_of_entity.m_normals_array,
+                mesh_of_entity.m_tex_coords_array);
 
-        } else {
+            mesh_of_entity.m_binormals_array = retglob.vert_binormals;
+            mesh_of_entity.m_tangents_array = retglob.vert_tangents;
+          }
 
+	} else {
+	  
           log_error("imported mesh has missing UV coordinates, using fallback "
                     "coords.");
 
@@ -338,7 +341,7 @@ Renderer::Renderer(uint window_width, uint window_height) {
   // setup
   glViewport(0, 0, m_viewport_width, m_viewport_height);
   glEnable(GL_DEPTH_TEST);
-  // TMP
+
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 
@@ -438,13 +441,15 @@ Renderer::Renderer(uint window_width, uint window_height) {
     glfwGetWindowSize(window, &m_viewport_width, &m_viewport_height);
     glm::mat4 projection_mat = glm::perspective(
         glm::radians(90.0f), (float)m_viewport_width / (float)m_viewport_height,
-        0.1f, 100.0f);
+        0.1f, 100000.0f);
 
     ////////////////
     // pre scene adjustments
     ///////////////
 
-    m_active_scene.m_loaded_entities[0].m_mesh[1].m_model_matrix = hipster_rotation_bullshit(m_lastFrame);
+    //m_active_scene.m_loaded_entities[0].m_mesh[1].m_model_matrix[3][0] *= 0.5;
+    //m_active_scene.m_loaded_entities[0].m_mesh[1].m_model_matrix[3][1] *= 0.5;
+    //m_active_scene.m_loaded_entities[0].m_mesh[1].m_model_matrix[3][2] *= 0.5;
 
     // render meshes
     for (auto &entity : m_active_scene.m_loaded_entities) {
@@ -493,7 +498,7 @@ Renderer::Renderer(uint window_width, uint window_height) {
         // we renderin
         glDrawArrays(GL_TRIANGLES, 0, mesh.m_vertices_array.size()/3);
 
-	//	check_gl_error("after glDrawArrays");
+        check_gl_error("after glDrawArrays");
 	
       }
     }

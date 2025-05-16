@@ -523,6 +523,7 @@ std::vector<Mesh> load_all_meshes_from_gltf(const std::string &file_path) {
     tinygltf::TinyGLTF loader;
     std::string err, warn;
 
+    log_success("importing a gltf file... loading ascii file...");
     bool ret = loader.LoadASCIIFromFile(&model, &err, &warn, file_path);
 
     if (!warn.empty())
@@ -550,6 +551,8 @@ std::vector<Mesh> load_all_meshes_from_gltf(const std::string &file_path) {
         }
     };
 
+    log_debug("starting to load gltf node tree...");
+    
     std::function<void(int, glm::mat4)> process_node;
     process_node = [&](int node_idx, glm::mat4 parent_transform) {
         const auto &node = model.nodes[node_idx];
@@ -572,10 +575,13 @@ std::vector<Mesh> load_all_meshes_from_gltf(const std::string &file_path) {
             const auto &found_mesh = model.meshes[node.mesh];
 
             for (const auto &primitive : found_mesh.primitives) {
-                const auto &posAccessor = model.accessors[primitive.attributes.at("POSITION")];
-                const auto &posBufferView = model.bufferViews[posAccessor.bufferView];
-                const auto &posBuffer = model.buffers[posBufferView.buffer];
-                const float *positions = reinterpret_cast<const float *>(
+
+	      log_debug("importing primitive from node tree...");
+	      
+	      const auto &posAccessor = model.accessors[primitive.attributes.at("POSITION")];
+	      const auto &posBufferView = model.bufferViews[posAccessor.bufferView];
+	      const auto &posBuffer = model.buffers[posBufferView.buffer];
+	      const float *positions = reinterpret_cast<const float *>(
                     &posBuffer.data[posBufferView.byteOffset + posAccessor.byteOffset]);
 
                 const float *normals = nullptr;
@@ -609,6 +615,7 @@ std::vector<Mesh> load_all_meshes_from_gltf(const std::string &file_path) {
                     const auto &indexAccessor = model.accessors[primitive.indices];
                     for (size_t i = 0; i < indexAccessor.count; ++i) {
                         uint32_t idx = get_index(primitive, i);
+			
                         final_vertices.insert(final_vertices.end(), &positions[idx * 3], &positions[idx * 3 + 3]);
                         if (normals)
                             final_normals.insert(final_normals.end(), &normals[idx * 3], &normals[idx * 3 + 3]);
@@ -619,6 +626,7 @@ std::vector<Mesh> load_all_meshes_from_gltf(const std::string &file_path) {
                     }
                 } else {
                     for (size_t i = 0; i < vertex_count; ++i) {
+		      
                         final_vertices.insert(final_vertices.end(), &positions[i * 3], &positions[i * 3 + 3]);
                         if (normals)
                             final_normals.insert(final_normals.end(), &normals[i * 3], &normals[i * 3 + 3]);
@@ -640,7 +648,8 @@ std::vector<Mesh> load_all_meshes_from_gltf(const std::string &file_path) {
                     }
                 }
 
-		
+		log_success("done importing models, loading shaders...");
+	        
 		Shader shader_to_use("src/shaders/shader_src/phong.vert",
 				     "src/shaders/shader_src/phong.frag");
 		Material mat_to_use(E_FACE, shader_to_use);

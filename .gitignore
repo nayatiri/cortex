@@ -27,3 +27,6 @@ core
 *.tmp
 *.swp
 *.swo
+
+*.png
+*.jpg
