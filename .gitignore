@@ -30,3 +30,5 @@ core
 
 *.png
 *.jpg
+
+models/

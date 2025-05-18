@@ -379,7 +379,7 @@ Renderer::Renderer(uint window_width, uint window_height) {
   /// SCENE SETUP
 
   Entity second_entity;
-  second_entity.m_mesh = std::move(load_all_meshes_from_gltf("models/tex_cube/tex_cube.gltf", num_loaded_textures));
+  second_entity.m_mesh = std::move(load_all_meshes_from_gltf("models/scifi_head/scifi_head.gltf", num_loaded_textures));
   
   // TMP
   glDisable(GL_CULL_FACE);
