@@ -3,6 +3,7 @@
 #include "../components/logging.hh"
 #include "../components/mesh.hh"
 #include "../shaders/shaderclass.hh"
+#include "material.hh"
 #include <GLFW/glfw3.h>
 #include <glm/ext/matrix_transform.hpp>
 #include <glm/ext/vector_float3.hpp>
@@ -20,6 +21,7 @@
 #include <string>
 #include <thread>
 #include <vector>
+#include <atomic>
 
 #define TINYGLTF_IMPLEMENTATION
 #define STB_IMAGE_IMPLEMENTATION
@@ -175,31 +177,48 @@ tan_bin_glob calculate_vert_tan_bin(std::vector<float> mesh_vertices,
   return return_glob;
 }
 
-// Tex to slot
 GLuint bind_texture_to_slot(std::string to_load, unsigned int slot) {
-  printf("trying to load texture into slot :%d\n", slot);
-  int width, height, nrChannels;
-  unsigned char *data =
-      stbi_load(to_load.c_str(), &width, &height, &nrChannels, 0);
+    printf("trying to load texture into slot: %d\n", slot);
+    int width, height, nrChannels;
 
-  unsigned int texture;
-  glGenTextures(1, &texture);
-  glActiveTexture(GL_TEXTURE0 + slot);
-  glBindTexture(GL_TEXTURE_2D, texture);
+    //    stbi_set_flip_vertically_on_load(true); // fuck u
+    unsigned char *data = stbi_load(to_load.c_str(), &width, &height, &nrChannels, 0);
 
-  if (data) {
-    printf("deserialized image successfully.\n");
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB,
+    if (!data) {
+        std::cerr << "failed to load texture: " << to_load << std::endl;
+        return 0;
+    }
+
+    GLenum format;
+    if (nrChannels == 1)
+        format = GL_RED;
+    else if (nrChannels == 3)
+        format = GL_RGB;
+    else if (nrChannels == 4)
+        format = GL_RGBA;
+    else {
+        std::cerr << "unsupported number of channels: " << nrChannels << std::endl;
+        stbi_image_free(data);
+        return 0;
+    }
+
+    GLuint texture;
+    glGenTextures(1, &texture);
+
+    glActiveTexture(GL_TEXTURE0 + slot);
+    glBindTexture(GL_TEXTURE_2D, texture);
+
+    glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, format,
                  GL_UNSIGNED_BYTE, data);
-    //    glGenerateMipmap(GL_TEXTURE_2D); //later
-  } else {
-    std::cout << "Failed to load texture" << std::endl;
-  }
+    // glGenerateMipmap(GL_TEXTURE_2D);
 
-  stbi_image_free(data);
-  glBindTexture(GL_TEXTURE_2D, texture);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);	
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-  return texture;
+    stbi_image_free(data);
+    return texture;
 }
 
 Mesh load_primitive_mesh_from_gltf(const std::string file_path) {
@@ -344,225 +363,303 @@ Mesh load_primitive_mesh_from_gltf(const std::string file_path) {
   return primitive_mesh;
 }
 
-
 glm::mat4 hipster_rotation_bullshit(float m_lastFrame) {
-    float t = m_lastFrame;
+  float t = m_lastFrame;
 
-    glm::vec3 axis = glm::normalize(glm::vec3(
-        sin(t * 0.5f),
-        cos(t * 0.3f),
-        sin(t * 0.7f)
-    ));
+  glm::vec3 axis =
+      glm::normalize(glm::vec3(sin(t * 0.5f), cos(t * 0.3f), sin(t * 0.7f)));
 
-    float angle = sin(t * 0.8f) * glm::radians(90.0f);
+  float angle = sin(t * 0.8f) * glm::radians(90.0f);
 
-    return glm::rotate(glm::mat4(1.0f), angle, axis);
+  return glm::rotate(glm::mat4(1.0f), angle, axis);
 }
 
-void check_gl_error(const char* context = "") {
-    GLenum err;
-    while ((err = glGetError()) != GL_NO_ERROR) {
-        const char* errorStr = "Unknown error";
-        switch (err) {
-            case GL_INVALID_ENUM:      errorStr = "GL_INVALID_ENUM"; break;
-            case GL_INVALID_VALUE:     errorStr = "GL_INVALID_VALUE"; break;
-            case GL_INVALID_OPERATION: errorStr = "GL_INVALID_OPERATION"; break;
-            case GL_OUT_OF_MEMORY:     errorStr = "GL_OUT_OF_MEMORY"; break;
-            case GL_INVALID_FRAMEBUFFER_OPERATION: errorStr = "GL_INVALID_FRAMEBUFFER_OPERATION"; break;
-        }
-
-        if (context && *context)
-            printf("OpenGL Error [%s]: %s (0x%X)\n", context, errorStr, err);
-        else
-            printf("OpenGL Error: %s (0x%X)\n", errorStr, err);
+void check_gl_error(const char *context = "") {
+  GLenum err;
+  while ((err = glGetError()) != GL_NO_ERROR) {
+    const char *errorStr = "Unknown error";
+    switch (err) {
+    case GL_INVALID_ENUM:
+      errorStr = "GL_INVALID_ENUM";
+      break;
+    case GL_INVALID_VALUE:
+      errorStr = "GL_INVALID_VALUE";
+      break;
+    case GL_INVALID_OPERATION:
+      errorStr = "GL_INVALID_OPERATION";
+      break;
+    case GL_OUT_OF_MEMORY:
+      errorStr = "GL_OUT_OF_MEMORY";
+      break;
+    case GL_INVALID_FRAMEBUFFER_OPERATION:
+      errorStr = "GL_INVALID_FRAMEBUFFER_OPERATION";
+      break;
     }
+
+    if (context && *context)
+      printf("OpenGL Error [%s]: %s (0x%X)\n", context, errorStr, err);
+    else
+      printf("OpenGL Error: %s (0x%X)\n", errorStr, err);
+  }
 }
 
-std::vector<Mesh> load_all_meshes_from_gltf(const std::string &file_path) {
-    tinygltf::Model model;
-    tinygltf::TinyGLTF loader;
-    std::string err, warn;
+std::vector<Mesh> load_all_meshes_from_gltf(const std::string &file_path, std::atomic<unsigned int>& num_loaded_textures) {
+  tinygltf::Model model;
+  tinygltf::TinyGLTF loader;
+  std::string err, warn;
 
-    log_success("importing a gltf file... loading ascii file...");
-    bool ret = loader.LoadASCIIFromFile(&model, &err, &warn, file_path);
+  log_success("importing a gltf file... loading ascii file...");
+  bool ret = loader.LoadASCIIFromFile(&model, &err, &warn, file_path);
 
-    if (!warn.empty())
-        printf("Warn: %s\n", warn.c_str());
-    if (!err.empty())
-        printf("Err: %s\n", err.c_str());
+  if (!warn.empty())
+    printf("Warn: %s\n", warn.c_str());
+  if (!err.empty())
+    printf("Err: %s\n", err.c_str());
 
-    std::vector<Mesh> meshes;
+  std::vector<Mesh> meshes;
 
-    auto get_index = [&](const tinygltf::Primitive &primitive, int idx) -> uint32_t {
-        const auto &indexAccessor = model.accessors[primitive.indices];
-        const auto &indexView = model.bufferViews[indexAccessor.bufferView];
-        const auto &indexBuffer = model.buffers[indexView.buffer];
-        const uint8_t *base = indexBuffer.data.data() + indexView.byteOffset + indexAccessor.byteOffset;
+  auto get_index = [&](const tinygltf::Primitive &primitive,
+                       int idx) -> uint32_t {
+    const auto &indexAccessor = model.accessors[primitive.indices];
+    const auto &indexView = model.bufferViews[indexAccessor.bufferView];
+    const auto &indexBuffer = model.buffers[indexView.buffer];
+    const uint8_t *base = indexBuffer.data.data() + indexView.byteOffset +
+                          indexAccessor.byteOffset;
 
-        switch (indexAccessor.componentType) {
-            case TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE:
-                return reinterpret_cast<const uint8_t *>(base)[idx];
-            case TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT:
-                return reinterpret_cast<const uint16_t *>(base)[idx];
-            case TINYGLTF_COMPONENT_TYPE_UNSIGNED_INT:
-                return reinterpret_cast<const uint32_t *>(base)[idx];
-            default:
-                throw std::runtime_error("Unsupported index type");
-        }
-    };
+    switch (indexAccessor.componentType) {
+    case TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE:
+      return reinterpret_cast<const uint8_t *>(base)[idx];
+    case TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT:
+      return reinterpret_cast<const uint16_t *>(base)[idx];
+    case TINYGLTF_COMPONENT_TYPE_UNSIGNED_INT:
+      return reinterpret_cast<const uint32_t *>(base)[idx];
+    default:
+      throw std::runtime_error("Unsupported index type");
+    }
+  };
 
-    log_debug("starting to load gltf node tree...");
-    
-    std::function<void(int, glm::mat4)> process_node;
-    process_node = [&](int node_idx, glm::mat4 parent_transform) {
-        const auto &node = model.nodes[node_idx];
-        glm::mat4 node_transform = glm::mat4(1.0f);
+  log_debug("starting to load gltf node tree...");
 
-        if (node.matrix.size() == 16)
-            node_transform = glm::make_mat4(node.matrix.data());
-        else {
-            if (node.translation.size() == 3)
-                node_transform = glm::translate(node_transform, glm::vec3(node.translation[0], node.translation[1], node.translation[2]));
-            if (node.rotation.size() == 4)
-                node_transform *= glm::mat4_cast(glm::quat(node.rotation[3], node.rotation[0], node.rotation[1], node.rotation[2]));
-            if (node.scale.size() == 3)
-                node_transform = glm::scale(node_transform, glm::vec3(node.scale[0], node.scale[1], node.scale[2]));
-        }
+  std::function<void(int, glm::mat4)> process_node;
+  process_node = [&](int node_idx, glm::mat4 parent_transform) {
+    const auto &node = model.nodes[node_idx];
+    glm::mat4 node_transform = glm::mat4(1.0f);
 
-        glm::mat4 global_transform = parent_transform * node_transform;
-
-        if (node.mesh >= 0) {
-            const auto &found_mesh = model.meshes[node.mesh];
-
-            for (const auto &primitive : found_mesh.primitives) {
-
-	      log_debug("importing primitive from node tree...");
-	      
-	      const auto &posAccessor = model.accessors[primitive.attributes.at("POSITION")];
-	      const auto &posBufferView = model.bufferViews[posAccessor.bufferView];
-	      const auto &posBuffer = model.buffers[posBufferView.buffer];
-	      const float *positions = reinterpret_cast<const float *>(
-                    &posBuffer.data[posBufferView.byteOffset + posAccessor.byteOffset]);
-
-                const float *normals = nullptr;
-                if (primitive.attributes.count("NORMAL")) {
-                    const auto &accessor = model.accessors[primitive.attributes.at("NORMAL")];
-                    const auto &view = model.bufferViews[accessor.bufferView];
-                    normals = reinterpret_cast<const float *>(
-                        &model.buffers[view.buffer].data[view.byteOffset + accessor.byteOffset]);
-                }
-
-                const float *tangents = nullptr;
-                if (primitive.attributes.count("TANGENT")) {
-                    const auto &accessor = model.accessors[primitive.attributes.at("TANGENT")];
-                    const auto &view = model.bufferViews[accessor.bufferView];
-                    tangents = reinterpret_cast<const float *>(
-                        &model.buffers[view.buffer].data[view.byteOffset + accessor.byteOffset]);
-                }
-
-                const float *texcoords = nullptr;
-                if (primitive.attributes.count("TEXCOORD_0")) {
-                    const auto &accessor = model.accessors[primitive.attributes.at("TEXCOORD_0")];
-                    const auto &view = model.bufferViews[accessor.bufferView];
-                    texcoords = reinterpret_cast<const float *>(
-                        &model.buffers[view.buffer]
-                             .data[view.byteOffset + accessor.byteOffset]);
-                }
-
-                log_debug_sub("funky mat shit now lol");
-
-		const tinygltf::Material &material = model.materials[primitive.material];
-		
-		auto it = material.values.find("baseColorTexture");
-		if (it != material.values.end() && it->second.TextureIndex() >= 0) {
-		  const tinygltf::Texture &texture = model.textures[it->second.TextureIndex()];
-		  const tinygltf::Image &image = model.images[texture.source];
-		  std::cout << "Texture path: " << image.uri << std::endl;
-		}
-
-		//END TMP
-
-                std::vector<float> final_vertices, final_normals,
-		  final_tangents, final_bitangents, final_texcoords;
-		
-                size_t vertex_count = posAccessor.count;
-                if (primitive.indices >= 0) {
-                    const auto &indexAccessor = model.accessors[primitive.indices];
-                    for (size_t i = 0; i < indexAccessor.count; ++i) {
-                        uint32_t idx = get_index(primitive, i);
-			
-                        final_vertices.insert(final_vertices.end(), &positions[idx * 3], &positions[idx * 3 + 3]);
-                        if (normals)
-                            final_normals.insert(final_normals.end(), &normals[idx * 3], &normals[idx * 3 + 3]);
-                        if (tangents)
-                            final_tangents.insert(final_tangents.end(), &tangents[idx * 4], &tangents[idx * 4 + 3]);
-                        if (texcoords)
-                            final_texcoords.insert(final_texcoords.end(), &texcoords[idx * 2], &texcoords[idx * 2 + 2]);
-                    }
-                } else {
-                    for (size_t i = 0; i < vertex_count; ++i) {
-		      
-                        final_vertices.insert(final_vertices.end(), &positions[i * 3], &positions[i * 3 + 3]);
-                        if (normals)
-                            final_normals.insert(final_normals.end(), &normals[i * 3], &normals[i * 3 + 3]);
-                        if (tangents)
-                            final_tangents.insert(final_tangents.end(), &tangents[i * 4], &tangents[i * 4 + 3]);
-                        if (texcoords)
-                            final_texcoords.insert(final_texcoords.end(), &texcoords[i * 2], &texcoords[i * 2 + 2]);
-                    }
-                }
-
-                if (!final_tangents.empty() && !final_normals.empty()) {
-                    for (size_t i = 0; i < final_normals.size(); i += 3) {
-                        glm::vec3 N(final_normals[i], final_normals[i + 1], final_normals[i + 2]);
-                        glm::vec3 T(final_tangents[i], final_tangents[i + 1], final_tangents[i + 2]);
-                        glm::vec3 B = glm::normalize(glm::cross(N, T));
-                        final_bitangents.push_back(B.x);
-                        final_bitangents.push_back(B.y);
-                        final_bitangents.push_back(B.z);
-                    }
-                }
-
-		log_success("done importing models, loading shaders...");
-	        
-		Shader shader_to_use("src/shaders/shader_src/phong.vert",
-				     "src/shaders/shader_src/phong.frag");
-		Material mat_to_use(E_FACE, shader_to_use);
-
-                Mesh primitive_mesh(mat_to_use);
-                primitive_mesh.m_vertices_array = std::move(final_vertices);
-                primitive_mesh.m_normals_array = std::move(final_normals);
-                primitive_mesh.m_tangents_array = std::move(final_tangents);
-                primitive_mesh.m_binormals_array = std::move(final_bitangents);
-                primitive_mesh.m_tex_coords_array = std::move(final_texcoords);
-                primitive_mesh.m_model_matrix = global_transform;
-
-                meshes.push_back(std::move(primitive_mesh));
-            }
-        }
-
-        for (int child : node.children) {
-            process_node(child, global_transform);
-        }
-    };
-
-    int scene_index = model.defaultScene >= 0 ? model.defaultScene : 0;
-    const auto &scene = model.scenes[scene_index];
-    glm::mat4 identity = glm::mat4(1.0f);
-
-    for (int node_idx : scene.nodes) {
-        process_node(node_idx, identity);
+    if (node.matrix.size() == 16)
+      node_transform = glm::make_mat4(node.matrix.data());
+    else {
+      if (node.translation.size() == 3)
+        node_transform = glm::translate(
+            node_transform, glm::vec3(node.translation[0], node.translation[1],
+                                      node.translation[2]));
+      if (node.rotation.size() == 4)
+        node_transform *=
+            glm::mat4_cast(glm::quat(node.rotation[3], node.rotation[0],
+                                     node.rotation[1], node.rotation[2]));
+      if (node.scale.size() == 3)
+        node_transform =
+            glm::scale(node_transform,
+                       glm::vec3(node.scale[0], node.scale[1], node.scale[2]));
     }
 
-    log_success("GLTF scene fully loaded with multiple meshes!");
+    glm::mat4 global_transform = parent_transform * node_transform;
 
-    for(auto mesh : meshes) {
+    if (node.mesh >= 0) {
+      const auto &found_mesh = model.meshes[node.mesh];
 
-      std::cout << "mesh in meshes with n vertices: " << mesh.m_vertices_array.size() << std::endl;
+      for (const auto &primitive : found_mesh.primitives) {
 
+        log_debug("importing primitive from node tree...");
+
+        const auto &posAccessor =
+            model.accessors[primitive.attributes.at("POSITION")];
+        const auto &posBufferView = model.bufferViews[posAccessor.bufferView];
+        const auto &posBuffer = model.buffers[posBufferView.buffer];
+        const float *positions = reinterpret_cast<const float *>(
+            &posBuffer.data[posBufferView.byteOffset + posAccessor.byteOffset]);
+
+        const float *normals = nullptr;
+        if (primitive.attributes.count("NORMAL")) {
+          const auto &accessor =
+              model.accessors[primitive.attributes.at("NORMAL")];
+          const auto &view = model.bufferViews[accessor.bufferView];
+          normals = reinterpret_cast<const float *>(
+              &model.buffers[view.buffer]
+                   .data[view.byteOffset + accessor.byteOffset]);
+        }
+
+        const float *tangents = nullptr;
+        if (primitive.attributes.count("TANGENT")) {
+          const auto &accessor =
+              model.accessors[primitive.attributes.at("TANGENT")];
+          const auto &view = model.bufferViews[accessor.bufferView];
+          tangents = reinterpret_cast<const float *>(
+              &model.buffers[view.buffer]
+                   .data[view.byteOffset + accessor.byteOffset]);
+        }
+
+        const float *texcoords = nullptr;
+        if (primitive.attributes.count("TEXCOORD_0")) {
+          const auto &accessor =
+              model.accessors[primitive.attributes.at("TEXCOORD_0")];
+          const auto &view = model.bufferViews[accessor.bufferView];
+          texcoords = reinterpret_cast<const float *>(
+              &model.buffers[view.buffer]
+                   .data[view.byteOffset + accessor.byteOffset]);
+        }
+
+        log_debug("checking material for textures etc");
+
+        const tinygltf::Material &material =
+            model.materials[primitive.material];
+
+        uint8_t shader_type_carry = 0;
+
+	std::string texture_path_of_model;
+
+        auto it = material.values.find("baseColorTexture");
+        if (it != material.values.end() && it->second.TextureIndex() >= 0) {
+          const tinygltf::Texture &texture =
+              model.textures[it->second.TextureIndex()];
+          const tinygltf::Image &image = model.images[texture.source];
+          std::cout << "Texture path: " << image.uri << std::endl;
+	  texture_path_of_model = image.uri;
+          shader_type_carry = 2;
+        } else {
+
+          log_error("no materials in mesh! using phong shaders as a fallback.");
+          shader_type_carry = 1;
+        }
+
+        // END TMP
+
+        std::vector<float> final_vertices, final_normals, final_tangents,
+            final_bitangents, final_texcoords;
+
+        size_t vertex_count = posAccessor.count;
+        if (primitive.indices >= 0) {
+          const auto &indexAccessor = model.accessors[primitive.indices];
+          for (size_t i = 0; i < indexAccessor.count; ++i) {
+            uint32_t idx = get_index(primitive, i);
+
+            final_vertices.insert(final_vertices.end(), &positions[idx * 3],
+                                  &positions[idx * 3 + 3]);
+            if (normals)
+              final_normals.insert(final_normals.end(), &normals[idx * 3],
+                                   &normals[idx * 3 + 3]);
+            if (tangents)
+              final_tangents.insert(final_tangents.end(), &tangents[idx * 4],
+                                    &tangents[idx * 4 + 3]);
+            if (texcoords)
+              final_texcoords.insert(final_texcoords.end(), &texcoords[idx * 2],
+                                     &texcoords[idx * 2 + 2]);
+          }
+        } else {
+          for (size_t i = 0; i < vertex_count; ++i) {
+
+            final_vertices.insert(final_vertices.end(), &positions[i * 3],
+                                  &positions[i * 3 + 3]);
+            if (normals)
+              final_normals.insert(final_normals.end(), &normals[i * 3],
+                                   &normals[i * 3 + 3]);
+            if (tangents)
+              final_tangents.insert(final_tangents.end(), &tangents[i * 4],
+                                    &tangents[i * 4 + 3]);
+            if (texcoords)
+              final_texcoords.insert(final_texcoords.end(), &texcoords[i * 2],
+                                     &texcoords[i * 2 + 2]);
+          }
+        }
+
+        if (!final_tangents.empty() && !final_normals.empty()) {
+          for (size_t i = 0; i < final_normals.size(); i += 3) {
+            glm::vec3 N(final_normals[i], final_normals[i + 1],
+                        final_normals[i + 2]);
+            glm::vec3 T(final_tangents[i], final_tangents[i + 1],
+                        final_tangents[i + 2]);
+            glm::vec3 B = glm::normalize(glm::cross(N, T));
+            final_bitangents.push_back(B.x);
+            final_bitangents.push_back(B.y);
+            final_bitangents.push_back(B.z);
+          }
+        }
+
+        log_success("done importing models, loading shaders...");
+
+        if (shader_type_carry == 2) {
+          // use texture shading
+          Shader shader_to_use("src/shaders/shader_src/pbr.vert",
+                               "src/shaders/shader_src/pbr.frag");
+          Material mat_to_use(E_FACE, shader_to_use);
+
+          Mesh primitive_mesh(mat_to_use);
+          primitive_mesh.m_vertices_array = std::move(final_vertices);
+          primitive_mesh.m_normals_array = std::move(final_normals);
+          primitive_mesh.m_tangents_array = std::move(final_tangents);
+          primitive_mesh.m_binormals_array = std::move(final_bitangents);
+          primitive_mesh.m_tex_coords_array = std::move(final_texcoords);
+          primitive_mesh.m_model_matrix = global_transform;
+
+	  //bind tex to num_loaded_tex and increment.
+	  std::filesystem::path cwd = std::filesystem::current_path();
+	  std::cout << "Current working directory: " << cwd.string() << std::endl;
+
+	  // this is garbage hacky shit again TODO: clean shit up lol
+	  std::filesystem::path model_path = file_path;
+	  std::filesystem::path full_tex_path = cwd / model_path.parent_path() / texture_path_of_model;
+	  std::string final_path = full_tex_path.lexically_normal().string();
+	  
+	  primitive_mesh.m_material.bound_texture_id = bind_texture_to_slot(full_tex_path,num_loaded_textures.load());
+	  primitive_mesh.m_material.m_material_type = E_PBR_TEX;
+          num_loaded_textures.fetch_add(1);
+
+          meshes.push_back(std::move(primitive_mesh));
+
+	  log_success("yay pbr mesh or so");
+	  
+        } else {
+          // use phong shading (fallback)
+          Shader shader_to_use("src/shaders/shader_src/phong.vert",
+                               "src/shaders/shader_src/phong.frag");
+          Material mat_to_use(E_FACE, shader_to_use);
+
+          Mesh primitive_mesh(mat_to_use);
+          primitive_mesh.m_vertices_array = std::move(final_vertices);
+          primitive_mesh.m_normals_array = std::move(final_normals);
+          primitive_mesh.m_tangents_array = std::move(final_tangents);
+          primitive_mesh.m_binormals_array = std::move(final_bitangents);
+          primitive_mesh.m_tex_coords_array = std::move(final_texcoords);
+          primitive_mesh.m_model_matrix = global_transform;
+	  
+	  primitive_mesh.m_material.m_material_type = E_PHONG;
+
+          meshes.push_back(std::move(primitive_mesh));
+	  
+	  log_success("shit phong mesh detected");
+        }
+      }
     }
-    
-    return meshes;
+
+    for (int child : node.children) {
+      process_node(child, global_transform);
+    }
+  };
+
+  int scene_index = model.defaultScene >= 0 ? model.defaultScene : 0;
+  const auto &scene = model.scenes[scene_index];
+  glm::mat4 identity = glm::mat4(1.0f);
+
+  for (int node_idx : scene.nodes) {
+    process_node(node_idx, identity);
+  }
+
+  log_success("GLTF scene fully loaded with multiple meshes!");
+
+  for (auto mesh : meshes) {
+
+    std::cout << "mesh in meshes with n vertices: "
+              << mesh.m_vertices_array.size() << std::endl;
+  }
+
+  return meshes;
 }
-
-

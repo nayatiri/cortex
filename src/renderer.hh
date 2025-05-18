@@ -20,6 +20,7 @@
 #include <vector>
 #include <cstdint>
 #include <iostream>
+#include <atomic>
 
 class Renderer {
 public:
@@ -55,6 +56,7 @@ public:
 
   // Scene management
   Scene m_active_scene;
+  std::atomic<uint32_t> num_loaded_textures = 0;
   
   /////////////////////
   // CALLBACK FUNCTIONS

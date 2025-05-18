@@ -239,7 +239,7 @@ void Renderer::init_scene_vbos() {
         glBufferData(GL_ARRAY_BUFFER,
                      mesh_of_entity.m_tex_coords_array.size() * sizeof(float),
                      mesh_of_entity.m_tex_coords_array.data(), GL_STATIC_DRAW);
-        glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float),
+        glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float),
                               (void *)0);
         glEnableVertexAttribArray(1);
         glBindBuffer(GL_ARRAY_BUFFER, 0);
@@ -379,7 +379,7 @@ Renderer::Renderer(uint window_width, uint window_height) {
   /// SCENE SETUP
 
   Entity second_entity;
-  second_entity.m_mesh = std::move(load_all_meshes_from_gltf("models/tex_cube/tex_cube.gltf"));
+  second_entity.m_mesh = std::move(load_all_meshes_from_gltf("models/tex_cube/tex_cube.gltf", num_loaded_textures));
   
   // TMP
   glDisable(GL_CULL_FACE);
@@ -443,13 +443,6 @@ Renderer::Renderer(uint window_width, uint window_height) {
         glm::radians(90.0f), (float)m_viewport_width / (float)m_viewport_height,
         0.1f, 100000.0f);
 
-    ////////////////
-    // pre scene adjustments
-    ///////////////
-
-    //m_active_scene.m_loaded_entities[0].m_mesh[1].m_model_matrix[3][0] *= 0.5;
-    //m_active_scene.m_loaded_entities[0].m_mesh[1].m_model_matrix[3][1] *= 0.5;
-    //m_active_scene.m_loaded_entities[0].m_mesh[1].m_model_matrix[3][2] *= 0.5;
 
     // render meshes
     for (auto &entity : m_active_scene.m_loaded_entities) {
@@ -466,6 +459,18 @@ Renderer::Renderer(uint window_width, uint window_height) {
         mesh.m_material.m_shader.use();
 
 	check_gl_error("after setting shader active");
+
+	if(mesh.m_material.m_material_type == E_PBR_TEX) {
+
+	  //bind texture to uniform
+	  glActiveTexture(GL_TEXTURE0);
+	  glBindTexture(GL_TEXTURE_2D, mesh.m_material.bound_texture_id);
+	  GLint loc_tex = glGetUniformLocation(mesh.m_material.m_shader.ID, "uTexture");
+	  glUniform1i(loc_tex, 0);
+
+	  check_gl_error("after uploading textures");
+	  
+	}
 	
         // TMP ghetto light + color
         m_active_scene.m_loaded_lights[0].m_light_matrix = glm::translate(

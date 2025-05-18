@@ -35,6 +35,7 @@ public:
   Material(e_mat_type material_type, Shader use_shader);
 
   Shader m_shader;
+  int bound_texture_id = -1;
   
   //pbr with textures
   const char* m_material_pbr_tex_albedo_path;
