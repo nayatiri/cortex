@@ -45,7 +45,7 @@ void Renderer::scroll_callback(GLFWwindow *window, double xoffset,
   Renderer *renderer =
       static_cast<Renderer *>(glfwGetWindowUserPointer(window));
 
-  std::cout << "Scroll offset: (" << xoffset << ", " << yoffset << ")\n";
+  std::cout << "changed camera speed to: " << m_camera_base_speed << std::endl;
 
   m_camera_base_speed += static_cast<float>(yoffset) * 0.1f;
 
@@ -379,7 +379,7 @@ Renderer::Renderer(uint window_width, uint window_height) {
   /// SCENE SETUP
 
   Entity second_entity;
-  second_entity.m_mesh = std::move(load_all_meshes_from_gltf("models/scene.gltf"));
+  second_entity.m_mesh = std::move(load_all_meshes_from_gltf("models/tex_cube/tex_cube.gltf"));
   
   // TMP
   glDisable(GL_CULL_FACE);
