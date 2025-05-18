@@ -379,8 +379,9 @@ Renderer::Renderer(uint window_width, uint window_height) {
   /// SCENE SETUP
 
   Entity second_entity;
-  second_entity.m_mesh = std::move(load_all_meshes_from_gltf("models/levi_entrance/levi_entrance.gltf", num_loaded_textures));
-  
+  //  second_entity.m_mesh = std::move(load_all_meshes_from_gltf("models/levi_entrance/levi_entrance.gltf", num_loaded_textures, m_texture_map));
+  second_entity.m_mesh = std::move(load_all_meshes_from_gltf("models/bathroom/scene.gltf", num_loaded_textures, m_texture_map));
+
   // TMP
   glDisable(GL_CULL_FACE);
 

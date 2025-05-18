@@ -21,6 +21,7 @@
 #include <cstdint>
 #include <iostream>
 #include <atomic>
+#include <unordered_map>
 
 class Renderer {
 public:
@@ -57,7 +58,9 @@ public:
   // Scene management
   Scene m_active_scene;
   std::atomic<uint32_t> num_loaded_textures = 0;
-  
+
+  std::vector<std::tuple<std::string, unsigned int, GLuint>> m_texture_map;
+
   /////////////////////
   // CALLBACK FUNCTIONS
   /////////////////////

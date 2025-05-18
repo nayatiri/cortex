@@ -22,6 +22,8 @@
 #include <thread>
 #include <vector>
 #include <atomic>
+#include <unordered_map>
+#include <tuple>
 
 #define TINYGLTF_IMPLEMENTATION
 #define STB_IMAGE_IMPLEMENTATION
@@ -177,10 +179,19 @@ tan_bin_glob calculate_vert_tan_bin(std::vector<float> mesh_vertices,
   return return_glob;
 }
 
-GLuint bind_texture_to_slot(std::string to_load, unsigned int slot) {
+
+
+GLuint bind_texture_to_slot(std::string to_load, unsigned int slot, std::vector<std::tuple<std::string, unsigned int, GLuint>>& texture_map ) {
     printf("trying to load texture into slot: %d\n", slot);
     int width, height, nrChannels;
 
+    for(int i = 0; i < texture_map.size(); i++) {
+      if(std::get<0>(texture_map[i]) == to_load) {
+	//we dont do anything. jus return the texture handle
+	return std::get<2>(texture_map[i]);
+      }
+    }
+    
     //    stbi_set_flip_vertically_on_load(true); // fuck u
     unsigned char *data = stbi_load(to_load.c_str(), &width, &height, &nrChannels, 0);
 
@@ -218,6 +229,9 @@ GLuint bind_texture_to_slot(std::string to_load, unsigned int slot) {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
     stbi_image_free(data);
+
+    texture_map.emplace_back(std::tuple<std::string, unsigned int, GLuint>(to_load,slot,texture));
+    
     return texture;
 }
 
@@ -403,7 +417,7 @@ void check_gl_error(const char *context = "") {
   }
 }
 
-std::vector<Mesh> load_all_meshes_from_gltf(const std::string &file_path, std::atomic<unsigned int>& num_loaded_textures) {
+std::vector<Mesh> load_all_meshes_from_gltf(const std::string &file_path, std::atomic<unsigned int>& num_loaded_textures, std::vector<std::tuple<std::string, unsigned int, GLuint>>& texture_map) {
   tinygltf::Model model;
   tinygltf::TinyGLTF loader;
   std::string err, warn;
@@ -609,7 +623,7 @@ std::vector<Mesh> load_all_meshes_from_gltf(const std::string &file_path, std::a
 	  std::filesystem::path full_tex_path = cwd / model_path.parent_path() / texture_path_of_model;
 	  std::string final_path = full_tex_path.lexically_normal().string();
 	  
-	  primitive_mesh.m_material.bound_texture_id = bind_texture_to_slot(full_tex_path,num_loaded_textures.load());
+	  primitive_mesh.m_material.bound_texture_id = bind_texture_to_slot(final_path,num_loaded_textures.load(), texture_map);
 	  primitive_mesh.m_material.m_material_type = E_PBR_TEX;
           num_loaded_textures.fetch_add(1);
 
