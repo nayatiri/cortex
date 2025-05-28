@@ -8,6 +8,7 @@ A powerful and lightweight 3D renderer built in C++ and OpenGL, supporting a wid
 
 ##  Features
 
+-  Foreward rendering
 -  Physically Based Rendering (PBR)
 -  Support for GLTF/GLB models / full scenes including materials / positioning/
 -  Custom abstraction, making the engine suitable for easy expansion.
