@@ -35,6 +35,9 @@
 #include "components/scene.hh"
 #include "shaders/shaderclass.hh"
 
+#define DEF_NEAR_CLIP_PLANE 0.01f
+#define DEF_FAR_CLIP_PLANE 10000.0f
+
 /////////////////////
 // CALLBACK FUNCTIONS
 /////////////////////
@@ -380,7 +383,7 @@ Renderer::Renderer(uint window_width, uint window_height) {
 
   Entity second_entity;
   //  second_entity.m_mesh = std::move(load_all_meshes_from_gltf("models/levi_entrance/levi_entrance.gltf", num_loaded_textures, m_texture_map));
-  second_entity.m_mesh = std::move(load_all_meshes_from_gltf("models/bathroom/scene.gltf", num_loaded_textures, m_texture_map));
+  second_entity.m_mesh = std::move(load_all_meshes_from_gltf("models/potter/scene.gltf", num_loaded_textures, m_texture_map));
 
   // TMP
   glDisable(GL_CULL_FACE);
@@ -418,11 +421,96 @@ Renderer::Renderer(uint window_width, uint window_height) {
     }
   }
 
+
+  // SHADOW MAPPING
+
+  
+  unsigned int depthMapFBO;
+  glGenFramebuffers(1, &depthMapFBO);  
+  
+  const unsigned int SHADOW_WIDTH = 1024, SHADOW_HEIGHT = 1024;
+  
+  unsigned int depthMap;
+  glGenTextures(1, &depthMap);
+  glBindTexture(GL_TEXTURE_2D, depthMap);
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, 
+	       SHADOW_WIDTH, SHADOW_HEIGHT, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER); 
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+  float borderColor[] = { 1.0, 1.0, 1.0, 1.0 };
+  glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
+
+  glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
+  glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthMap, 0);
+  glDrawBuffer(GL_NONE);
+  glReadBuffer(GL_NONE);
+  glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+  Shader depth_shader("src/shaders/shader_src/depth.vert","src/shaders/shader_src/depth.frag");
+  depth_shader.use();
+  
   // main render loop
   while (!glfwWindowShouldClose(window)) {
 
     processInput(window);
 
+    // render depth map for shadow mapping
+    //    glm::vec3 light_position(
+    //			     m_active_scene.m_loaded_lights[0].m_light_matrix[3][0],
+    //			     m_active_scene.m_loaded_lights[0].m_light_matrix[3][1],
+    //			     m_active_scene.m_loaded_lights[0].m_light_matrix[3][2]);
+    
+    glm::mat4 light_look_at = glm::lookAt(glm::vec3(0.0f,0.0f,0.0f),glm::vec3(cos(m_lastFrame),0.0f,sin(m_lastFrame)), glm::vec3(0.0f,1.0f,0.0f));
+    glm::mat4 light_projection_mat = glm::perspective(
+						      glm::radians(90.0f), (float)SHADOW_WIDTH / (float)SHADOW_HEIGHT,
+						      0.1f, 100.0f);
+
+      //    glm::mat4 light_projection_mat = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, 0.1f, 100.0f); 
+    
+    glm::mat4 light_space_matrix = light_projection_mat * light_look_at;
+
+    depth_shader.use();
+    
+    glViewport(0, 0, SHADOW_WIDTH, SHADOW_HEIGHT);
+    glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
+    glClear(GL_DEPTH_BUFFER_BIT);
+
+    check_gl_error("after setting viewport stuff up (depth)");
+    
+    // render scene from light pov
+    for (auto &entity : m_active_scene.m_loaded_entities) {
+      for (auto &mesh : entity.m_mesh) {
+	
+        // bind meshes vao context
+        glBindVertexArray(mesh.m_mesh_vao);
+        if (glIsVertexArray(mesh.m_mesh_vao) == GL_FALSE) {
+          log_error("no valid VAO id! cant render mesh.");
+        }
+	
+	check_gl_error("before setting uniforms (depth)");
+	
+        upload_to_uniform("model", depth_shader.ID,
+                          mesh.m_model_matrix * entity.m_model_matrix);
+	upload_to_uniform("lightSpaceMatrix", depth_shader.ID, light_space_matrix);
+	
+	check_gl_error("after setting uniforms (depth)");
+	
+        // we renderin
+        glDrawArrays(GL_TRIANGLES, 0, mesh.m_vertices_array.size()/3);
+	
+        check_gl_error("after glDrawArrays (depth)");
+	
+      }
+      
+    }
+    
+    // rebind old fb
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    
+    // render scene
+    
     glViewport(0, 0, m_viewport_width, m_viewport_height);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glClearColor(0.3f, 0.3f, 0.3f, 1.0f);
@@ -442,7 +530,7 @@ Renderer::Renderer(uint window_width, uint window_height) {
     glfwGetWindowSize(window, &m_viewport_width, &m_viewport_height);
     glm::mat4 projection_mat = glm::perspective(
         glm::radians(90.0f), (float)m_viewport_width / (float)m_viewport_height,
-        0.1f, 100000.0f);
+        DEF_NEAR_CLIP_PLANE, DEF_FAR_CLIP_PLANE);
 
 
     // render meshes
@@ -468,7 +556,13 @@ Renderer::Renderer(uint window_width, uint window_height) {
 	  glBindTexture(GL_TEXTURE_2D, mesh.m_material.bound_texture_id);
 	  GLint loc_tex = glGetUniformLocation(mesh.m_material.m_shader.ID, "uTexture");
 	  glUniform1i(loc_tex, 0);
+	  //bind depth map to uniform
+	  glActiveTexture(GL_TEXTURE1);
+	  glBindTexture(GL_TEXTURE_2D, depthMap);
+	  GLint loc_depth = glGetUniformLocation(mesh.m_material.m_shader.ID, "uDepthMap");
+	  glUniform1i(loc_depth, 1);
 
+	  
 	  check_gl_error("after uploading textures");
 	  
 	}
@@ -499,6 +593,8 @@ Renderer::Renderer(uint window_width, uint window_height) {
                           light_position);
         upload_to_uniform("viewPos", mesh.m_material.m_shader.ID, m_cameraPos);
 
+	upload_to_uniform("light_space_matrix", mesh.m_material.m_shader.ID, light_space_matrix);
+	
 	check_gl_error("after setting uniforms");
 	
         // we renderin

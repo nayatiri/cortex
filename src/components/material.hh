@@ -39,11 +39,16 @@ public:
   
   //pbr with textures
   const char* m_material_pbr_tex_albedo_path;
+  GLuint m_material_pbr_tex_albedo_glid = 0;
   const char* m_material_pbr_tex_metallic_path;
+  GLuint m_material_pbr_tex_metallic_glid = 0;
   const char* m_material_pbr_tex_roughness_path;
+  GLuint m_material_pbr_tex_roughness_glid = 0;
   const char* m_material_pbr_tex_normal_path;
+  GLuint m_material_pbr_tex_normal_glid = 0;
   const char* m_material_pbr_tex_displacement_path;
-
+  GLuint m_material_pbr_tex_displacement_glid = 0;
+  
   void material_pbr_tex_initialize();
 
   //phong with textures

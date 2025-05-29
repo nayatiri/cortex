@@ -13,6 +13,7 @@
 #include <glm/gtc/type_ptr.hpp>
 
 // stdlib
+#include <atomic>
 #include <chrono>
 #include <cmath>
 #include <cstdint>
@@ -20,10 +21,9 @@
 #include <iostream>
 #include <string>
 #include <thread>
-#include <vector>
-#include <atomic>
-#include <unordered_map>
 #include <tuple>
+#include <unordered_map>
+#include <vector>
 
 #define TINYGLTF_IMPLEMENTATION
 #define STB_IMAGE_IMPLEMENTATION
@@ -179,60 +179,148 @@ tan_bin_glob calculate_vert_tan_bin(std::vector<float> mesh_vertices,
   return return_glob;
 }
 
+GLuint bind_texture_to_slot(
+    std::string to_load, unsigned int slot,
+    std::vector<std::tuple<std::string, unsigned int, GLuint>> &texture_map) {
+  printf("trying to load texture into slot: %d\n", slot);
+  int width, height, nrChannels;
 
+  for (int i = 0; i < texture_map.size(); i++) {
+    if (std::get<0>(texture_map[i]) == to_load) {
+      // we dont do anything. jus return the texture handle
+      return std::get<2>(texture_map[i]);
+    }
+  }
 
-GLuint bind_texture_to_slot(std::string to_load, unsigned int slot, std::vector<std::tuple<std::string, unsigned int, GLuint>>& texture_map ) {
-    printf("trying to load texture into slot: %d\n", slot);
-    int width, height, nrChannels;
+  //    stbi_set_flip_vertically_on_load(true); // fuck u
+  unsigned char *data =
+      stbi_load(to_load.c_str(), &width, &height, &nrChannels, 0);
 
-    for(int i = 0; i < texture_map.size(); i++) {
-      if(std::get<0>(texture_map[i]) == to_load) {
-	//we dont do anything. jus return the texture handle
-	return std::get<2>(texture_map[i]);
+  if (!data) {
+    std::cerr << "failed to load texture: " << to_load << std::endl;
+    return 0;
+  }
+
+  GLenum format;
+  if (nrChannels == 1)
+    format = GL_RED;
+  else if (nrChannels == 3)
+    format = GL_RGB;
+  else if (nrChannels == 4)
+    format = GL_RGBA;
+  else {
+    std::cerr << "unsupported number of channels: " << nrChannels << std::endl;
+    stbi_image_free(data);
+    return 0;
+  }
+
+  GLuint texture;
+  glGenTextures(1, &texture);
+
+  glActiveTexture(GL_TEXTURE0 + slot);
+  glBindTexture(GL_TEXTURE_2D, texture);
+
+  glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, format,
+               GL_UNSIGNED_BYTE, data);
+  // glGenerateMipmap(GL_TEXTURE_2D);
+
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+  stbi_image_free(data);
+
+  texture_map.emplace_back(
+      std::tuple<std::string, unsigned int, GLuint>(to_load, slot, texture));
+
+  return texture;
+}
+
+bool is_valid_texture(const tinygltf::Model &model, int textureIndex) {
+  return textureIndex >= 0 && textureIndex < model.textures.size();
+}
+
+bool check_pbr_textures_present(const tinygltf::Model &model) {
+
+  int texture_level = 0;
+
+  for (const auto &mesh : model.meshes) {
+    std::cout << "Checking mesh: " << mesh.name << "\n";
+    for (const auto &primitive : mesh.primitives) {
+      if (primitive.material < 0 ||
+          primitive.material >= model.materials.size()) {
+        std::cout << "  -> No valid material assigned to this primitive.\n";
+        continue;
+      }
+
+      const auto &material = model.materials[primitive.material];
+      std::cout << "  Material: " << material.name << "\n";
+
+      auto find_texture_index = [](const tinygltf::Material &mat,
+                                   const std::string &key) -> int {
+        auto it = mat.values.find(key);
+        if (it != mat.values.end()) {
+          auto tex_it = it->second.json_double_value.find("index");
+          if (tex_it != it->second.json_double_value.end()) {
+            return static_cast<int>(tex_it->second);
+          }
+        }
+        return -1;
+      };
+
+      int baseColorIndex = find_texture_index(material, "baseColorTexture");
+      if (is_valid_texture(model, baseColorIndex)) {
+        std::cout << "    ✔ baseColorTexture found\n";
+        texture_level++;
+      } else {
+        std::cout << "    ❌ baseColorTexture missing\n";
+      }
+
+      int metalRoughIndex =
+          find_texture_index(material, "metallicRoughnessTexture");
+      if (is_valid_texture(model, metalRoughIndex)) {
+        std::cout << "    ✔ metallicRoughnessTexture found\n";
+        texture_level++;
+      } else {
+        std::cout << "    ❌ metallicRoughnessTexture missing\n";
+      }
+
+      int normalIndex = find_texture_index(material, "normalTexture");
+      if (is_valid_texture(model, normalIndex)) {
+        std::cout << "    ✔ normalTexture found\n";
+        texture_level++;
+      } else {
+        std::cout << "    ❌ normalTexture missing\n";
+      }
+
+      int occlusionIndex = find_texture_index(material, "occlusionTexture");
+      if (is_valid_texture(model, occlusionIndex)) {
+        std::cout << "    ✔ occlusionTexture found\n";
+        texture_level++;
+      } else {
+        std::cout << "    ❌ occlusionTexture missing\n";
+      }
+
+      auto emissiveIt = material.additionalValues.find("emissiveTexture");
+      if (emissiveIt != material.additionalValues.end()) {
+        auto idxIt = emissiveIt->second.json_double_value.find("index");
+        if (idxIt != emissiveIt->second.json_double_value.end() &&
+            is_valid_texture(model, static_cast<int>(idxIt->second))) {
+          std::cout << "    ✔ emissiveTexture found\n";
+        } else {
+          std::cout << "    ❌ emissiveTexture listed but invalid\n";
+        }
+      } else {
+        std::cout << "    ℹ️  emissiveTexture not present (optional)\n";
       }
     }
-    
-    //    stbi_set_flip_vertically_on_load(true); // fuck u
-    unsigned char *data = stbi_load(to_load.c_str(), &width, &height, &nrChannels, 0);
+  }
 
-    if (!data) {
-        std::cerr << "failed to load texture: " << to_load << std::endl;
-        return 0;
-    }
-
-    GLenum format;
-    if (nrChannels == 1)
-        format = GL_RED;
-    else if (nrChannels == 3)
-        format = GL_RGB;
-    else if (nrChannels == 4)
-        format = GL_RGBA;
-    else {
-        std::cerr << "unsupported number of channels: " << nrChannels << std::endl;
-        stbi_image_free(data);
-        return 0;
-    }
-
-    GLuint texture;
-    glGenTextures(1, &texture);
-
-    glActiveTexture(GL_TEXTURE0 + slot);
-    glBindTexture(GL_TEXTURE_2D, texture);
-
-    glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, format,
-                 GL_UNSIGNED_BYTE, data);
-    // glGenerateMipmap(GL_TEXTURE_2D);
-
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);	
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-    stbi_image_free(data);
-
-    texture_map.emplace_back(std::tuple<std::string, unsigned int, GLuint>(to_load,slot,texture));
-    
-    return texture;
+  if (texture_level >= 4)
+    return true;
+  else
+    return false;
 }
 
 Mesh load_primitive_mesh_from_gltf(const std::string file_path) {
@@ -417,7 +505,85 @@ void check_gl_error(const char *context = "") {
   }
 }
 
-std::vector<Mesh> load_all_meshes_from_gltf(const std::string &file_path, std::atomic<unsigned int>& num_loaded_textures, std::vector<std::tuple<std::string, unsigned int, GLuint>>& texture_map) {
+bool check_pbr_textures_present_mesh(const tinygltf::Mesh &mesh,
+                                     const tinygltf::Model &model) {
+
+  for (const auto &primitive : mesh.primitives) {
+    if (primitive.material < 0 ||
+        primitive.material >= model.materials.size()) {
+      std::cout << "  -> No valid material assigned to this primitive.\n";
+      continue;
+    }
+
+    const auto &material = model.materials[primitive.material];
+    std::cout << "  Material: " << material.name << "\n";
+
+    auto find_texture_index = [](const tinygltf::Material &mat,
+                                 const std::string &key) -> int {
+      auto it = mat.values.find(key);
+      if (it != mat.values.end()) {
+        auto tex_it = it->second.json_double_value.find("index");
+        if (tex_it != it->second.json_double_value.end()) {
+          return static_cast<int>(tex_it->second);
+        }
+      }
+      return -1;
+    };
+
+    // Check baseColorTexture
+    int baseColorIndex = find_texture_index(material, "baseColorTexture");
+    if (is_valid_texture(model, baseColorIndex)) {
+      std::cout << "    ✔ baseColorTexture found\n";
+    } else {
+      std::cout << "    ❌ baseColorTexture missing\n";
+    }
+
+    // Check metallicRoughnessTexture
+    int metalRoughIndex =
+        find_texture_index(material, "metallicRoughnessTexture");
+    if (is_valid_texture(model, metalRoughIndex)) {
+      std::cout << "    ✔ metallicRoughnessTexture found\n";
+    } else {
+      std::cout << "    ❌ metallicRoughnessTexture missing\n";
+    }
+
+    // Check normalTexture
+    int normalIndex = find_texture_index(material, "normalTexture");
+    if (is_valid_texture(model, normalIndex)) {
+      std::cout << "    ✔ normalTexture found\n";
+    } else {
+      std::cout << "    ❌ normalTexture missing\n";
+    }
+
+    // Check occlusionTexture
+    int occlusionIndex = find_texture_index(material, "occlusionTexture");
+    if (is_valid_texture(model, occlusionIndex)) {
+      std::cout << "    ✔ occlusionTexture found\n";
+    } else {
+      std::cout << "    ❌ occlusionTexture missing\n";
+    }
+
+    // Check emissiveTexture (from additionalValues)
+    auto emissiveIt = material.additionalValues.find("emissiveTexture");
+    if (emissiveIt != material.additionalValues.end()) {
+      auto idxIt = emissiveIt->second.json_double_value.find("index");
+      if (idxIt != emissiveIt->second.json_double_value.end() &&
+          is_valid_texture(model, static_cast<int>(idxIt->second))) {
+        std::cout << "    ✔ emissiveTexture found\n";
+      } else {
+        std::cout << "    ❌ emissiveTexture listed but invalid\n";
+      }
+    } else {
+      std::cout << "    ℹ️  emissiveTexture not present (optional)\n";
+    }
+  }
+  return false;
+}
+
+std::vector<Mesh> load_all_meshes_from_gltf(
+    const std::string &file_path,
+    std::atomic<unsigned int> &num_loaded_textures,
+    std::vector<std::tuple<std::string, unsigned int, GLuint>> &texture_map) {
   tinygltf::Model model;
   tinygltf::TinyGLTF loader;
   std::string err, warn;
@@ -429,6 +595,8 @@ std::vector<Mesh> load_all_meshes_from_gltf(const std::string &file_path, std::a
     printf("Warn: %s\n", warn.c_str());
   if (!err.empty())
     printf("Err: %s\n", err.c_str());
+
+  check_pbr_textures_present(model);
 
   std::vector<Mesh> meshes;
 
@@ -524,27 +692,33 @@ std::vector<Mesh> load_all_meshes_from_gltf(const std::string &file_path, std::a
 
         log_debug("checking material for textures etc");
 
-        const tinygltf::Material &material =
-            model.materials[primitive.material];
-
-        uint8_t shader_type_carry = 0;
-
+	std::cout << primitive.material << " mat number or so" << std::endl;
+	
+	uint8_t shader_type_carry = 0;
 	std::string texture_path_of_model;
+	
+	if(primitive.material >= 0) {
 
-        auto it = material.values.find("baseColorTexture");
-        if (it != material.values.end() && it->second.TextureIndex() >= 0) {
-          const tinygltf::Texture &texture =
+	  const tinygltf::Material &material =
+            model.materials[primitive.material];
+	  
+	  auto it = material.values.find("baseColorTexture");
+	  if (it != material.values.end() && it->second.TextureIndex() >= 0) {
+	    const tinygltf::Texture &texture =
               model.textures[it->second.TextureIndex()];
-          const tinygltf::Image &image = model.images[texture.source];
-          std::cout << "Texture path: " << image.uri << std::endl;
-	  texture_path_of_model = image.uri;
-          shader_type_carry = 2;
-        } else {
-
-          log_error("no materials in mesh! using phong shaders as a fallback.");
-          shader_type_carry = 1;
-        }
-
+	    const tinygltf::Image &image = model.images[texture.source];
+	    std::cout << "Texture path: " << image.uri << std::endl;
+	    texture_path_of_model = image.uri;
+	    shader_type_carry = 2;
+	  } else {    
+	    log_error("no materials in mesh! using phong shaders as a fallback.");
+	    shader_type_carry = 1;
+	  }
+	} else {
+	  //also need to use fallback
+	  shader_type_carry = 1;
+	}
+        
         // END TMP
 
         std::vector<float> final_vertices, final_normals, final_tangents,
@@ -614,23 +788,26 @@ std::vector<Mesh> load_all_meshes_from_gltf(const std::string &file_path, std::a
           primitive_mesh.m_tex_coords_array = std::move(final_texcoords);
           primitive_mesh.m_model_matrix = global_transform;
 
-	  //bind tex to num_loaded_tex and increment.
-	  std::filesystem::path cwd = std::filesystem::current_path();
-	  std::cout << "Current working directory: " << cwd.string() << std::endl;
+          // bind tex to num_loaded_tex and increment.
+          std::filesystem::path cwd = std::filesystem::current_path();
+          std::cout << "Current working directory: " << cwd.string()
+                    << std::endl;
 
-	  // this is garbage hacky shit again TODO: clean shit up lol
-	  std::filesystem::path model_path = file_path;
-	  std::filesystem::path full_tex_path = cwd / model_path.parent_path() / texture_path_of_model;
-	  std::string final_path = full_tex_path.lexically_normal().string();
-	  
-	  primitive_mesh.m_material.bound_texture_id = bind_texture_to_slot(final_path,num_loaded_textures.load(), texture_map);
-	  primitive_mesh.m_material.m_material_type = E_PBR_TEX;
+          // this is garbage hacky shit again TODO: clean shit up lol
+          std::filesystem::path model_path = file_path;
+          std::filesystem::path full_tex_path =
+              cwd / model_path.parent_path() / texture_path_of_model;
+          std::string final_path = full_tex_path.lexically_normal().string();
+
+          primitive_mesh.m_material.bound_texture_id = bind_texture_to_slot(
+              final_path, num_loaded_textures.load(), texture_map);
+          primitive_mesh.m_material.m_material_type = E_PBR_TEX;
           num_loaded_textures.fetch_add(1);
 
           meshes.push_back(std::move(primitive_mesh));
 
-	  log_success("yay pbr mesh or so");
-	  
+          log_success("yay pbr mesh or so");
+
         } else {
           // use phong shading (fallback)
           Shader shader_to_use("src/shaders/shader_src/phong.vert",
@@ -644,12 +821,12 @@ std::vector<Mesh> load_all_meshes_from_gltf(const std::string &file_path, std::a
           primitive_mesh.m_binormals_array = std::move(final_bitangents);
           primitive_mesh.m_tex_coords_array = std::move(final_texcoords);
           primitive_mesh.m_model_matrix = global_transform;
-	  
-	  primitive_mesh.m_material.m_material_type = E_PHONG;
+
+          primitive_mesh.m_material.m_material_type = E_PHONG;
 
           meshes.push_back(std::move(primitive_mesh));
-	  
-	  log_success("shit phong mesh detected");
+
+          log_success("shit phong mesh detected");
         }
       }
     }
