@@ -1,7 +1,5 @@
 #pragma once
 
-
-#include <GLFW/glfw3.h>
 #include <glm/ext/matrix_transform.hpp>
 #include <glm/ext/vector_float3.hpp>
 #include <glm/geometric.hpp>
@@ -20,6 +18,8 @@
 #include <cstdint>
 #include <iostream>
 
+#include "mesh.hh"
+
 enum e_light_type {
 
   E_POINT_LIGHT,
@@ -35,6 +35,10 @@ public:
   float m_strength;
   uint64_t m_color;
 
+  Mesh m_light_visualizer_mesh;
+  
   glm::mat4 m_light_matrix = glm::mat4(1.0f);
+
+  Light(Mesh to_use);
   
 };

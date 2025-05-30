@@ -18,3 +18,5 @@
 #include <vector>
 #include <cstdint>
 #include <iostream>
+
+Light::Light(Mesh to_use)  : m_light_visualizer_mesh(to_use) {}

@@ -1,7 +1,5 @@
 #pragma once
 
-#include <iostream>
-
 // my files
 #include "../shaders/shaderclass.hh"
 
@@ -14,7 +12,7 @@
 #include <chrono>
 #include <vector>
 #include <cstdint>
-
+#include <iostream>
 #include <cstdint>
 
 enum e_mat_type {

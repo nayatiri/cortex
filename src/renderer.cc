@@ -151,6 +151,8 @@ void Renderer::processInput(GLFWwindow *window) {
   if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS)
     m_cameraPos += glm::normalize(glm::vec3(0.0f, 1.0f, 0.0f)) * cameraSpeed;
 
+  // tj camera
+
   if (glfwGetKey(window, GLFW_KEY_G) == GLFW_PRESS) {
     if (m_last_mouse_state == false) {
       m_is_mouse_grabbed = !m_is_mouse_grabbed;
@@ -178,31 +180,77 @@ void Renderer::init_scene_vbos() {
   if (m_active_scene.m_loaded_entities.size() > 0 &&
       m_active_scene.m_loaded_lights.size() > 0) {
 
+    log_debug("Initializing VBOs for Lights...");
+
+    ///////////////////////
+    // create vbos for the light mesh (legit only need one lol)
+    ///////////////////////
+    Light &light_source = m_active_scene.m_loaded_lights[0];
+    // vao
+    glGenVertexArrays(1, &light_source.m_light_visualizer_mesh.m_mesh_vao);
+
+    std::cout << light_source.m_light_visualizer_mesh.m_mesh_vao << " tj light" << std::endl;
+
+    glBindVertexArray(light_source.m_light_visualizer_mesh.m_mesh_vao);
+
+    // vbo mesh (vertices)
+    glGenBuffers(1, &light_source.m_light_visualizer_mesh.m_vertices_glid);
+    glBindBuffer(GL_ARRAY_BUFFER,
+                 light_source.m_light_visualizer_mesh.m_vertices_glid);
+    glBufferData(GL_ARRAY_BUFFER,
+                 light_source.m_light_visualizer_mesh.m_vertices_array.size() *
+                     sizeof(float),
+                 light_source.m_light_visualizer_mesh.m_vertices_array.data(),
+                 GL_STATIC_DRAW);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float),
+                          (void *)0);
+    glEnableVertexAttribArray(0);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+    glGenBuffers(1, &light_source.m_light_visualizer_mesh.m_tex_coords_glid);
+    glBindBuffer(GL_ARRAY_BUFFER,
+                 light_source.m_light_visualizer_mesh.m_tex_coords_glid);
+    glBufferData(
+        GL_ARRAY_BUFFER,
+        light_source.m_light_visualizer_mesh.m_tex_coords_array.size() *
+            sizeof(float),
+        light_source.m_light_visualizer_mesh.m_tex_coords_array.data(),
+        GL_STATIC_DRAW);
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float),
+                          (void *)0);
+    glEnableVertexAttribArray(1);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+    ///////////////////////
+    // now load all the data for the rest of the scene
+    ///////////////////////
     log_debug("Initializing VBOs for scene...");
     for (auto &entity_to_render : m_active_scene.m_loaded_entities) {
       log_debug_sub("Found active scene.");
       for (auto &mesh_of_entity : entity_to_render.m_mesh) {
 
-	if (!mesh_of_entity.m_mesh_vbo_needs_refresh)
-	  return;
+        if (!mesh_of_entity.m_mesh_vbo_needs_refresh)
+          return;
 
         log_debug_sub("Found mesh in active scene.");
 
-	//generate missing geometry if its missing (500iq)
-	if(mesh_of_entity.m_normals_array.size() < 1) {
-	  log_debug("mesh doesnt have normals, calculating them now!");
-	  mesh_of_entity.m_normals_array =
-            calculate_vert_normals(mesh_of_entity.m_vertices_array);
-	} 
+        // generate missing geometry if its missing (500iq)
+        if (mesh_of_entity.m_normals_array.size() < 1) {
+          log_debug("mesh doesnt have normals, calculating them now!");
+          mesh_of_entity.m_normals_array =
+              calculate_vert_normals(mesh_of_entity.m_vertices_array);
+        }
 
-	if (mesh_of_entity.m_tex_coords_array.size() > 0) {
+        if (mesh_of_entity.m_tex_coords_array.size() > 0) {
 
-          // calculate vertex tangents / binormals if they are missing and texture coords are present
+          // calculate vertex tangents / binormals if they are missing and
+          // texture coords are present
           if (mesh_of_entity.m_binormals_array.size() < 2) {
 
-	    log_debug("texture coords available, but not tangents. calculating.");
-	    
-	    tan_bin_glob retglob = calculate_vert_tan_bin(
+            log_debug(
+                "texture coords available, but not tangents. calculating.");
+
+            tan_bin_glob retglob = calculate_vert_tan_bin(
                 mesh_of_entity.m_vertices_array, mesh_of_entity.m_normals_array,
                 mesh_of_entity.m_tex_coords_array);
 
@@ -210,8 +258,8 @@ void Renderer::init_scene_vbos() {
             mesh_of_entity.m_tangents_array = retglob.vert_tangents;
           }
 
-	} else {
-	  
+        } else {
+
           log_error("imported mesh has missing UV coordinates, using fallback "
                     "coords.");
 
@@ -382,8 +430,11 @@ Renderer::Renderer(uint window_width, uint window_height) {
   /// SCENE SETUP
 
   Entity second_entity;
-  //  second_entity.m_mesh = std::move(load_all_meshes_from_gltf("models/levi_entrance/levi_entrance.gltf", num_loaded_textures, m_texture_map));
-  second_entity.m_mesh = std::move(load_all_meshes_from_gltf("models/potter/scene.gltf", num_loaded_textures, m_texture_map));
+  //  second_entity.m_mesh =
+  //  std::move(load_all_meshes_from_gltf("models/levi_entrance/levi_entrance.gltf",
+  //  num_loaded_textures, m_texture_map));
+  second_entity.m_mesh = std::move(load_all_meshes_from_gltf(
+      "models/potter/scene.gltf", num_loaded_textures, m_texture_map));
 
   // TMP
   glDisable(GL_CULL_FACE);
@@ -391,7 +442,8 @@ Renderer::Renderer(uint window_width, uint window_height) {
   Scene main_scene;
   m_active_scene = main_scene;
 
-  Light main_light;
+  Light main_light(std::move(load_all_meshes_from_gltf(
+      "models/light/scene.gltf", num_loaded_textures, m_texture_map))[0]);
   main_light.m_light_type = E_POINT_LIGHT;
   main_light.m_color = 0xFFFFFF;
   main_light.m_strength = 10;
@@ -405,7 +457,6 @@ Renderer::Renderer(uint window_width, uint window_height) {
 
   // initialize scene vbos
   init_scene_vbos();
-
 
   //////////////////////////////
   // Initialize shader programs
@@ -421,96 +472,92 @@ Renderer::Renderer(uint window_width, uint window_height) {
     }
   }
 
-
   // SHADOW MAPPING
 
-  
   unsigned int depthMapFBO;
-  glGenFramebuffers(1, &depthMapFBO);  
-  
-  const unsigned int SHADOW_WIDTH = 1024, SHADOW_HEIGHT = 1024;
-  
+  glGenFramebuffers(1, &depthMapFBO);
+
+  const unsigned int SHADOW_WIDTH = 4096, SHADOW_HEIGHT = 4096;
+
   unsigned int depthMap;
   glGenTextures(1, &depthMap);
   glBindTexture(GL_TEXTURE_2D, depthMap);
-  glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, 
-	       SHADOW_WIDTH, SHADOW_HEIGHT, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, SHADOW_WIDTH,
+               SHADOW_HEIGHT, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER); 
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
-  float borderColor[] = { 1.0, 1.0, 1.0, 1.0 };
+  float borderColor[] = {0.0, 0.0, 0.0, 1.0};
   glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
 
   glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
-  glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthMap, 0);
+  glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D,
+                         depthMap, 0);
   glDrawBuffer(GL_NONE);
   glReadBuffer(GL_NONE);
   glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-  Shader depth_shader("src/shaders/shader_src/depth.vert","src/shaders/shader_src/depth.frag");
+  Shader depth_shader("src/shaders/shader_src/depth.vert",
+                      "src/shaders/shader_src/depth.frag");
   depth_shader.use();
-  
+
   // main render loop
   while (!glfwWindowShouldClose(window)) {
 
     processInput(window);
 
-    // render depth map for shadow mapping
-    //    glm::vec3 light_position(
-    //			     m_active_scene.m_loaded_lights[0].m_light_matrix[3][0],
-    //			     m_active_scene.m_loaded_lights[0].m_light_matrix[3][1],
-    //			     m_active_scene.m_loaded_lights[0].m_light_matrix[3][2]);
-    
-    glm::mat4 light_look_at = glm::lookAt(glm::vec3(0.0f,0.0f,0.0f),glm::vec3(cos(m_lastFrame),0.0f,sin(m_lastFrame)), glm::vec3(0.0f,1.0f,0.0f));
+    // configure spotlight shadow mapping
+    glm::vec3 light_pos_new = glm::vec3(0.0f, 1.0f, 5.0f);
+    glm::mat4 light_look_at = glm::lookAt(
+        light_pos_new,
+        light_pos_new + glm::vec3(cos(m_lastFrame), 0.0f, sin(m_lastFrame)),
+        glm::vec3(0.0f, 1.0f, 0.0f));
     glm::mat4 light_projection_mat = glm::perspective(
-						      glm::radians(90.0f), (float)SHADOW_WIDTH / (float)SHADOW_HEIGHT,
-						      0.1f, 100.0f);
+        glm::radians(120.0f), (float)SHADOW_WIDTH / (float)SHADOW_HEIGHT, 0.1f,
+        100.0f);
 
-      //    glm::mat4 light_projection_mat = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, 0.1f, 100.0f); 
-    
     glm::mat4 light_space_matrix = light_projection_mat * light_look_at;
 
     depth_shader.use();
-    
+
     glViewport(0, 0, SHADOW_WIDTH, SHADOW_HEIGHT);
     glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
     glClear(GL_DEPTH_BUFFER_BIT);
 
     check_gl_error("after setting viewport stuff up (depth)");
-    
+
     // render scene from light pov
     for (auto &entity : m_active_scene.m_loaded_entities) {
       for (auto &mesh : entity.m_mesh) {
-	
+
         // bind meshes vao context
         glBindVertexArray(mesh.m_mesh_vao);
         if (glIsVertexArray(mesh.m_mesh_vao) == GL_FALSE) {
           log_error("no valid VAO id! cant render mesh.");
         }
-	
-	check_gl_error("before setting uniforms (depth)");
-	
+
+        check_gl_error("before setting uniforms (depth)");
+
         upload_to_uniform("model", depth_shader.ID,
-                          mesh.m_model_matrix * entity.m_model_matrix);
-	upload_to_uniform("lightSpaceMatrix", depth_shader.ID, light_space_matrix);
-	
-	check_gl_error("after setting uniforms (depth)");
-	
+                          entity.m_model_matrix * mesh.m_model_matrix);
+        upload_to_uniform("light_space_matrix", depth_shader.ID,
+                          light_space_matrix);
+
+        check_gl_error("after setting uniforms (depth)");
+
         // we renderin
-        glDrawArrays(GL_TRIANGLES, 0, mesh.m_vertices_array.size()/3);
-	
+        glDrawArrays(GL_TRIANGLES, 0, mesh.m_vertices_array.size() / 3);
+
         check_gl_error("after glDrawArrays (depth)");
-	
       }
-      
     }
-    
+
     // rebind old fb
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
-    
+
     // render scene
-    
+
     glViewport(0, 0, m_viewport_width, m_viewport_height);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glClearColor(0.3f, 0.3f, 0.3f, 1.0f);
@@ -532,41 +579,40 @@ Renderer::Renderer(uint window_width, uint window_height) {
         glm::radians(90.0f), (float)m_viewport_width / (float)m_viewport_height,
         DEF_NEAR_CLIP_PLANE, DEF_FAR_CLIP_PLANE);
 
-
     // render meshes
     for (auto &entity : m_active_scene.m_loaded_entities) {
       for (auto &mesh : entity.m_mesh) {
-        
+
         // bind meshes vao context
         glBindVertexArray(mesh.m_mesh_vao);
         if (glIsVertexArray(mesh.m_mesh_vao) == GL_FALSE) {
           log_error("no valid VAO id! cant render mesh.");
         }
 
-	check_gl_error("after binding vao");
-	
+        check_gl_error("after binding vao");
+
         mesh.m_material.m_shader.use();
 
-	check_gl_error("after setting shader active");
+        check_gl_error("after setting shader active");
 
-	if(mesh.m_material.m_material_type == E_PBR_TEX) {
+        if (mesh.m_material.m_material_type == E_PBR_TEX) {
 
-	  //bind texture to uniform
-	  glActiveTexture(GL_TEXTURE0);
-	  glBindTexture(GL_TEXTURE_2D, mesh.m_material.bound_texture_id);
-	  GLint loc_tex = glGetUniformLocation(mesh.m_material.m_shader.ID, "uTexture");
-	  glUniform1i(loc_tex, 0);
-	  //bind depth map to uniform
-	  glActiveTexture(GL_TEXTURE1);
-	  glBindTexture(GL_TEXTURE_2D, depthMap);
-	  GLint loc_depth = glGetUniformLocation(mesh.m_material.m_shader.ID, "uDepthMap");
-	  glUniform1i(loc_depth, 1);
+          // bind texture to uniform
+          glActiveTexture(GL_TEXTURE0);
+          glBindTexture(GL_TEXTURE_2D, mesh.m_material.bound_texture_id);
+          GLint loc_tex =
+              glGetUniformLocation(mesh.m_material.m_shader.ID, "uTexture");
+          glUniform1i(loc_tex, 0);
+          // bind depth map to uniform
+          glActiveTexture(GL_TEXTURE1);
+          glBindTexture(GL_TEXTURE_2D, depthMap);
+          GLint loc_depth =
+              glGetUniformLocation(mesh.m_material.m_shader.ID, "uDepthMap");
+          glUniform1i(loc_depth, 1);
 
-	  
-	  check_gl_error("after uploading textures");
-	  
-	}
-	
+          check_gl_error("after uploading textures");
+        }
+
         // TMP ghetto light + color
         m_active_scene.m_loaded_lights[0].m_light_matrix = glm::translate(
             glm::mat4(1.0f), glm::vec3(cos(m_lastFrame / 3) * 10, 2.0f,
@@ -580,9 +626,8 @@ Renderer::Renderer(uint window_width, uint window_height) {
         upload_to_uniform("lightColor", mesh.m_material.m_shader.ID,
                           glm::vec3(0.8, 0.8, 0.8));
 
-        // upload matrices TMP: model matrix is I
         upload_to_uniform("model", mesh.m_material.m_shader.ID,
-                          mesh.m_model_matrix * entity.m_model_matrix);
+                          entity.m_model_matrix * mesh.m_model_matrix);
 
         upload_to_uniform("view", mesh.m_material.m_shader.ID, view_mat);
         upload_to_uniform("viewPosition", mesh.m_material.m_shader.ID,
@@ -593,16 +638,86 @@ Renderer::Renderer(uint window_width, uint window_height) {
                           light_position);
         upload_to_uniform("viewPos", mesh.m_material.m_shader.ID, m_cameraPos);
 
-	upload_to_uniform("light_space_matrix", mesh.m_material.m_shader.ID, light_space_matrix);
-	
-	check_gl_error("after setting uniforms");
-	
+        upload_to_uniform("light_space_matrix", mesh.m_material.m_shader.ID,
+                          light_space_matrix);
+
+        check_gl_error("after setting uniforms");
+
         // we renderin
-        glDrawArrays(GL_TRIANGLES, 0, mesh.m_vertices_array.size()/3);
+        glDrawArrays(GL_TRIANGLES, 0, mesh.m_vertices_array.size() / 3);
 
         check_gl_error("after glDrawArrays");
-	
       }
+    }
+
+    ////////////////////////
+    // finally draw visualizers for all lights in the scene
+    ///////////////////////
+    for (auto &light_source : m_active_scene.m_loaded_lights) {
+
+      std::cout << light_source.m_light_visualizer_mesh.m_mesh_vao << " erm " <<std::endl;
+      
+      // bind meshes vao context
+      glBindVertexArray(light_source.m_light_visualizer_mesh.m_mesh_vao);
+      if (glIsVertexArray(light_source.m_light_visualizer_mesh.m_mesh_vao) == GL_FALSE) {
+        log_error("no valid VAO id! cant render mesh.");
+      }
+
+      check_gl_error("after binding vao (lights)");
+
+      light_source.m_light_visualizer_mesh.m_material.m_shader.use();
+
+      check_gl_error("after setting shader active (lights)");
+
+      if (light_source.m_light_visualizer_mesh.m_material.m_material_type == E_PBR_TEX) {
+
+        // bind texture to uniform
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, light_source.m_light_visualizer_mesh.m_material.bound_texture_id);
+        GLint loc_tex =
+            glGetUniformLocation(light_source.m_light_visualizer_mesh.m_material.m_shader.ID, "uTexture");
+        glUniform1i(loc_tex, 0);
+        // bind depth map to uniform
+        glActiveTexture(GL_TEXTURE1);
+        glBindTexture(GL_TEXTURE_2D, depthMap);
+        GLint loc_depth =
+            glGetUniformLocation(light_source.m_light_visualizer_mesh.m_material.m_shader.ID, "uDepthMap");
+        glUniform1i(loc_depth, 1);
+
+        check_gl_error("after uploading textures");
+      }
+
+      glm::vec3 light_position(
+          light_source.m_light_matrix[3][0],
+          light_source.m_light_matrix[3][1],
+          light_source.m_light_matrix[3][2]);
+      
+      upload_to_uniform("objectColor", light_source.m_light_visualizer_mesh.m_material.m_shader.ID,
+                        glm::vec3(0.5, 0.8, 0.2));
+      upload_to_uniform("lightColor", light_source.m_light_visualizer_mesh.m_material.m_shader.ID,
+                        glm::vec3(0.8, 0.8, 0.8));
+
+      upload_to_uniform("model", light_source.m_light_visualizer_mesh.m_material.m_shader.ID,
+                        light_source.m_light_matrix);
+
+      upload_to_uniform("view", light_source.m_light_visualizer_mesh.m_material.m_shader.ID, view_mat);
+      upload_to_uniform("viewPosition", light_source.m_light_visualizer_mesh.m_material.m_shader.ID,
+                        m_cameraPos);
+      upload_to_uniform("projection", light_source.m_light_visualizer_mesh.m_material.m_shader.ID,
+                        projection_mat);
+      upload_to_uniform("lightPosition", light_source.m_light_visualizer_mesh.m_material.m_shader.ID,
+                        light_position);
+      upload_to_uniform("viewPos", light_source.m_light_visualizer_mesh.m_material.m_shader.ID, m_cameraPos);
+
+      upload_to_uniform("light_space_matrix", light_source.m_light_visualizer_mesh.m_material.m_shader.ID,
+                        light_space_matrix);
+
+      check_gl_error("after setting uniforms");
+
+      // we renderin
+      glDrawArrays(GL_TRIANGLES, 0, light_source.m_light_visualizer_mesh.m_vertices_array.size() / 3);
+
+      check_gl_error("after glDrawArrays (lights)");
     }
 
     // draw to screen
@@ -615,5 +730,3 @@ Renderer::Renderer(uint window_width, uint window_height) {
 
   return;
 }
-
-
