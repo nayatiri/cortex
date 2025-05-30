@@ -364,6 +364,14 @@ void Renderer::upload_to_uniform(std::string location, GLuint shader_id,
 
 Renderer::Renderer(uint window_width, uint window_height) {
 
+  std::cout << R"(                     __                 
+  ____  ____________/  |_  ____ ___  ___
+_/ ___\/  _ \_  __ \   __\/ __ \\  \/  /
+\  \__(  <_> )  | \/|  | \  ___/ >    < 
+ \___  >____/|__|   |__|  \___  >__/\_ \
+     \/                       \/      \/
+)";
+  
   m_cameraPos = glm::vec3(1.0f);
 
   log_debug("initializing window");
