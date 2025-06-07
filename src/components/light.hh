@@ -39,6 +39,9 @@ public:
   
   glm::mat4 m_light_matrix = glm::mat4(1.0f);
 
+  glm::vec3 get_light_position();
+  glm::mat3 get_light_rotation_matrix();
+  
   Light(Mesh to_use);
   
 };

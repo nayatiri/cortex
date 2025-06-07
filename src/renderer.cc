@@ -189,8 +189,6 @@ void Renderer::init_scene_vbos() {
     // vao
     glGenVertexArrays(1, &light_source.m_light_visualizer_mesh.m_mesh_vao);
 
-    std::cout << light_source.m_light_visualizer_mesh.m_mesh_vao << " tj light" << std::endl;
-
     glBindVertexArray(light_source.m_light_visualizer_mesh.m_mesh_vao);
 
     // vbo mesh (vertices)
@@ -437,11 +435,8 @@ _/ ___\/  _ \_  __ \   __\/ __ \\  \/  /
 
   /// SCENE SETUP
 
-  Entity second_entity;
-  //  second_entity.m_mesh =
-  //  std::move(load_all_meshes_from_gltf("models/levi_entrance/levi_entrance.gltf",
-  //  num_loaded_textures, m_texture_map));
-  second_entity.m_mesh = std::move(load_all_meshes_from_gltf(
+  Entity load_entity;
+  load_entity.m_mesh = std::move(load_all_meshes_from_gltf(
       "models/potter/scene.gltf", num_loaded_textures, m_texture_map));
 
   // TMP
@@ -458,7 +453,7 @@ _/ ___\/  _ \_  __ \   __\/ __ \\  \/  /
   main_light.m_light_matrix =
       glm::translate(main_light.m_light_matrix, glm::vec3(10.0f, 10.0f, 0.0f));
 
-  m_active_scene.add_entity_to_scene(second_entity);
+  m_active_scene.add_entity_to_scene(load_entity);
   m_active_scene.add_light_to_scene(main_light);
 
   /// END SCENE SETUP
@@ -516,14 +511,16 @@ _/ ___\/  _ \_  __ \   __\/ __ \\  \/  /
     processInput(window);
 
     // configure spotlight shadow mapping
-    glm::vec3 light_pos_new = glm::vec3(0.0f, 1.0f, 5.0f);
+    glm::vec3 light_pos_new = m_active_scene.m_loaded_lights[0].get_light_position();
+    glm::mat3 light_rotation = m_active_scene.m_loaded_lights[0].get_light_rotation_matrix();
+    
     glm::mat4 light_look_at = glm::lookAt(
         light_pos_new,
-        light_pos_new + glm::vec3(cos(m_lastFrame), 0.0f, sin(m_lastFrame)),
+        light_pos_new + glm::vec3(0,1,0) * light_rotation,
         glm::vec3(0.0f, 1.0f, 0.0f));
     glm::mat4 light_projection_mat = glm::perspective(
         glm::radians(120.0f), (float)SHADOW_WIDTH / (float)SHADOW_HEIGHT, 0.1f,
-        100.0f);
+        10.0f);
 
     glm::mat4 light_space_matrix = light_projection_mat * light_look_at;
 
@@ -565,7 +562,6 @@ _/ ___\/  _ \_  __ \   __\/ __ \\  \/  /
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
     // render scene
-
     glViewport(0, 0, m_viewport_width, m_viewport_height);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glClearColor(0.3f, 0.3f, 0.3f, 1.0f);
@@ -622,13 +618,9 @@ _/ ___\/  _ \_  __ \   __\/ __ \\  \/  /
         }
 
         // TMP ghetto light + color
-        m_active_scene.m_loaded_lights[0].m_light_matrix = glm::translate(
-            glm::mat4(1.0f), glm::vec3(cos(m_lastFrame / 3) * 10, 2.0f,
-                                       sin(m_lastFrame / 3) * 10));
-        glm::vec3 light_position(
-            m_active_scene.m_loaded_lights[0].m_light_matrix[3][0],
-            m_active_scene.m_loaded_lights[0].m_light_matrix[3][1],
-            m_active_scene.m_loaded_lights[0].m_light_matrix[3][2]);
+        m_active_scene.m_loaded_lights[0].m_light_matrix = hipster_rotation_bullshit(m_lastFrame);
+        glm::vec3 light_position = m_active_scene.m_loaded_lights[0].get_light_position();
+	  
         upload_to_uniform("objectColor", mesh.m_material.m_shader.ID,
                           glm::vec3(0.5, 0.8, 0.2));
         upload_to_uniform("lightColor", mesh.m_material.m_shader.ID,
@@ -662,8 +654,6 @@ _/ ___\/  _ \_  __ \   __\/ __ \\  \/  /
     // finally draw visualizers for all lights in the scene
     ///////////////////////
     for (auto &light_source : m_active_scene.m_loaded_lights) {
-
-      std::cout << light_source.m_light_visualizer_mesh.m_mesh_vao << " erm " <<std::endl;
       
       // bind meshes vao context
       glBindVertexArray(light_source.m_light_visualizer_mesh.m_mesh_vao);
@@ -695,11 +685,6 @@ _/ ___\/  _ \_  __ \   __\/ __ \\  \/  /
         check_gl_error("after uploading textures");
       }
 
-      glm::vec3 light_position(
-          light_source.m_light_matrix[3][0],
-          light_source.m_light_matrix[3][1],
-          light_source.m_light_matrix[3][2]);
-      
       upload_to_uniform("objectColor", light_source.m_light_visualizer_mesh.m_material.m_shader.ID,
                         glm::vec3(0.5, 0.8, 0.2));
       upload_to_uniform("lightColor", light_source.m_light_visualizer_mesh.m_material.m_shader.ID,
@@ -714,7 +699,7 @@ _/ ___\/  _ \_  __ \   __\/ __ \\  \/  /
       upload_to_uniform("projection", light_source.m_light_visualizer_mesh.m_material.m_shader.ID,
                         projection_mat);
       upload_to_uniform("lightPosition", light_source.m_light_visualizer_mesh.m_material.m_shader.ID,
-                        light_position);
+                        light_source.get_light_position());
       upload_to_uniform("viewPos", light_source.m_light_visualizer_mesh.m_material.m_shader.ID, m_cameraPos);
 
       upload_to_uniform("light_space_matrix", light_source.m_light_visualizer_mesh.m_material.m_shader.ID,

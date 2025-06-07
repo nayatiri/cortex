@@ -20,3 +20,17 @@
 #include <iostream>
 
 Light::Light(Mesh to_use)  : m_light_visualizer_mesh(to_use) {}
+
+glm::vec3 Light::get_light_position() {
+
+  return glm::vec3(m_light_matrix[3][0],
+		   m_light_matrix[3][1],
+		   m_light_matrix[3][2]);
+  
+}
+
+glm::mat3 Light::get_light_rotation_matrix() {
+
+  return glm::mat3(m_light_matrix);
+  
+}
