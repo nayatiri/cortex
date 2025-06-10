@@ -1,5 +1,5 @@
 CXX = g++
-CXXFLAGS = -std=c++20 -O0 -g
+CXXFLAGS = -std=c++20 -O0 -g -Wall
 LDFLAGS = -lglfw -ldl -lpthread -lX11 -lXxf86vm -lXrandr -lXi -lGL
 SRC = src/main.cpp src/components/logging.hh src/renderer.cc src/components/*.cc src/glad/glad.c 
 TARGET = build/cortex

@@ -20,5 +20,5 @@ void main()
 
     LightPos = lightPosition; // Pass light position to fragment shader
 
-    gl_Position = projection * view * model * vec4(FragPos, 1.0); // Final vertex position
+    gl_Position = projection * view * model * vec4(aPos, 1.0); // Final vertex position
 }

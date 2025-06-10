@@ -2106,9 +2106,10 @@ bool DecodeDataURI(std::vector<unsigned char> *out, std::string &mime_type,
   return true;
 }
 
-static bool ParseJsonAsValue(Value *ret, const json &o) {
-  Value val{};
-  switch (o.type()) {
+  static bool ParseJsonAsValue(Value *ret, const json &o) {
+    Value val{};
+    switch (o.type()) {
+    case json::value_t::binary: {break;}
     case json::value_t::object: {
       Value::Object value_object;
       for (auto it = o.begin(); it != o.end(); it++) {

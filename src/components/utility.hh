@@ -72,7 +72,7 @@ std::vector<float> calculate_vert_normals(std::vector<float> mesh_vertices) {
     mesh_normals.push_back(normal.z);
   }
 
-  std::cout << "done calculating " << mesh_normals.size() << " normals"
+  std::cout << "done calculating " << (int)mesh_normals.size() << " normals"
             << std::endl;
   return mesh_normals;
 }
@@ -131,7 +131,7 @@ tan_bin_glob calculate_vert_tan_bin(std::vector<float> mesh_vertices,
   }
 
   // normalize tangents
-  for (int i = 0; i < vert_tangents.size(); i = i + 3) {
+  for (int i = 0; i < (int)vert_tangents.size(); i = i + 3) {
 
     glm::vec3 to_norm(vert_tangents[i], vert_tangents[i + 1],
                       vert_tangents[i + 2]);
@@ -142,7 +142,7 @@ tan_bin_glob calculate_vert_tan_bin(std::vector<float> mesh_vertices,
   }
 
   // normalize binormals
-  for (int i = 0; i < vert_binormals.size(); i = i + 3) {
+  for (int i = 0; i < (int)vert_binormals.size(); i = i + 3) {
 
     glm::vec3 to_norm(vert_binormals[i], vert_binormals[i + 1],
                       vert_binormals[i + 2]);
@@ -185,7 +185,7 @@ GLuint bind_texture_to_slot(
   printf("trying to load texture into slot: %d\n", slot);
   int width, height, nrChannels;
 
-  for (int i = 0; i < texture_map.size(); i++) {
+  for (int i = 0; i < (int)texture_map.size(); i++) {
     if (std::get<0>(texture_map[i]) == to_load) {
       // we dont do anything. jus return the texture handle
       return std::get<2>(texture_map[i]);
@@ -238,7 +238,7 @@ GLuint bind_texture_to_slot(
 }
 
 bool is_valid_texture(const tinygltf::Model &model, int textureIndex) {
-  return textureIndex >= 0 && textureIndex < model.textures.size();
+  return textureIndex >= 0 && textureIndex < (int)model.textures.size();
 }
 
 bool check_pbr_textures_present(const tinygltf::Model &model) {
@@ -249,7 +249,7 @@ bool check_pbr_textures_present(const tinygltf::Model &model) {
     std::cout << "Checking mesh: " << mesh.name << "\n";
     for (const auto &primitive : mesh.primitives) {
       if (primitive.material < 0 ||
-          primitive.material >= model.materials.size()) {
+          primitive.material >= (int)model.materials.size()) {
         std::cout << "  -> No valid material assigned to this primitive.\n";
         continue;
       }
@@ -323,7 +323,7 @@ bool check_pbr_textures_present(const tinygltf::Model &model) {
     return false;
 }
 
-Mesh load_primitive_mesh_from_gltf(const std::string file_path) {
+/*Mesh load_primitive_mesh_from_gltf(const std::string file_path) {
   tinygltf::Model model;
   tinygltf::TinyGLTF loader;
 
@@ -464,6 +464,7 @@ Mesh load_primitive_mesh_from_gltf(const std::string file_path) {
       "gltf file successfully loaded with de-indexed data, returning mesh!");
   return primitive_mesh;
 }
+*/
 
 glm::mat4 hipster_rotation_bullshit(float m_lastFrame) {
   float t = m_lastFrame;
@@ -510,7 +511,7 @@ bool check_pbr_textures_present_mesh(const tinygltf::Mesh &mesh,
 
   for (const auto &primitive : mesh.primitives) {
     if (primitive.material < 0 ||
-        primitive.material >= model.materials.size()) {
+        primitive.material >= (int)model.materials.size()) {
       std::cout << "  -> No valid material assigned to this primitive.\n";
       continue;
     }
@@ -591,15 +592,16 @@ std::vector<Mesh> load_all_meshes_from_gltf(
   log_success("importing a gltf file... loading ascii file...");
   bool ret = loader.LoadASCIIFromFile(&model, &err, &warn, file_path);
 
+  if(!ret)
+    log_error("couldnt load ASCII gltf file!!!");  
   if (!warn.empty())
     printf("Warn: %s\n", warn.c_str());
   if (!err.empty())
     printf("Err: %s\n", err.c_str());
 
-  check_pbr_textures_present(model);
+  //  check_pbr_textures_present(model);
 
   std::vector<Mesh> meshes;
-
   auto get_index = [&](const tinygltf::Primitive &primitive,
                        int idx) -> uint32_t {
     const auto &indexAccessor = model.accessors[primitive.indices];
@@ -691,8 +693,6 @@ std::vector<Mesh> load_all_meshes_from_gltf(
         }
 
         log_debug("checking material for textures etc");
-
-	std::cout << primitive.material << " mat number or so" << std::endl;
 	
 	uint8_t shader_type_carry = 0;
 	std::string texture_path_of_model;
@@ -776,8 +776,8 @@ std::vector<Mesh> load_all_meshes_from_gltf(
 
         if (shader_type_carry == 2) {
           // use texture shading
-          Shader shader_to_use("src/shaders/shader_src/pbr.vert",
-                               "src/shaders/shader_src/pbr.frag");
+          Shader shader_to_use("src/shaders/shader_src/flat.vert",
+                               "src/shaders/shader_src/flat.frag");
           Material mat_to_use(E_FACE, shader_to_use);
 
           Mesh primitive_mesh(mat_to_use);

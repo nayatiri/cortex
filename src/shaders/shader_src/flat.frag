@@ -1,24 +1,40 @@
 #version 330 core
 
-in vec3 fragNormal; 
-in vec3 fragPosition; 
+in vec2 TexCoord;
+in vec4 FragLightSpacePos;
 
-out vec4 color; 
+out vec3 FragColor;
 
-uniform vec3 surfaceColor; 
-uniform vec3 lightPosition;
-uniform vec3 viewPosition; 
+uniform sampler2D uTexture;
+uniform sampler2D uDepthMap;
 
-void main()
+uniform float ambient = 0.3;
+
+float ShadowCalculation(vec4 fragPosLightSpace)
 {
-    vec3 normal = normalize(fragNormal);
+    vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
 
-    vec3 lightDir = normalize(lightPosition - fragPosition);
+    if (projCoords.z <= 0.0 || projCoords.z > 1.0 || 
+        projCoords.x < 0.0 || projCoords.x > 1.0 || 
+        projCoords.y < 0.0 || projCoords.y > 1.0)
+    {
+        return 1.0;
+    }
 
-    float diff = max(dot(normal, lightDir), 0.0);
+    projCoords = projCoords * 0.5 + 0.5;
 
-    vec3 finalColor = surfaceColor * diff;
-    
-    color = vec4(finalColor, 1.0);
-    
+    float closestDepth = texture(uDepthMap, projCoords.xy).r;
+    float currentDepth = projCoords.z;
+
+    float bias = 0.005;
+    return currentDepth - bias > closestDepth ? 1.0 : 0.0;
+}
+
+
+
+void main() {
+     float shadow = ShadowCalculation(FragLightSpacePos);
+     vec3 texColor = texture(uTexture, TexCoord).rgb;
+
+     FragColor = texColor * (ambient + (1-shadow));
 }
