@@ -34,6 +34,8 @@ public:
   bool m_last_mouse_state = false;
   int m_viewport_width = 1920;
   int m_viewport_height = 1080;
+
+  GLFWwindow* associated_window;
   
   // camera
   float m_camera_base_speed = 1.0f;
@@ -54,7 +56,10 @@ public:
 
   // Render properties
   float m_render_mode_wireframe = false;
-
+  unsigned int window_depth_map;
+  unsigned int window_depth_map_fbo;
+  Shader* depth_shader;
+  
   // Scene management
   Scene m_active_scene;
   std::atomic<uint32_t> num_loaded_textures = 0;
@@ -73,7 +78,9 @@ public:
   template <typename T> void upload_to_uniform(std::string location, GLuint shader_id, T input);
 
   void init_scene_vbos();
-  
+  void init_scene();
+  void render_frame();
+
   /////////////////////
   // RENDER FUNCTIONS
   /////////////////////
