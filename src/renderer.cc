@@ -121,6 +121,8 @@ void Renderer::render_frame() {
   
   while (!glfwWindowShouldClose(associated_window)) {
 
+    depth_shader->use();
+
     processInput(associated_window);  
   
     //TMP make light spin and move
@@ -186,7 +188,7 @@ void Renderer::render_frame() {
     // rebind old fb
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-    // render scene
+    // render scene with old settings
     glViewport(0, 0, m_viewport_width, m_viewport_height);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glClearColor(0.3f, 0.3f, 0.3f, 1.0f);
@@ -707,14 +709,12 @@ _/ ___\/  _ \_  __ \   __\/ __ \\  \/  /
 
   // SHADOW MAPPING
 
-  unsigned int depthMapFBO;
-  glGenFramebuffers(1, &depthMapFBO);
+  glGenFramebuffers(1, &window_depth_map_fbo);
 
   const unsigned int SHADOW_WIDTH = 16096, SHADOW_HEIGHT = 16096;
 
-  unsigned int depthMap;
-  glGenTextures(1, &depthMap);
-  glBindTexture(GL_TEXTURE_2D, depthMap);
+  glGenTextures(1, &window_depth_map);
+  glBindTexture(GL_TEXTURE_2D, window_depth_map);
   glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, SHADOW_WIDTH,
                SHADOW_HEIGHT, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
@@ -724,16 +724,15 @@ _/ ___\/  _ \_  __ \   __\/ __ \\  \/  /
   float borderColor[] = {0.0, 0.0, 0.0, 1.0};
   glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
 
-  glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
+  glBindFramebuffer(GL_FRAMEBUFFER, window_depth_map_fbo);
   glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D,
-                         depthMap, 0);
+                         window_depth_map, 0);
   glDrawBuffer(GL_NONE);
   glReadBuffer(GL_NONE);
   glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
   depth_shader = new Shader("src/shaders/shader_src/depth.vert",
                       "src/shaders/shader_src/depth.frag");
-  depth_shader->use();
 
   // main render loop
 
