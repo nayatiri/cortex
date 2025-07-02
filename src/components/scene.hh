@@ -2,6 +2,7 @@
 
 #include "entity.hh"
 #include "light.hh"
+#include "camera.hh"
 
 #include <GLFW/glfw3.h>
 #include <glm/ext/matrix_transform.hpp>
@@ -15,6 +16,7 @@
 #include <cmath>
 #include <cstring>
 #include <iostream>
+#include <memory>
 #include <string>
 #include <thread>
 #include <chrono>
@@ -30,5 +32,7 @@ public:
   
   std::vector<Entity> m_loaded_entities; 
   std::vector<Light> m_loaded_lights;
+
+  std::unique_ptr<Camera> m_camera;
   
 };

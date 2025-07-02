@@ -1,4 +1,5 @@
 #include "camera.hh"
+#include "logging.hh"
 
 #include <glm/ext/matrix_float4x4.hpp>
 #include <iostream>
@@ -22,3 +23,10 @@
 #include <vector>
 #include <cstdint>
 
+Camera::Camera() {
+
+  log_success("camera initialized");
+  
+}
+
+void Camera::reset() {}

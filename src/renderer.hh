@@ -3,6 +3,7 @@
 #include "./glad/glad.h"
 #include "./libs/tiny_gltf.h"
 #include "./components/scene.hh"
+#include "components/camera.hh"
 
 #include <GLFW/glfw3.h>
 #include <glm/ext/matrix_transform.hpp>
@@ -16,6 +17,7 @@
 #include <cmath>
 #include <cstring>
 #include <iostream>
+#include <memory>
 #include <string>
 #include <vector>
 #include <cstdint>
@@ -36,15 +38,8 @@ public:
   int m_viewport_height = 1080;
 
   GLFWwindow* associated_window;
-  
-  // camera
-  float m_camera_base_speed = 1.0f;
-  glm::vec3 m_cameraPos = glm::vec3(0.0f, 0.0f, 3.0f);
-  glm::vec3 m_cameraLookAt = glm::vec3(0.0f, 0.0f, -1.0f);
-  glm::vec3 m_cameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
-  glm::vec3 m_direction = {0.0f, 0.0f, 0.0f};
 
-  // Player Position 
+  // Player Position buffers 
   double m_lastX = 0;
   double m_lastY = 0;
   double m_yaw = 0;
@@ -61,7 +56,7 @@ public:
   Shader* depth_shader;
   
   // Scene management
-  Scene m_active_scene;
+  std::unique_ptr<Scene> m_active_scene;
   std::atomic<uint32_t> num_loaded_textures = 0;
 
   std::vector<std::tuple<std::string, unsigned int, GLuint>> m_texture_map;
