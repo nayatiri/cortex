@@ -36,5 +36,8 @@ void main() {
      float shadow = ShadowCalculation(FragLightSpacePos);
      vec3 texColor = texture(uTexture, TexCoord).rgb;
 
-     FragColor = texColor * (ambient + (1-shadow));
+     //FragColor = texColor * (ambient + (1-shadow));
+     
+     vec3 projCoords = FragLightSpacePos.xyz / FragLightSpacePos.w;
+     FragColor = vec3(texture(uDepthMap, projCoords.xy).r);
 }

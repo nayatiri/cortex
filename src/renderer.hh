@@ -73,7 +73,7 @@ public:
   template <typename T> void upload_to_uniform(std::string location, GLuint shader_id, T input);
 
   void init_scene_vbos();
-  void init_scene();
+  void init_scene(const char* scene_fp);
   void render_frame();
 
   /////////////////////

@@ -18,24 +18,18 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
-#include<flat_map>
-
 // stdlib
-#include <chrono>
 #include <cmath>
-#include <cstdint>
 #include <cstring>
 #include <iostream>
 #include <memory>
 #include <string>
-#include <thread>
 #include <vector>
 
 // components (custom)
-#include "./components/entity.hh"
-#include "./components/importer.hh"
-#include "./components/material.hh"
-#include "./components/utility.hh"
+#include "components/entity.hh"
+#include "components/material.hh"
+#include "components/utility.hh"
 #include "components/light.hh"
 #include "components/logging.hh"
 #include "components/scene.hh"
@@ -147,6 +141,8 @@ void Renderer::render_frame() {
     // configure spotlight shadow mapping
     glm::vec3 light_pos_new = m_active_scene->m_loaded_lights[0].get_light_position();
     glm::mat3 light_rotation = m_active_scene->m_loaded_lights[0].get_light_rotation_matrix();
+
+    std::cout << light_pos_new.x << " x "<< light_pos_new.y << " y "<< light_pos_new.z << " z " << std::endl;
     
     glm::mat4 light_look_at = glm::lookAt(
 					  light_pos_new,
@@ -154,10 +150,10 @@ void Renderer::render_frame() {
 					  glm::vec3(0.0f, 1.0f, 0.0f));
 
     //use for sanity
-    //glm::mat4 light_projection_mat = glm::ortho(-2.0f,2.0f,-2.0f,2.0f,0.1f,10.0f);
+    float width = 50.0f;
+    glm::mat4 light_projection_mat = glm::ortho(-width,width,-width,width,0.1f,10.0f);
 
-    glm::mat4 light_projection_mat = glm::perspective(glm::radians(90.0f), (float)shadow_width / (float)shadow_height, 0.1f,50.0f);
-    
+    //glm::mat4 light_projection_mat = glm::perspective(glm::radians(90.0f), (float)shadow_width / (float)shadow_height, 0.1f,50.0f);
     glm::mat4 light_space_matrix = light_projection_mat * light_look_at;
 
     depth_shader->use();
@@ -172,6 +168,10 @@ void Renderer::render_frame() {
     for (auto &entity : m_active_scene->m_loaded_entities) {
       for (auto &mesh : entity.m_mesh) {
 
+	glm::vec4 light_space_pos = light_space_matrix * entity.m_model_matrix * mesh.m_model_matrix * glm::vec4(mesh.m_vertices_array[0],mesh.m_vertices_array[1],mesh.m_vertices_array[2], 1.0);
+	std::cout << "Light-space pos: " << light_space_pos.x << ", " << light_space_pos.y << ", " << light_space_pos.z << std::endl;
+    
+	
         // bind meshes vao context
         glBindVertexArray(mesh.m_mesh_vao);
         if (glIsVertexArray(mesh.m_mesh_vao) == GL_FALSE) {
@@ -186,8 +186,6 @@ void Renderer::render_frame() {
                           light_space_matrix);
 
         check_gl_error("after setting uniforms (depth)");
-
-	std::cout << mesh.m_vertices_array.size() << std::endl;;
 
         // we renderin
         glDrawArrays(GL_TRIANGLES, 0, mesh.m_vertices_array.size() / 3);
@@ -338,7 +336,7 @@ void Renderer::render_frame() {
                         glm::vec3(0.0f));
       upload_to_uniform("viewPos", light_source.m_light_visualizer_mesh.m_material.m_shader.ID, m_active_scene->m_camera->m_cameraPos);
       upload_to_uniform("light_space_matrix", light_source.m_light_visualizer_mesh.m_material.m_shader.ID,
-                        glm::mat4(1.0f));
+                        light_space_matrix);
 
       check_gl_error("after setting uniforms");
 
@@ -360,8 +358,6 @@ void Renderer::processInput(GLFWwindow *window) {
 
   if(m_active_scene->m_camera == nullptr)
     return;
-
-  std::cout << m_active_scene->m_camera << std::endl;
   
   if (window == nullptr)
     log_error("window is null, cannot process input.");
@@ -424,11 +420,11 @@ void Renderer::processInput(GLFWwindow *window) {
   return;
 }
 
-void Renderer::init_scene() {
+void Renderer::init_scene(const char* scene_fp) {
   
   Entity load_entity;
   load_entity.m_mesh = std::move(load_all_meshes_from_gltf(
-      "models/potter/scene.gltf", num_loaded_textures, m_texture_map));
+      scene_fp, num_loaded_textures, m_texture_map));
 
   //  glDisable(GL_CULL_FACE);
 
@@ -461,11 +457,11 @@ void Renderer::init_scene() {
 
   // SHADOW MAPPING
   glGenFramebuffers(1, &window_depth_map_fbo);
-  const unsigned int SHADOW_WIDTH = 16096, SHADOW_HEIGHT = 16096;
+  const unsigned int SHADOW_WIDTH = 4000, SHADOW_HEIGHT = 4000;
 
   glGenTextures(1, &window_depth_map);
   glBindTexture(GL_TEXTURE_2D, window_depth_map);
-  glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, SHADOW_WIDTH,
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT32F, SHADOW_WIDTH,
                SHADOW_HEIGHT, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
