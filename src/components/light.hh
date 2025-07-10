@@ -36,6 +36,8 @@ public:
   float m_strength;
   uint64_t m_color;
 
+  float light_width = 50.0f;
+  
   Mesh m_light_visualizer_mesh;
   
   glm::mat4 m_light_matrix = glm::mat4(1.0f);

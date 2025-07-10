@@ -151,7 +151,7 @@ void Renderer::render_frame() {
       glm::vec3(0.0f, 1.0f, 0.0f));
 
   // use for sanity
-  float width = 50.0f;
+  float width = m_active_scene->m_loaded_lights[0].light_width;
   glm::mat4 light_projection_mat =
       glm::ortho(-width, width, -width, width, 0.001f, 100.0f);
 
@@ -170,13 +170,6 @@ void Renderer::render_frame() {
   // render scene from light pov
   for (auto &entity : m_active_scene->m_loaded_entities) {
     for (auto &mesh : entity.m_mesh) {
-
-      glm::vec4 light_space_pos =
-          light_space_matrix * entity.m_model_matrix * mesh.m_model_matrix *
-          glm::vec4(mesh.m_vertices_array[0], mesh.m_vertices_array[1],
-                    mesh.m_vertices_array[2], 1.0);
-      std::cout << "Light-space pos: " << light_space_pos.x << ", "
-                << light_space_pos.y << ", " << light_space_pos.z << std::endl;
 
       // bind meshes vao context
       glBindVertexArray(mesh.m_mesh_vao);
