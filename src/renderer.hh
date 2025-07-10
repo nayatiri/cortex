@@ -3,7 +3,6 @@
 #include "./glad/glad.h"
 #include "./libs/tiny_gltf.h"
 #include "./components/scene.hh"
-#include "components/camera.hh"
 
 #include <GLFW/glfw3.h>
 #include <glm/ext/matrix_transform.hpp>
@@ -14,16 +13,11 @@
 #include <glm/gtc/type_ptr.hpp>
 
 // stdlib
-#include <cmath>
-#include <cstring>
-#include <iostream>
 #include <memory>
 #include <string>
 #include <vector>
 #include <cstdint>
-#include <iostream>
 #include <atomic>
-#include <unordered_map>
 
 class Renderer {
 public:
@@ -54,6 +48,8 @@ public:
   unsigned int window_depth_map;
   unsigned int window_depth_map_fbo;
   Shader* depth_shader;
+  const unsigned int shadow_map_width = 4000;
+  const unsigned int shadow_map_height = 4000;
   
   // Scene management
   std::unique_ptr<Scene> m_active_scene;

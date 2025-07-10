@@ -28,11 +28,11 @@
 
 // components (custom)
 #include "components/entity.hh"
-#include "components/material.hh"
-#include "components/utility.hh"
 #include "components/light.hh"
 #include "components/logging.hh"
+#include "components/material.hh"
 #include "components/scene.hh"
+#include "components/utility.hh"
 #include "shaders/shaderclass.hh"
 
 #define DEF_NEAR_CLIP_PLANE 0.01f
@@ -45,9 +45,11 @@
 void Renderer::scroll_callback(GLFWwindow *window, double xoffset,
                                double yoffset) {
 
-  std::cout << "changed camera speed to: " << m_active_scene->m_camera->m_camera_base_speed << std::endl;
+  std::cout << "changed camera speed to: "
+            << m_active_scene->m_camera->m_camera_base_speed << std::endl;
 
-  m_active_scene->m_camera->m_camera_base_speed += static_cast<float>(yoffset) * 0.1f;
+  m_active_scene->m_camera->m_camera_base_speed +=
+      static_cast<float>(yoffset) * 0.1f;
 
   if (m_active_scene->m_camera->m_camera_base_speed < 0.1f) {
     m_active_scene->m_camera->m_camera_base_speed = 0.1f;
@@ -111,254 +113,283 @@ void Renderer::framebuffer_size_callback(GLFWwindow *window, int width,
 
 void Renderer::render_frame() {
 
-  if(!m_active_scene->m_camera)
-    {log_error("no camera in scene! stopping render!");
-      return;}
-  if(m_active_scene->m_loaded_lights.size() < 1) {
-    log_error("not enough lights loaded for shader to function. stopping render.");
-    return;}
-  if(m_active_scene->m_loaded_entities.size() < 1) {
-    log_error("not enough lights loaded for shader to function. stopping render.");
-    return;}
+  if (!m_active_scene->m_camera) {
+    log_error("no camera in scene! stopping render!");
+    return;
+  }
+  if (m_active_scene->m_loaded_lights.size() < 1) {
+    log_error(
+        "not enough lights loaded for shader to function. stopping render.");
+    return;
+  }
+  if (m_active_scene->m_loaded_entities.size() < 1) {
+    log_error(
+        "not enough lights loaded for shader to function. stopping render.");
+    return;
+  }
+
+  depth_shader->use();
+
+  processInput(associated_window);
+
+  //setup constants for render pass
+  glfwGetWindowSize(associated_window, &m_viewport_width, &m_viewport_height);
   
-  int shadow_width = 4000;
-  int shadow_height = 4000;
+  //TMP make light spin and move
+  m_active_scene->m_loaded_lights[0].m_light_matrix = glm::rotate(glm::translate(glm::mat4(1.0f),glm::vec3(sin(m_lastFrame) * 4.5,5,5)),sin(m_lastFrame) * 0.5f,glm::vec3(0, 1, 0));
+  //ENDTMP
   
-  while (!glfwWindowShouldClose(associated_window)) {
+  // configure spotlight shadow mapping
+  glm::vec3 light_pos_new =
+      m_active_scene->m_loaded_lights[0].get_light_position();
+  glm::mat3 light_rotation =
+      m_active_scene->m_loaded_lights[0].get_light_rotation_matrix();
 
-    depth_shader->use();
+  glm::mat4 light_look_at = glm::lookAt(
+      light_pos_new,
+      light_pos_new + glm::normalize(light_rotation * glm::vec3(0, 0, -1)),
+      glm::vec3(0.0f, 1.0f, 0.0f));
 
-    processInput(associated_window);  
-  
-    //TMP make light spin and move
-    m_active_scene->m_loaded_lights[0].m_light_matrix = glm::rotate(
-								   glm::translate(
-										  glm::mat4(1.0f),
-										  glm::vec3(sin(m_lastFrame)*4.5,5,5))
-								   ,sin(m_lastFrame) * 5,
-								   glm::vec3(0,0,1));
-    
-    // configure spotlight shadow mapping
-    glm::vec3 light_pos_new = m_active_scene->m_loaded_lights[0].get_light_position();
-    glm::mat3 light_rotation = m_active_scene->m_loaded_lights[0].get_light_rotation_matrix();
+  // use for sanity
+  float width = 50.0f;
+  glm::mat4 light_projection_mat =
+      glm::ortho(-width, width, -width, width, 0.001f, 100.0f);
 
-    std::cout << light_pos_new.x << " x "<< light_pos_new.y << " y "<< light_pos_new.z << " z " << std::endl;
-    
-    glm::mat4 light_look_at = glm::lookAt(
-					  light_pos_new,
-					  light_pos_new + glm::normalize(light_rotation * glm::vec3(0,0,-1)),
-					  glm::vec3(0.0f, 1.0f, 0.0f));
+  // glm::mat4 light_projection_mat = glm::perspective(glm::radians(90.0f),
+  // (float)shadow_width / (float)shadow_height, 0.1f,50.0f);
+  glm::mat4 light_space_matrix = light_projection_mat * light_look_at;
 
-    //use for sanity
-    float width = 50.0f;
-    glm::mat4 light_projection_mat = glm::ortho(-width,width,-width,width,0.1f,10.0f);
+  depth_shader->use();
 
-    //glm::mat4 light_projection_mat = glm::perspective(glm::radians(90.0f), (float)shadow_width / (float)shadow_height, 0.1f,50.0f);
-    glm::mat4 light_space_matrix = light_projection_mat * light_look_at;
+  glViewport(0, 0, shadow_map_width, shadow_map_height);
+  glBindFramebuffer(GL_FRAMEBUFFER, window_depth_map_fbo);
+  glClear(GL_DEPTH_BUFFER_BIT);
 
-    depth_shader->use();
+  check_gl_error("after setting viewport stuff up (depth)");
 
-    glViewport(0, 0, shadow_width, shadow_height);
-    glBindFramebuffer(GL_FRAMEBUFFER, window_depth_map_fbo);
-    glClear(GL_DEPTH_BUFFER_BIT);
+  // render scene from light pov
+  for (auto &entity : m_active_scene->m_loaded_entities) {
+    for (auto &mesh : entity.m_mesh) {
 
-    check_gl_error("after setting viewport stuff up (depth)");
+      glm::vec4 light_space_pos =
+          light_space_matrix * entity.m_model_matrix * mesh.m_model_matrix *
+          glm::vec4(mesh.m_vertices_array[0], mesh.m_vertices_array[1],
+                    mesh.m_vertices_array[2], 1.0);
+      std::cout << "Light-space pos: " << light_space_pos.x << ", "
+                << light_space_pos.y << ", " << light_space_pos.z << std::endl;
 
-    // render scene from light pov
-    for (auto &entity : m_active_scene->m_loaded_entities) {
-      for (auto &mesh : entity.m_mesh) {
-
-	glm::vec4 light_space_pos = light_space_matrix * entity.m_model_matrix * mesh.m_model_matrix * glm::vec4(mesh.m_vertices_array[0],mesh.m_vertices_array[1],mesh.m_vertices_array[2], 1.0);
-	std::cout << "Light-space pos: " << light_space_pos.x << ", " << light_space_pos.y << ", " << light_space_pos.z << std::endl;
-    
-	
-        // bind meshes vao context
-        glBindVertexArray(mesh.m_mesh_vao);
-        if (glIsVertexArray(mesh.m_mesh_vao) == GL_FALSE) {
-          log_error("no valid VAO id! cant render mesh.");
-        }
-
-        check_gl_error("before setting uniforms (depth)");
-
-        upload_to_uniform("model", depth_shader->ID,
-                          entity.m_model_matrix * mesh.m_model_matrix);
-        upload_to_uniform("light_space_matrix", depth_shader->ID,
-                          light_space_matrix);
-
-        check_gl_error("after setting uniforms (depth)");
-
-        // we renderin
-        glDrawArrays(GL_TRIANGLES, 0, mesh.m_vertices_array.size() / 3);
-
-        check_gl_error("after glDrawArrays (depth)");
-      }
-    }
-
-    // rebind old fb
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-    // render scene with old settings
-    glViewport(0, 0, m_viewport_width, m_viewport_height);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    glClearColor(0.3f, 0.3f, 0.3f, 1.0f);
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-    check_gl_error("after clearing frame");
-
-    // bungie employees hate this simple trick
-    float currentFrame = glfwGetTime();
-    m_deltaTime = currentFrame - m_lastFrame;
-    m_lastFrame = currentFrame;
-
-    glm::mat4 view_mat =
-        glm::lookAt(m_active_scene->m_camera->m_cameraPos, m_active_scene->m_camera->m_cameraLookAt + m_active_scene->m_camera->m_cameraPos, m_active_scene->m_camera->m_cameraUp);
-
-    // projection matrix
-    glfwGetWindowSize(associated_window, &m_viewport_width, &m_viewport_height);
-    glm::mat4 projection_mat = glm::perspective(
-        glm::radians(90.0f), (float)m_viewport_width / (float)m_viewport_height,
-        DEF_NEAR_CLIP_PLANE, DEF_FAR_CLIP_PLANE);
-
-    // render meshes
-    for (auto &entity : m_active_scene->m_loaded_entities) {
-      for (auto &mesh : entity.m_mesh) {
-
-        // bind meshes vao context
-        glBindVertexArray(mesh.m_mesh_vao);
-        if (glIsVertexArray(mesh.m_mesh_vao) == GL_FALSE) {
-          log_error("no valid VAO id! cant render mesh.");
-        }
-
-        check_gl_error("after binding vao");
-
-        mesh.m_material.m_shader.use();
-
-        check_gl_error("after setting shader active");
-
-        if (mesh.m_material.m_material_type == E_PBR_TEX) {
-
-          // bind texture to uniform
-          glActiveTexture(GL_TEXTURE0);
-          glBindTexture(GL_TEXTURE_2D, mesh.m_material.bound_texture_id);
-          GLint loc_tex =
-              glGetUniformLocation(mesh.m_material.m_shader.ID, "uTexture");
-          glUniform1i(loc_tex, 0);
-          // bind depth map to uniform
-          glActiveTexture(GL_TEXTURE1);
-          glBindTexture(GL_TEXTURE_2D, window_depth_map);
-          GLint loc_depth =
-              glGetUniformLocation(mesh.m_material.m_shader.ID, "uDepthMap");
-          glUniform1i(loc_depth, 1);
-
-          check_gl_error("after uploading textures");
-        }
-
-        // TMP ghetto light + color
-        glm::vec3 light_position = m_active_scene->m_loaded_lights[0].get_light_position();
-	  
-        upload_to_uniform("objectColor", mesh.m_material.m_shader.ID,
-                          glm::vec3(0.5, 0.8, 0.2));
-        upload_to_uniform("lightColor", mesh.m_material.m_shader.ID,
-                          glm::vec3(0.8, 0.8, 0.8));
-
-        upload_to_uniform("model", mesh.m_material.m_shader.ID,
-                          entity.m_model_matrix * mesh.m_model_matrix);
-
-        upload_to_uniform("view", mesh.m_material.m_shader.ID, view_mat);
-        upload_to_uniform("viewPosition", mesh.m_material.m_shader.ID,
-                          m_active_scene->m_camera->m_cameraPos);
-        upload_to_uniform("projection", mesh.m_material.m_shader.ID,
-                          projection_mat);
-        upload_to_uniform("lightPosition", mesh.m_material.m_shader.ID,
-                          light_position);
-        upload_to_uniform("viewPos", mesh.m_material.m_shader.ID, m_active_scene->m_camera->m_cameraPos);
-
-        upload_to_uniform("light_space_matrix", mesh.m_material.m_shader.ID,
-                          light_space_matrix);
-
-        check_gl_error("after setting uniforms");
-
-        // we renderin
-        glDrawArrays(GL_TRIANGLES, 0, mesh.m_vertices_array.size() / 3);
-
-        check_gl_error("after glDrawArrays");
-      }
-    }
-
-    ////////////////////////
-    // finally draw visualizers for all lights in the scene
-    ///////////////////////
-    for (auto &light_source : m_active_scene->m_loaded_lights) {
-      
       // bind meshes vao context
-      glBindVertexArray(light_source.m_light_visualizer_mesh.m_mesh_vao);
-      if (glIsVertexArray(light_source.m_light_visualizer_mesh.m_mesh_vao) == GL_FALSE) {
+      glBindVertexArray(mesh.m_mesh_vao);
+      if (glIsVertexArray(mesh.m_mesh_vao) == GL_FALSE) {
         log_error("no valid VAO id! cant render mesh.");
       }
 
-      check_gl_error("after binding vao (lights)");
+      check_gl_error("before setting uniforms (depth)");
 
-      light_source.m_light_visualizer_mesh.m_material.m_shader.use();
+      upload_to_uniform("model", depth_shader->ID,
+                        entity.m_model_matrix * mesh.m_model_matrix);
+      upload_to_uniform("light_space_matrix", depth_shader->ID,
+                        light_space_matrix);
 
-      check_gl_error("after setting shader active (lights)");
+      check_gl_error("after setting uniforms (depth)");
 
-      if (light_source.m_light_visualizer_mesh.m_material.m_material_type == E_PBR_TEX) {
+      // we renderin
+      glDrawArrays(GL_TRIANGLES, 0, mesh.m_vertices_array.size() / 3);
+
+      check_gl_error("after glDrawArrays (depth)");
+    }
+  }
+
+  // rebind old fb
+  glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+  // render scene with old settings
+  glViewport(0, 0, m_viewport_width, m_viewport_height);
+  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+  glClearColor(0.3f, 0.3f, 0.3f, 1.0f);
+  glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+  check_gl_error("after clearing frame");
+
+  // bungie employees hate this simple trick
+  float currentFrame = glfwGetTime();
+  m_deltaTime = currentFrame - m_lastFrame;
+  m_lastFrame = currentFrame;
+
+  glm::mat4 view_mat = glm::lookAt(m_active_scene->m_camera->m_cameraPos,
+                                   m_active_scene->m_camera->m_cameraLookAt +
+                                       m_active_scene->m_camera->m_cameraPos,
+                                   m_active_scene->m_camera->m_cameraUp);
+
+  // projection matrix
+  glm::mat4 projection_mat = glm::perspective(
+      glm::radians(90.0f), (float)m_viewport_width / (float)m_viewport_height,
+      DEF_NEAR_CLIP_PLANE, DEF_FAR_CLIP_PLANE);
+
+  // render meshes
+  for (auto &entity : m_active_scene->m_loaded_entities) {
+    for (auto &mesh : entity.m_mesh) {
+
+      // bind meshes vao context
+      glBindVertexArray(mesh.m_mesh_vao);
+      if (glIsVertexArray(mesh.m_mesh_vao) == GL_FALSE) {
+        log_error("no valid VAO id! cant render mesh.");
+      }
+
+      check_gl_error("after binding vao");
+
+      mesh.m_material.m_shader.use();
+
+      check_gl_error("after setting shader active");
+
+      if (mesh.m_material.m_material_type == E_PBR_TEX) {
 
         // bind texture to uniform
         glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, light_source.m_light_visualizer_mesh.m_material.bound_texture_id);
+        glBindTexture(GL_TEXTURE_2D, mesh.m_material.bound_texture_id);
         GLint loc_tex =
-            glGetUniformLocation(light_source.m_light_visualizer_mesh.m_material.m_shader.ID, "uTexture");
+            glGetUniformLocation(mesh.m_material.m_shader.ID, "uTexture");
         glUniform1i(loc_tex, 0);
         // bind depth map to uniform
         glActiveTexture(GL_TEXTURE1);
         glBindTexture(GL_TEXTURE_2D, window_depth_map);
         GLint loc_depth =
-            glGetUniformLocation(light_source.m_light_visualizer_mesh.m_material.m_shader.ID, "uDepthMap");
+            glGetUniformLocation(mesh.m_material.m_shader.ID, "uDepthMap");
         glUniform1i(loc_depth, 1);
 
         check_gl_error("after uploading textures");
       }
 
-      upload_to_uniform("objectColor", light_source.m_light_visualizer_mesh.m_material.m_shader.ID,
-                        glm::vec3(0.5, 0.8, 0.2));
-      upload_to_uniform("lightColor", light_source.m_light_visualizer_mesh.m_material.m_shader.ID,
-                        glm::vec3(0.8, 0.8, 0.8));
-      upload_to_uniform("model", light_source.m_light_visualizer_mesh.m_material.m_shader.ID,
-		        glm::translate(glm::mat4(1.0f),light_source.get_light_position()));
+      // TMP ghetto light + color
+      glm::vec3 light_position =
+          m_active_scene->m_loaded_lights[0].get_light_position();
 
-      upload_to_uniform("view", light_source.m_light_visualizer_mesh.m_material.m_shader.ID, view_mat);
-      upload_to_uniform("viewPosition", light_source.m_light_visualizer_mesh.m_material.m_shader.ID,
+      upload_to_uniform("objectColor", mesh.m_material.m_shader.ID,
+                        glm::vec3(0.5, 0.8, 0.2));
+      upload_to_uniform("lightColor", mesh.m_material.m_shader.ID,
+                        glm::vec3(0.8, 0.8, 0.8));
+
+      upload_to_uniform("model", mesh.m_material.m_shader.ID,
+                        entity.m_model_matrix * mesh.m_model_matrix);
+
+      upload_to_uniform("view", mesh.m_material.m_shader.ID, view_mat);
+      upload_to_uniform("viewPosition", mesh.m_material.m_shader.ID,
                         m_active_scene->m_camera->m_cameraPos);
-      upload_to_uniform("projection", light_source.m_light_visualizer_mesh.m_material.m_shader.ID,
+      upload_to_uniform("projection", mesh.m_material.m_shader.ID,
                         projection_mat);
-      upload_to_uniform("lightPosition", light_source.m_light_visualizer_mesh.m_material.m_shader.ID,
-                        glm::vec3(0.0f));
-      upload_to_uniform("viewPos", light_source.m_light_visualizer_mesh.m_material.m_shader.ID, m_active_scene->m_camera->m_cameraPos);
-      upload_to_uniform("light_space_matrix", light_source.m_light_visualizer_mesh.m_material.m_shader.ID,
+      upload_to_uniform("lightPosition", mesh.m_material.m_shader.ID,
+                        light_position);
+      upload_to_uniform("viewPos", mesh.m_material.m_shader.ID,
+                        m_active_scene->m_camera->m_cameraPos);
+
+      upload_to_uniform("light_space_matrix", mesh.m_material.m_shader.ID,
                         light_space_matrix);
 
       check_gl_error("after setting uniforms");
 
       // we renderin
-      glDrawArrays(GL_TRIANGLES, 0, light_source.m_light_visualizer_mesh.m_vertices_array.size() / 3);
+      glDrawArrays(GL_TRIANGLES, 0, mesh.m_vertices_array.size() / 3);
 
-      check_gl_error("after glDrawArrays (lights)");
+      check_gl_error("after glDrawArrays");
     }
-
-    // draw to screen
-    glfwSwapBuffers(associated_window);
-    glfwPollEvents();
   }
 
-  
+  ////////////////////////
+  // finally draw visualizers for all lights in the scene
+  ///////////////////////
+  for (auto &light_source : m_active_scene->m_loaded_lights) {
+
+    // bind meshes vao context
+    glBindVertexArray(light_source.m_light_visualizer_mesh.m_mesh_vao);
+    if (glIsVertexArray(light_source.m_light_visualizer_mesh.m_mesh_vao) ==
+        GL_FALSE) {
+      log_error("no valid VAO id! cant render mesh.");
+    }
+
+    check_gl_error("after binding vao (lights)");
+
+    light_source.m_light_visualizer_mesh.m_material.m_shader.use();
+
+    check_gl_error("after setting shader active (lights)");
+
+    if (light_source.m_light_visualizer_mesh.m_material.m_material_type ==
+        E_PBR_TEX) {
+
+      // bind texture to uniform
+      glActiveTexture(GL_TEXTURE0);
+      glBindTexture(
+          GL_TEXTURE_2D,
+          light_source.m_light_visualizer_mesh.m_material.bound_texture_id);
+      GLint loc_tex = glGetUniformLocation(
+          light_source.m_light_visualizer_mesh.m_material.m_shader.ID,
+          "uTexture");
+      glUniform1i(loc_tex, 0);
+      // bind depth map to uniform
+      glActiveTexture(GL_TEXTURE1);
+      glBindTexture(GL_TEXTURE_2D, window_depth_map);
+      GLint loc_depth = glGetUniformLocation(
+          light_source.m_light_visualizer_mesh.m_material.m_shader.ID,
+          "uDepthMap");
+      glUniform1i(loc_depth, 1);
+
+      check_gl_error("after uploading textures");
+    }
+
+    upload_to_uniform(
+        "objectColor",
+        light_source.m_light_visualizer_mesh.m_material.m_shader.ID,
+        glm::vec3(0.5, 0.8, 0.2));
+    upload_to_uniform(
+        "lightColor",
+        light_source.m_light_visualizer_mesh.m_material.m_shader.ID,
+        glm::vec3(0.8, 0.8, 0.8));
+    upload_to_uniform(
+        "model", light_source.m_light_visualizer_mesh.m_material.m_shader.ID,
+        light_source.m_light_matrix);
+
+    upload_to_uniform(
+        "view", light_source.m_light_visualizer_mesh.m_material.m_shader.ID,
+        view_mat);
+    upload_to_uniform(
+        "viewPosition",
+        light_source.m_light_visualizer_mesh.m_material.m_shader.ID,
+        m_active_scene->m_camera->m_cameraPos);
+    upload_to_uniform(
+        "projection",
+        light_source.m_light_visualizer_mesh.m_material.m_shader.ID,
+        projection_mat);
+    upload_to_uniform(
+        "lightPosition",
+        light_source.m_light_visualizer_mesh.m_material.m_shader.ID,
+        glm::vec3(0.0f));
+    upload_to_uniform(
+        "viewPos", light_source.m_light_visualizer_mesh.m_material.m_shader.ID,
+        m_active_scene->m_camera->m_cameraPos);
+    upload_to_uniform(
+        "light_space_matrix",
+        light_source.m_light_visualizer_mesh.m_material.m_shader.ID,
+        light_space_matrix);
+
+    check_gl_error("after setting uniforms");
+
+    // we renderin
+    glDrawArrays(GL_TRIANGLES, 0,
+                 light_source.m_light_visualizer_mesh.m_vertices_array.size() /
+                     3);
+
+    check_gl_error("after glDrawArrays (lights)");
+  }
+
+  // draw to screen
+  glfwSwapBuffers(associated_window);
+  glfwPollEvents();
 }
 
 void Renderer::processInput(GLFWwindow *window) {
 
-  if(m_active_scene->m_camera == nullptr)
+  if (m_active_scene->m_camera == nullptr)
     return;
-  
+
   if (window == nullptr)
     log_error("window is null, cannot process input.");
 
@@ -368,33 +399,42 @@ void Renderer::processInput(GLFWwindow *window) {
     log_success("shutting down window.");
   }
 
-  float cameraSpeed = m_active_scene->m_camera->m_camera_base_speed * 10.0f * m_deltaTime;
+  float cameraSpeed =
+      m_active_scene->m_camera->m_camera_base_speed * 10.0f * m_deltaTime;
 
   if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
     m_active_scene->m_camera->m_cameraPos +=
-        cameraSpeed *
-        glm::normalize(glm::vec3(m_active_scene->m_camera->m_cameraLookAt.x, 0.0f, m_active_scene->m_camera->m_cameraLookAt.z));
+        cameraSpeed * glm::normalize(glm::vec3(
+                          m_active_scene->m_camera->m_cameraLookAt.x, 0.0f,
+                          m_active_scene->m_camera->m_cameraLookAt.z));
   }
 
   if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) {
     m_active_scene->m_camera->m_cameraPos +=
-        cameraSpeed *
-        glm::normalize(glm::vec3(-m_active_scene->m_camera->m_cameraLookAt.x, 0.0f, -m_active_scene->m_camera->m_cameraLookAt.z));
+        cameraSpeed * glm::normalize(glm::vec3(
+                          -m_active_scene->m_camera->m_cameraLookAt.x, 0.0f,
+                          -m_active_scene->m_camera->m_cameraLookAt.z));
   }
 
   if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
     m_active_scene->m_camera->m_cameraPos -=
-        glm::normalize(glm::cross(m_active_scene->m_camera->m_cameraLookAt, m_active_scene->m_camera->m_cameraUp)) * cameraSpeed;
+        glm::normalize(glm::cross(m_active_scene->m_camera->m_cameraLookAt,
+                                  m_active_scene->m_camera->m_cameraUp)) *
+        cameraSpeed;
 
   if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
     m_active_scene->m_camera->m_cameraPos +=
-        glm::normalize(glm::cross(m_active_scene->m_camera->m_cameraLookAt, m_active_scene->m_camera->m_cameraUp)) * cameraSpeed;
+        glm::normalize(glm::cross(m_active_scene->m_camera->m_cameraLookAt,
+                                  m_active_scene->m_camera->m_cameraUp)) *
+        cameraSpeed;
 
   if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
-    m_active_scene->m_camera->m_cameraPos += glm::normalize(glm::vec3(0.0f, -1.0f, 0.0f)) * cameraSpeed;
+    m_active_scene->m_camera->m_cameraPos +=
+        glm::normalize(glm::vec3(0.0f, -1.0f, 0.0f)) * cameraSpeed;
 
   if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS)
-    m_active_scene->m_camera->m_cameraPos += glm::normalize(glm::vec3(0.0f, 1.0f, 0.0f)) * cameraSpeed;
+    m_active_scene->m_camera->m_cameraPos +=
+        glm::normalize(glm::vec3(0.0f, 1.0f, 0.0f)) * cameraSpeed;
 
   // tj camera
 
@@ -420,23 +460,25 @@ void Renderer::processInput(GLFWwindow *window) {
   return;
 }
 
-void Renderer::init_scene(const char* scene_fp) {
-  
+void Renderer::init_scene(const char *scene_fp) {
+
   Entity load_entity;
-  load_entity.m_mesh = std::move(load_all_meshes_from_gltf(
-      scene_fp, num_loaded_textures, m_texture_map));
+  load_entity.m_mesh = std::move(
+      load_all_meshes_from_gltf(scene_fp, num_loaded_textures, m_texture_map));
 
   //  glDisable(GL_CULL_FACE);
 
   m_active_scene = std::move(std::make_unique<Scene>());
 
   m_active_scene->m_camera = std::move(std::make_unique<Camera>());
-  
+
   Light main_light(std::move(load_all_meshes_from_gltf(
       "models/light/scene.gltf", num_loaded_textures, m_texture_map))[0]);
   main_light.m_light_type = E_POINT_LIGHT;
   main_light.m_color = 0xFFFFFF;
   main_light.m_strength = 10;
+
+  main_light.m_light_matrix = glm::translate(main_light.m_light_matrix, glm::vec3(10.0f, 2.0f, 1.0f));
 
   m_active_scene->add_entity_to_scene(load_entity);
   m_active_scene->add_light_to_scene(main_light);
@@ -457,17 +499,16 @@ void Renderer::init_scene(const char* scene_fp) {
 
   // SHADOW MAPPING
   glGenFramebuffers(1, &window_depth_map_fbo);
-  const unsigned int SHADOW_WIDTH = 4000, SHADOW_HEIGHT = 4000;
 
   glGenTextures(1, &window_depth_map);
   glBindTexture(GL_TEXTURE_2D, window_depth_map);
-  glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT32F, SHADOW_WIDTH,
-               SHADOW_HEIGHT, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT32F, shadow_map_width,
+               shadow_map_height, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
-  float borderColor[] = {0.0, 0.0, 0.0, 1.0};
+  float borderColor[] = {1.0f, 1.0f, 1.0f, 1.0f};
   glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
 
   glBindFramebuffer(GL_FRAMEBUFFER, window_depth_map_fbo);
@@ -478,10 +519,9 @@ void Renderer::init_scene(const char* scene_fp) {
   glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
   depth_shader = new Shader("src/shaders/shader_src/depth.vert",
-                      "src/shaders/shader_src/depth.frag");
+                            "src/shaders/shader_src/depth.frag");
 
   log_success("done initializing renderer.");
-
 }
 
 void Renderer::init_scene_vbos() {
@@ -688,7 +728,7 @@ _/ ___\/  _ \_  __ \   __\/ __ \\  \/  /
   glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
   associated_window = glfwCreateWindow(window_width, window_height,
-                                        "cortex - dev build", NULL, NULL);
+                                       "cortex - dev build", NULL, NULL);
   if (associated_window == NULL) {
     log_error("failed to create glfw window!");
     glfwTerminate();
@@ -713,18 +753,20 @@ _/ ___\/  _ \_  __ \   __\/ __ \\  \/  /
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
   // format for class usage
-  glfwSetFramebufferSizeCallback(associated_window, Renderer::framebuffer_size_callback);
+  glfwSetFramebufferSizeCallback(associated_window,
+                                 Renderer::framebuffer_size_callback);
   glfwSetWindowUserPointer(associated_window, this);
 
   // set callbacks using lambda functions
   glfwSetScrollCallback(associated_window, [](GLFWwindow *w, double xoffset,
-                                   double yoffset) {
+                                              double yoffset) {
     Renderer *renderer = static_cast<Renderer *>(glfwGetWindowUserPointer(w));
     if (renderer) {
       renderer->scroll_callback(w, xoffset, yoffset);
     }
   });
-  glfwSetCursorPosCallback(associated_window, [](GLFWwindow *w, double xpos, double ypos) {
+  glfwSetCursorPosCallback(associated_window, [](GLFWwindow *w, double xpos,
+                                                 double ypos) {
     Renderer *renderer = static_cast<Renderer *>(glfwGetWindowUserPointer(w));
     if (renderer) {
       renderer->mouse_callback(w, xpos, ypos);
