@@ -44,7 +44,9 @@ public:
   float m_lastFrame = 0.0f;
 
   // Render properties
-  float m_render_mode_wireframe = false;
+  bool m_render_mode_wireframe = true;
+  bool m_last_wireframe_state = false;
+  bool m_is_wireframe_on_cooldown = false;
   unsigned int window_depth_map;
   unsigned int window_depth_map_fbo;
   Shader* depth_shader;
@@ -71,6 +73,7 @@ public:
   void init_scene_vbos();
   void init_scene(const char* scene_fp);
   void render_frame();
+  bool save_frame_to_png(const char* filename, int width, int height);
 
   /////////////////////
   // RENDER FUNCTIONS

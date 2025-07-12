@@ -36,7 +36,7 @@ public:
   float m_strength;
   uint64_t m_color;
 
-  float light_width = 50.0f;
+  float light_width = 10.0f;
   
   Mesh m_light_visualizer_mesh;
   

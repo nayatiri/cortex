@@ -1,6 +1,7 @@
 #include "renderer.hh"
 
 // components
+#include <chrono>
 #include <glm/ext/matrix_clip_space.hpp>
 #include <glm/ext/matrix_float4x4.hpp>
 #include <glm/matrix.hpp>
@@ -24,6 +25,7 @@
 #include <iostream>
 #include <memory>
 #include <string>
+#include <thread>
 #include <vector>
 
 // components (custom)
@@ -105,6 +107,30 @@ void Renderer::mouse_callback(GLFWwindow *window, double xpos, double ypos) {
   m_active_scene->m_camera->m_cameraLookAt = glm::normalize(m_direction);
 }
 
+bool Renderer::save_frame_to_png(const char *filename, int width, int height) {
+  std::vector<unsigned char> pixels(width * height * 3);
+
+  glPixelStorei(GL_PACK_ALIGNMENT, 1);
+  glReadBuffer(GL_FRONT);
+  glReadPixels(0, 0, width, height, GL_RGB, GL_UNSIGNED_BYTE, pixels.data());
+
+  for (int y = 0; y < height / 2; ++y) {
+    int index1 = y * width * 3;
+    int index2 = (height - 1 - y) * width * 3;
+    for (int x = 0; x < width * 3; ++x)
+      std::swap(pixels[index1 + x], pixels[index2 + x]);
+  }
+
+  int success =
+      stbi_write_png(filename, width, height, 3, pixels.data(), width * 3);
+  if (!success) {
+    std::cerr << "Failed to write PNG file\n";
+    return false;
+  }
+  std::cout << "Saved framebuffer to " << filename << "\n";
+  return true;
+}
+
 void Renderer::framebuffer_size_callback(GLFWwindow *window, int width,
                                          int height) {
   log_success("framebuffer resized.");
@@ -128,17 +154,30 @@ void Renderer::render_frame() {
     return;
   }
 
+  // render mode
+  if (m_render_mode_wireframe)
+    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+  else {
+    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+  }
+
   depth_shader->use();
 
   processInput(associated_window);
 
-  //setup constants for render pass
+  // setup constants for render pass
   glfwGetWindowSize(associated_window, &m_viewport_width, &m_viewport_height);
-  
-  //TMP make light spin and move
-  m_active_scene->m_loaded_lights[0].m_light_matrix = glm::rotate(glm::translate(glm::mat4(1.0f),glm::vec3(sin(m_lastFrame) * 4.5,5,5)),sin(m_lastFrame) * 0.5f,glm::vec3(0, 1, 0));
-  //ENDTMP
-  
+
+  // TMP make light spin and move
+  // m_active_scene->m_loaded_lights[0].m_light_matrix =
+  // glm::rotate(glm::translate(glm::mat4(1.0f),glm::vec3(sin(m_lastFrame)
+  // * 4.5,5,5)),sin(m_lastFrame) * 0.5f,glm::vec3(0, 1, 0));
+  //m_active_scene->m_loaded_lights[0].m_light_matrix = glm::rotate(
+  //  glm::rotate(glm::translate(glm::mat4(1.0f), glm::vec3(-2, 5, 3)), -2.5f,
+  //              glm::vec3(0, 1, 0)),
+  //  -1.0f, glm::vec3(1, 0, 0));
+  // ENDTMP
+
   // configure spotlight shadow mapping
   glm::vec3 light_pos_new =
       m_active_scene->m_loaded_lights[0].get_light_position();
@@ -153,7 +192,7 @@ void Renderer::render_frame() {
   // use for sanity
   float width = m_active_scene->m_loaded_lights[0].light_width;
   glm::mat4 light_projection_mat =
-      glm::ortho(-width, width, -width, width, 0.001f, 100.0f);
+      glm::ortho(-width, width, -width, width, 0.01f, 20.0f);
 
   // glm::mat4 light_projection_mat = glm::perspective(glm::radians(90.0f),
   // (float)shadow_width / (float)shadow_height, 0.1f,50.0f);
@@ -395,11 +434,26 @@ void Renderer::processInput(GLFWwindow *window) {
   float cameraSpeed =
       m_active_scene->m_camera->m_camera_base_speed * 10.0f * m_deltaTime;
 
+  if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS) {
+    if (!m_last_wireframe_state) {
+      m_render_mode_wireframe = !m_render_mode_wireframe;
+      m_is_wireframe_on_cooldown = true;
+      m_last_wireframe_state = true;
+    }
+  } else {
+    m_last_wireframe_state = false;
+  }
+
   if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
     m_active_scene->m_camera->m_cameraPos +=
         cameraSpeed * glm::normalize(glm::vec3(
                           m_active_scene->m_camera->m_cameraLookAt.x, 0.0f,
                           m_active_scene->m_camera->m_cameraLookAt.z));
+  }
+
+  if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS) {
+    save_frame_to_png("output.png", m_viewport_width, m_viewport_height);
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
   }
 
   if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) {
@@ -471,7 +525,8 @@ void Renderer::init_scene(const char *scene_fp) {
   main_light.m_color = 0xFFFFFF;
   main_light.m_strength = 10;
 
-  main_light.m_light_matrix = glm::translate(main_light.m_light_matrix, glm::vec3(10.0f, 2.0f, 1.0f));
+  main_light.m_light_matrix =
+      glm::translate(main_light.m_light_matrix, glm::vec3(10.0f, 2.0f, 1.0f));
 
   m_active_scene->add_entity_to_scene(load_entity);
   m_active_scene->add_light_to_scene(main_light);
@@ -767,14 +822,5 @@ _/ ___\/  _ \_  __ \   __\/ __ \\  \/  /
   });
 
   glfwSetInputMode(associated_window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-
-  // debug render mode
-  if (m_render_mode_wireframe)
-    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-  else {
-    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-  }
-  // main render loop
-
   return;
 }
