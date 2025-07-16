@@ -1,8 +1,6 @@
 #pragma once
 
 #include <glm/ext/matrix_float4x4.hpp>
-#include <iostream>
-
 #include <GLFW/glfw3.h>
 #include <glm/ext/matrix_transform.hpp>
 #include <glm/ext/vector_float3.hpp>
@@ -12,15 +10,9 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
-// stdlib
-#include <cmath>
-#include <cstring>
-#include <iostream>
-#include <string>
-#include <thread>
-#include <chrono>
 #include <vector>
-#include <cstdint>
+
+#include "animation.hh"
 
 class Camera {
 public:
@@ -36,6 +28,8 @@ public:
   bool m_proj_mat_initialized = false;
   glm::mat4 m_projection_matrix;
 
+  std::vector<animation>* m_animation_table;
+  
   Camera();
   void reset();
   

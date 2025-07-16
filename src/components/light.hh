@@ -9,15 +9,7 @@
 #include <glm/gtc/type_ptr.hpp>
 
 // stdlib
-#include <cmath>
-#include <cstring>
-#include <iostream>
-#include <string>
-#include <thread>
-#include <chrono>
-#include <vector>
 #include <cstdint>
-#include <iostream>
 
 #include "mesh.hh"
 

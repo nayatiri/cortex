@@ -35,6 +35,7 @@
 #include "components/material.hh"
 #include "components/scene.hh"
 #include "components/utility.hh"
+#include "components/animation.hh"
 #include "shaders/shaderclass.hh"
 
 #define DEF_NEAR_CLIP_PLANE 0.01f
@@ -105,6 +106,106 @@ void Renderer::mouse_callback(GLFWwindow *window, double xpos, double ypos) {
   m_direction.y = sin(glm::radians(m_pitch));
   m_direction.z = sin(glm::radians(m_yaw)) * cos(glm::radians(m_pitch));
   m_active_scene->m_camera->m_cameraLookAt = glm::normalize(m_direction);
+}
+
+void Renderer::processInput(GLFWwindow *window) {
+
+  if (m_active_scene->m_camera == nullptr)
+    return;
+
+  if (window == nullptr)
+    log_error("window is null, cannot process input.");
+
+  if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
+    glfwSetWindowShouldClose(window, true);
+    m_should_shutdown = true;
+    log_success("shutting down window.");
+  }
+
+  float cameraSpeed =
+      m_active_scene->m_camera->m_camera_base_speed * 10.0f * m_deltaTime;
+
+  if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS) {
+    if (!m_last_wireframe_state) {
+      m_render_mode_wireframe = !m_render_mode_wireframe;
+      m_is_wireframe_on_cooldown = true;
+      m_last_wireframe_state = true;
+    }
+  } else {
+    m_last_wireframe_state = false;
+  }
+
+  if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
+    m_active_scene->m_camera->m_cameraPos +=
+        cameraSpeed * glm::normalize(glm::vec3(
+                          m_active_scene->m_camera->m_cameraLookAt.x, 0.0f,
+                          m_active_scene->m_camera->m_cameraLookAt.z));
+  }
+  
+  if (glfwGetKey(window, GLFW_KEY_T) == GLFW_PRESS) {
+    if(m_active_scene->m_camera->m_animation_table == nullptr) {
+      m_active_scene->m_camera->m_animation_table = new std::vector<animation>();
+      m_active_scene->m_camera->m_animation_table->push_back(animation());
+    } else {
+      m_active_scene->m_camera->m_animation_table->at(0).m_checkpoints.push_back(m_active_scene->m_camera->m_cameraPos);
+      log_debug("saved animation point");
+    }
+  }
+  
+  if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS) {
+    save_frame_to_png("output.png", m_viewport_width, m_viewport_height);
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+  }
+
+  if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) {
+    m_active_scene->m_camera->m_cameraPos +=
+        cameraSpeed * glm::normalize(glm::vec3(
+                          -m_active_scene->m_camera->m_cameraLookAt.x, 0.0f,
+                          -m_active_scene->m_camera->m_cameraLookAt.z));
+  }
+
+  if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+    m_active_scene->m_camera->m_cameraPos -=
+        glm::normalize(glm::cross(m_active_scene->m_camera->m_cameraLookAt,
+                                  m_active_scene->m_camera->m_cameraUp)) *
+        cameraSpeed;
+
+  if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
+    m_active_scene->m_camera->m_cameraPos +=
+        glm::normalize(glm::cross(m_active_scene->m_camera->m_cameraLookAt,
+                                  m_active_scene->m_camera->m_cameraUp)) *
+        cameraSpeed;
+
+  if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
+    m_active_scene->m_camera->m_cameraPos +=
+        glm::normalize(glm::vec3(0.0f, -1.0f, 0.0f)) * cameraSpeed;
+
+  if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS)
+    m_active_scene->m_camera->m_cameraPos +=
+        glm::normalize(glm::vec3(0.0f, 1.0f, 0.0f)) * cameraSpeed;
+
+  // tj camera
+
+  if (glfwGetKey(window, GLFW_KEY_G) == GLFW_PRESS) {
+    if (m_last_mouse_state == false) {
+      m_is_mouse_grabbed = !m_is_mouse_grabbed;
+      if (m_is_mouse_grabbed) {
+        m_is_mouse_on_cooldown = true;
+        glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+      } else {
+        m_is_mouse_on_cooldown = true;
+        glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+      }
+      m_last_mouse_state = true;
+    }
+  }
+
+  if (glfwGetKey(window, GLFW_KEY_G) != GLFW_PRESS) {
+
+    m_last_mouse_state = false;
+  }
+
+  return;
 }
 
 bool Renderer::save_frame_to_png(const char *filename, int width, int height) {
@@ -415,96 +516,6 @@ void Renderer::render_frame() {
   // draw to screen
   glfwSwapBuffers(associated_window);
   glfwPollEvents();
-}
-
-void Renderer::processInput(GLFWwindow *window) {
-
-  if (m_active_scene->m_camera == nullptr)
-    return;
-
-  if (window == nullptr)
-    log_error("window is null, cannot process input.");
-
-  if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
-    glfwSetWindowShouldClose(window, true);
-    m_should_shutdown = true;
-    log_success("shutting down window.");
-  }
-
-  float cameraSpeed =
-      m_active_scene->m_camera->m_camera_base_speed * 10.0f * m_deltaTime;
-
-  if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS) {
-    if (!m_last_wireframe_state) {
-      m_render_mode_wireframe = !m_render_mode_wireframe;
-      m_is_wireframe_on_cooldown = true;
-      m_last_wireframe_state = true;
-    }
-  } else {
-    m_last_wireframe_state = false;
-  }
-
-  if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
-    m_active_scene->m_camera->m_cameraPos +=
-        cameraSpeed * glm::normalize(glm::vec3(
-                          m_active_scene->m_camera->m_cameraLookAt.x, 0.0f,
-                          m_active_scene->m_camera->m_cameraLookAt.z));
-  }
-
-  if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS) {
-    save_frame_to_png("output.png", m_viewport_width, m_viewport_height);
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
-  }
-
-  if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) {
-    m_active_scene->m_camera->m_cameraPos +=
-        cameraSpeed * glm::normalize(glm::vec3(
-                          -m_active_scene->m_camera->m_cameraLookAt.x, 0.0f,
-                          -m_active_scene->m_camera->m_cameraLookAt.z));
-  }
-
-  if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-    m_active_scene->m_camera->m_cameraPos -=
-        glm::normalize(glm::cross(m_active_scene->m_camera->m_cameraLookAt,
-                                  m_active_scene->m_camera->m_cameraUp)) *
-        cameraSpeed;
-
-  if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-    m_active_scene->m_camera->m_cameraPos +=
-        glm::normalize(glm::cross(m_active_scene->m_camera->m_cameraLookAt,
-                                  m_active_scene->m_camera->m_cameraUp)) *
-        cameraSpeed;
-
-  if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
-    m_active_scene->m_camera->m_cameraPos +=
-        glm::normalize(glm::vec3(0.0f, -1.0f, 0.0f)) * cameraSpeed;
-
-  if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS)
-    m_active_scene->m_camera->m_cameraPos +=
-        glm::normalize(glm::vec3(0.0f, 1.0f, 0.0f)) * cameraSpeed;
-
-  // tj camera
-
-  if (glfwGetKey(window, GLFW_KEY_G) == GLFW_PRESS) {
-    if (m_last_mouse_state == false) {
-      m_is_mouse_grabbed = !m_is_mouse_grabbed;
-      if (m_is_mouse_grabbed) {
-        m_is_mouse_on_cooldown = true;
-        glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-      } else {
-        m_is_mouse_on_cooldown = true;
-        glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
-      }
-      m_last_mouse_state = true;
-    }
-  }
-
-  if (glfwGetKey(window, GLFW_KEY_G) != GLFW_PRESS) {
-
-    m_last_mouse_state = false;
-  }
-
-  return;
 }
 
 void Renderer::init_scene(const char *scene_fp) {

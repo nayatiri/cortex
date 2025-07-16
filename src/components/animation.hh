@@ -1,30 +1,25 @@
 #pragma once
 
-#include "animation.hh"
-#include "mesh.hh"
-
 #include <glm/ext/matrix_float4x4.hpp>
-#include <GLFW/glfw3.h>
 #include <glm/ext/matrix_transform.hpp>
 #include <glm/ext/vector_float3.hpp>
 #include <glm/geometric.hpp>
 #include <glm/glm.hpp>
-#include <glm/matrix.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
-// stdlib
 #include <vector>
 
-class Entity {
-public:
-
-  bool is_initialized();
+class animation {
   
-  std::vector<Mesh> m_mesh;
-
-  glm::mat4 m_model_matrix = glm::mat4(1.0f);
-
-  std::vector<animation>* m_animation_table;
+public:
+  std::vector<glm::vec3> m_checkpoints;
+  unsigned int m_last_checkpoint;
+  
+  bool m_trigger_animation;
+  
+  float m_start_time;
+  float m_checkpoint_delta_time;
+  float m_animation_speed;
   
 };
