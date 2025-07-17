@@ -161,7 +161,7 @@ void Renderer::processInput(GLFWwindow *window) {
       m_active_scene->m_camera->m_animation_table->at(0)
           ->m_checkpoints_rot->push_back(m_active_scene->m_camera->m_cameraLookAt);
       log_debug("saved animation point");
-      std::this_thread::sleep_for(std::chrono::milliseconds(100));
+      //      std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
   }
 
@@ -193,15 +193,15 @@ void Renderer::processInput(GLFWwindow *window) {
       float start_time = m_active_scene->m_camera->m_animation_table->at(0)->m_start_time;
       float num_checkpoints = m_active_scene->m_camera->m_animation_table->at(0)->m_checkpoints->size();
       float anim_speed = m_active_scene->m_camera->m_animation_table->at(0)->m_animation_speed;
-      float delta = (m_active_scene->m_camera->m_animation_table->at(0)->m_start_time + (num_checkpoints * anim_speed)) - m_lastFrame;
-      float time_since_start = m_lastFrame - start_time;
+      float delta = (m_active_scene->m_camera->m_animation_table->at(0)->m_start_time * anim_speed + num_checkpoints) - m_lastFrame * anim_speed;
 
       std::cout << start_time << " start_time " << std::endl;
+      std::cout << anim_speed << " anim speed " << std::endl;
       std::cout << delta << " delta " << std::endl;
       std::cout << num_checkpoints << " num_checkpoint " << std::endl;
       
       //done animating? reset
-      if(start_time + (num_checkpoints * anim_speed) < m_lastFrame){
+      if(start_time + (num_checkpoints) < m_lastFrame){
 	m_active_scene->m_camera->m_animation_table->at(0)->m_trigger_animation = false;
 	m_active_scene->m_camera->m_animation_table->at(0)->m_start_time = 0;
 	log_success("animation done!");
@@ -209,23 +209,28 @@ void Renderer::processInput(GLFWwindow *window) {
       }
       
       //animate
-      unsigned int tomove_check = num_checkpoints - std::ceil(num_checkpoints - time_since_start);
-      float percent_to_next = 1-(time_since_start- tomove_check);
-      std::cout << time_since_start << " since start" << std::endl;
-      std::cout << percent_to_next << " percent" << std::endl;
+      unsigned int tomove_check = std::ceil(num_checkpoints - delta);
+      float remainder = tomove_check - (num_checkpoints - delta);
+      std::cout << remainder << "remainder" << std::endl;
       if(tomove_check > num_checkpoints-1){
 	tomove_check = num_checkpoints-1;
 	log_error("end of anim reached?");
+	m_active_scene->m_camera->m_animation_table->at(0)->m_trigger_animation = false;
+	m_active_scene->m_camera->m_animation_table->at(0)->m_start_time = 0;
+	log_success("animation done!");
       }
 
-      glm::vec3 old_campos_anim = m_active_scene->m_camera->m_animation_table->at(0)->m_checkpoints->at(tomove_check);
-      glm::vec3 next_campos_anim = m_active_scene->m_camera->m_animation_table->at(0)->m_checkpoints->at(tomove_check + 1);
-
-      glm::vec3 old_campos_anim_rot = m_active_scene->m_camera->m_animation_table->at(0)->m_checkpoints_rot->at(tomove_check);
-      glm::vec3 next_campos_anim_rot = m_active_scene->m_camera->m_animation_table->at(0)->m_checkpoints_rot->at(tomove_check + 1);
+      unsigned int tomove_next = tomove_check + 1;
+      if(tomove_next > num_checkpoints - 1)
+	tomove_next = num_checkpoints-1;
       
-      glm::vec3 interpolated_camera_pos = (percent_to_next * old_campos_anim) + ((1-percent_to_next) * next_campos_anim);
-      glm::vec3 interpolated_camera_rot = (percent_to_next * old_campos_anim_rot) + ((1-percent_to_next) * next_campos_anim_rot);
+      glm::vec3 old_campos_anim = m_active_scene->m_camera->m_animation_table->at(0)->m_checkpoints->at(tomove_check);
+      glm::vec3 next_campos_anim = m_active_scene->m_camera->m_animation_table->at(0)->m_checkpoints->at(tomove_next);
+      glm::vec3 old_campos_anim_rot = m_active_scene->m_camera->m_animation_table->at(0)->m_checkpoints_rot->at(tomove_check);
+      glm::vec3 next_campos_anim_rot = m_active_scene->m_camera->m_animation_table->at(0)->m_checkpoints_rot->at(tomove_next);
+      
+      glm::vec3 interpolated_camera_pos = (remainder * old_campos_anim) + ((1-remainder) * next_campos_anim);
+      glm::vec3 interpolated_camera_rot = (remainder * old_campos_anim_rot) + ((1-remainder) * next_campos_anim_rot);
       
       m_active_scene->m_camera->m_cameraPos = interpolated_camera_pos;
       m_active_scene->m_camera->m_cameraLookAt = interpolated_camera_rot;

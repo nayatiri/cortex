@@ -21,6 +21,6 @@ public:
   
   float m_start_time = 0;
   float m_checkpoint_delta_time = 0;
-  float m_animation_speed = 1;
+  float m_animation_speed = 60;
   
 };
