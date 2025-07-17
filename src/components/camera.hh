@@ -28,7 +28,7 @@ public:
   bool m_proj_mat_initialized = false;
   glm::mat4 m_projection_matrix;
 
-  std::vector<animation>* m_animation_table;
+  std::vector<animation*>* m_animation_table = nullptr;
   
   Camera();
   void reset();

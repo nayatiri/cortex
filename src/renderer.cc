@@ -24,18 +24,19 @@
 #include <cstring>
 #include <iostream>
 #include <memory>
+#include <ratio>
 #include <string>
 #include <thread>
 #include <vector>
 
 // components (custom)
+#include "components/animation.hh"
 #include "components/entity.hh"
 #include "components/light.hh"
 #include "components/logging.hh"
 #include "components/material.hh"
 #include "components/scene.hh"
 #include "components/utility.hh"
-#include "components/animation.hh"
 #include "shaders/shaderclass.hh"
 
 #define DEF_NEAR_CLIP_PLANE 0.01f
@@ -141,14 +142,100 @@ void Renderer::processInput(GLFWwindow *window) {
                           m_active_scene->m_camera->m_cameraLookAt.x, 0.0f,
                           m_active_scene->m_camera->m_cameraLookAt.z));
   }
-  
+
   if (glfwGetKey(window, GLFW_KEY_T) == GLFW_PRESS) {
-    if(m_active_scene->m_camera->m_animation_table == nullptr) {
-      m_active_scene->m_camera->m_animation_table = new std::vector<animation>();
-      m_active_scene->m_camera->m_animation_table->push_back(animation());
+    if (m_active_scene->m_camera->m_animation_table == nullptr) {
+      m_active_scene->m_camera->m_animation_table =
+          new std::vector<animation *>();
+      m_active_scene->m_camera->m_animation_table->clear();
+      m_active_scene->m_camera->m_animation_table->reserve(1);
+      m_active_scene->m_camera->m_animation_table->push_back(new animation);
+      m_active_scene->m_camera->m_animation_table->at(0)->m_checkpoints = new std::vector<glm::vec3>();
+      m_active_scene->m_camera->m_animation_table->at(0)->m_checkpoints->clear();
+      m_active_scene->m_camera->m_animation_table->at(0)->m_checkpoints_rot = new std::vector<glm::vec3>();
+      m_active_scene->m_camera->m_animation_table->at(0)->m_checkpoints_rot->clear();
     } else {
-      m_active_scene->m_camera->m_animation_table->at(0).m_checkpoints.push_back(m_active_scene->m_camera->m_cameraPos);
+      printf("%d ", (int)m_active_scene->m_camera->m_animation_table->at(0)->m_checkpoints->size());
+      m_active_scene->m_camera->m_animation_table->at(0)
+          ->m_checkpoints->push_back(m_active_scene->m_camera->m_cameraPos);
+      m_active_scene->m_camera->m_animation_table->at(0)
+          ->m_checkpoints_rot->push_back(m_active_scene->m_camera->m_cameraLookAt);
       log_debug("saved animation point");
+      std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    }
+  }
+
+  if (glfwGetKey(window, GLFW_KEY_R) == GLFW_PRESS) {
+
+    // does an animation exist? start animation
+    if (m_active_scene->m_camera->m_animation_table) {
+      if(m_active_scene->m_camera->m_animation_table->at(0)->m_checkpoints->size() > 1 &&
+	 m_active_scene->m_camera->m_animation_table->at(0)->m_start_time == 0) {
+	m_active_scene->m_camera->m_animation_table->at(0)->m_trigger_animation = true;
+	log_success("queuing animation");
+      }
+    }
+
+    // has an animation been set to start? initialize it + set vars
+    if( m_active_scene->m_camera->m_animation_table->at(0)->m_trigger_animation == true) {
+      m_active_scene->m_camera->m_animation_table->at(0)->m_start_time = m_lastFrame;
+      m_active_scene->m_camera->m_animation_table->at(0)->m_last_checkpoint = 0;
+      m_active_scene->m_camera->m_animation_table->at(0)->m_trigger_animation = false;
+      log_success("initizlizing animation");
+    }
+    
+    // is an animation already running? animate it
+    if (m_active_scene->m_camera->m_animation_table->at(0)->m_start_time <
+	m_lastFrame &&
+        m_active_scene->m_camera->m_animation_table->at(0)
+	->m_start_time != 0) {
+      
+      float start_time = m_active_scene->m_camera->m_animation_table->at(0)->m_start_time;
+      float num_checkpoints = m_active_scene->m_camera->m_animation_table->at(0)->m_checkpoints->size();
+      float anim_speed = m_active_scene->m_camera->m_animation_table->at(0)->m_animation_speed;
+      float delta = (m_active_scene->m_camera->m_animation_table->at(0)->m_start_time + (num_checkpoints * anim_speed)) - m_lastFrame;
+      float time_since_start = m_lastFrame - start_time;
+
+      std::cout << start_time << " start_time " << std::endl;
+      std::cout << delta << " delta " << std::endl;
+      std::cout << num_checkpoints << " num_checkpoint " << std::endl;
+      
+      //done animating? reset
+      if(start_time + (num_checkpoints * anim_speed) < m_lastFrame){
+	m_active_scene->m_camera->m_animation_table->at(0)->m_trigger_animation = false;
+	m_active_scene->m_camera->m_animation_table->at(0)->m_start_time = 0;
+	log_success("animation done!");
+        return;
+      }
+      
+      //animate
+      unsigned int tomove_check = num_checkpoints - std::ceil(num_checkpoints - time_since_start);
+      float percent_to_next = 1-(time_since_start- tomove_check);
+      std::cout << time_since_start << " since start" << std::endl;
+      std::cout << percent_to_next << " percent" << std::endl;
+      if(tomove_check > num_checkpoints-1){
+	tomove_check = num_checkpoints-1;
+	log_error("end of anim reached?");
+      }
+
+      glm::vec3 old_campos_anim = m_active_scene->m_camera->m_animation_table->at(0)->m_checkpoints->at(tomove_check);
+      glm::vec3 next_campos_anim = m_active_scene->m_camera->m_animation_table->at(0)->m_checkpoints->at(tomove_check + 1);
+
+      glm::vec3 old_campos_anim_rot = m_active_scene->m_camera->m_animation_table->at(0)->m_checkpoints_rot->at(tomove_check);
+      glm::vec3 next_campos_anim_rot = m_active_scene->m_camera->m_animation_table->at(0)->m_checkpoints_rot->at(tomove_check + 1);
+      
+      glm::vec3 interpolated_camera_pos = (percent_to_next * old_campos_anim) + ((1-percent_to_next) * next_campos_anim);
+      glm::vec3 interpolated_camera_rot = (percent_to_next * old_campos_anim_rot) + ((1-percent_to_next) * next_campos_anim_rot);
+      
+      m_active_scene->m_camera->m_cameraPos = interpolated_camera_pos;
+      m_active_scene->m_camera->m_cameraLookAt = interpolated_camera_rot;
+      
+      std::cout << tomove_check << " tomove_check " << std::endl;
+
+      log_success("anim step done!");
+      
+    } else {
+      log_error("no animation running");
     }
   }
   
@@ -273,7 +360,7 @@ void Renderer::render_frame() {
   // m_active_scene->m_loaded_lights[0].m_light_matrix =
   // glm::rotate(glm::translate(glm::mat4(1.0f),glm::vec3(sin(m_lastFrame)
   // * 4.5,5,5)),sin(m_lastFrame) * 0.5f,glm::vec3(0, 1, 0));
-  //m_active_scene->m_loaded_lights[0].m_light_matrix = glm::rotate(
+  // m_active_scene->m_loaded_lights[0].m_light_matrix = glm::rotate(
   //  glm::rotate(glm::translate(glm::mat4(1.0f), glm::vec3(-2, 5, 3)), -2.5f,
   //              glm::vec3(0, 1, 0)),
   //  -1.0f, glm::vec3(1, 0, 0));

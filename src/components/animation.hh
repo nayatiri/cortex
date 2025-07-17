@@ -13,13 +13,14 @@
 class animation {
   
 public:
-  std::vector<glm::vec3> m_checkpoints;
-  unsigned int m_last_checkpoint;
+  std::vector<glm::vec3>* m_checkpoints = nullptr;
+  std::vector<glm::vec3>* m_checkpoints_rot = nullptr;
+  unsigned int m_last_checkpoint = 0;
   
-  bool m_trigger_animation;
+  bool m_trigger_animation = false;
   
-  float m_start_time;
-  float m_checkpoint_delta_time;
-  float m_animation_speed;
+  float m_start_time = 0;
+  float m_checkpoint_delta_time = 0;
+  float m_animation_speed = 1;
   
 };
