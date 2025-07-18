@@ -41,7 +41,7 @@ public:
   
   // bungie employees hate this one simple trick
   float m_deltaTime = 0.0f;
-  float m_lastFrame = 0.0f;
+  float m_application_current_time = 0.0f;
 
   // Render properties
   bool m_render_mode_wireframe = true;
@@ -74,6 +74,7 @@ public:
   void init_scene(const char* scene_fp);
   void render_frame();
   bool save_frame_to_png(const char* filename, int width, int height);
+  void handle_scene_animations();
 
   /////////////////////
   // RENDER FUNCTIONS

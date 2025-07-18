@@ -24,7 +24,6 @@
 #include <cstring>
 #include <iostream>
 #include <memory>
-#include <ratio>
 #include <string>
 #include <thread>
 #include <vector>
@@ -164,7 +163,16 @@ void Renderer::processInput(GLFWwindow *window) {
       //      std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
   }
-
+  
+  if (glfwGetKey(window, GLFW_KEY_B) == GLFW_PRESS) {
+    if(m_active_scene->m_camera->m_animation_table && m_active_scene->m_camera->m_animation_table->at(0)->m_checkpoints) {
+      m_active_scene->m_camera->m_animation_table->at(0)->m_checkpoints->clear();
+      m_active_scene->m_camera->m_animation_table->at(0)->m_checkpoints_rot->clear();
+      m_active_scene->m_camera->m_animation_table->at(0)->m_start_time = 0;
+      m_active_scene->m_camera->m_animation_table->at(0)->m_has_been_smoothed = false;
+    }
+  }
+  
   if (glfwGetKey(window, GLFW_KEY_R) == GLFW_PRESS) {
 
     // does an animation exist? start animation
@@ -176,72 +184,27 @@ void Renderer::processInput(GLFWwindow *window) {
       }
     }
 
+    if (m_active_scene->m_camera->m_animation_table->at(0)->m_has_been_smoothed == false) {
+
+      for(int i = 0; i < ((int)m_active_scene->m_camera->m_animation_table->at(0)->m_checkpoints->size()) - 20; i++) {
+	glm::vec3 step_nosmooth = m_active_scene->m_camera->m_animation_table->at(0)->m_checkpoints->at(i);
+	glm::vec3 step_next_nosmooth = m_active_scene->m_camera->m_animation_table->at(0)->m_checkpoints->at(i+1);
+	glm::vec3 step_smoothed = (step_nosmooth + step_next_nosmooth);
+	step_smoothed /= 2;
+	m_active_scene->m_camera->m_animation_table->at(0)->m_checkpoints->at(i) = step_smoothed;
+	log_error("smooting in progress");
+      }
+      m_active_scene->m_camera->m_animation_table->at(0)->m_has_been_smoothed = true;
+      
+    }
+
     // has an animation been set to start? initialize it + set vars
     if( m_active_scene->m_camera->m_animation_table->at(0)->m_trigger_animation == true) {
-      m_active_scene->m_camera->m_animation_table->at(0)->m_start_time = m_lastFrame;
+      m_active_scene->m_camera->m_animation_table->at(0)->m_start_time = m_application_current_time;
       m_active_scene->m_camera->m_animation_table->at(0)->m_last_checkpoint = 0;
-      m_active_scene->m_camera->m_animation_table->at(0)->m_trigger_animation = false;
       log_success("initizlizing animation");
     }
     
-    // is an animation already running? animate it
-    if (m_active_scene->m_camera->m_animation_table->at(0)->m_start_time <
-	m_lastFrame &&
-        m_active_scene->m_camera->m_animation_table->at(0)
-	->m_start_time != 0) {
-      
-      float start_time = m_active_scene->m_camera->m_animation_table->at(0)->m_start_time;
-      float num_checkpoints = m_active_scene->m_camera->m_animation_table->at(0)->m_checkpoints->size();
-      float anim_speed = m_active_scene->m_camera->m_animation_table->at(0)->m_animation_speed;
-      float delta = (m_active_scene->m_camera->m_animation_table->at(0)->m_start_time * anim_speed + num_checkpoints) - m_lastFrame * anim_speed;
-
-      std::cout << start_time << " start_time " << std::endl;
-      std::cout << anim_speed << " anim speed " << std::endl;
-      std::cout << delta << " delta " << std::endl;
-      std::cout << num_checkpoints << " num_checkpoint " << std::endl;
-      
-      //done animating? reset
-      if(start_time + (num_checkpoints) < m_lastFrame){
-	m_active_scene->m_camera->m_animation_table->at(0)->m_trigger_animation = false;
-	m_active_scene->m_camera->m_animation_table->at(0)->m_start_time = 0;
-	log_success("animation done!");
-        return;
-      }
-      
-      //animate
-      unsigned int tomove_check = std::ceil(num_checkpoints - delta);
-      float remainder = tomove_check - (num_checkpoints - delta);
-      std::cout << remainder << "remainder" << std::endl;
-      if(tomove_check > num_checkpoints-1){
-	tomove_check = num_checkpoints-1;
-	log_error("end of anim reached?");
-	m_active_scene->m_camera->m_animation_table->at(0)->m_trigger_animation = false;
-	m_active_scene->m_camera->m_animation_table->at(0)->m_start_time = 0;
-	log_success("animation done!");
-      }
-
-      unsigned int tomove_next = tomove_check + 1;
-      if(tomove_next > num_checkpoints - 1)
-	tomove_next = num_checkpoints-1;
-      
-      glm::vec3 old_campos_anim = m_active_scene->m_camera->m_animation_table->at(0)->m_checkpoints->at(tomove_check);
-      glm::vec3 next_campos_anim = m_active_scene->m_camera->m_animation_table->at(0)->m_checkpoints->at(tomove_next);
-      glm::vec3 old_campos_anim_rot = m_active_scene->m_camera->m_animation_table->at(0)->m_checkpoints_rot->at(tomove_check);
-      glm::vec3 next_campos_anim_rot = m_active_scene->m_camera->m_animation_table->at(0)->m_checkpoints_rot->at(tomove_next);
-      
-      glm::vec3 interpolated_camera_pos = (remainder * old_campos_anim) + ((1-remainder) * next_campos_anim);
-      glm::vec3 interpolated_camera_rot = (remainder * old_campos_anim_rot) + ((1-remainder) * next_campos_anim_rot);
-      
-      m_active_scene->m_camera->m_cameraPos = interpolated_camera_pos;
-      m_active_scene->m_camera->m_cameraLookAt = interpolated_camera_rot;
-      
-      std::cout << tomove_check << " tomove_check " << std::endl;
-
-      log_success("anim step done!");
-      
-    } else {
-      log_error("no animation running");
-    }
   }
   
   if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS) {
@@ -330,6 +293,83 @@ void Renderer::framebuffer_size_callback(GLFWwindow *window, int width,
   glViewport(0, 0, width, height);
 }
 
+void Renderer::handle_scene_animations() {
+
+  // is an animation already running? animate it
+  if (m_active_scene->m_camera->m_animation_table &&
+      m_active_scene->m_camera->m_animation_table->at(0)->m_trigger_animation) {
+
+    if (m_active_scene->m_camera->m_animation_table->at(0)->m_start_time <
+            m_application_current_time &&
+        m_active_scene->m_camera->m_animation_table->at(0)->m_start_time != 0) {
+
+      float start_time =
+          m_active_scene->m_camera->m_animation_table->at(0)->m_start_time;
+      float num_checkpoints = m_active_scene->m_camera->m_animation_table->at(0)
+                                  ->m_checkpoints->size();
+      float anim_speed =
+          m_active_scene->m_camera->m_animation_table->at(0)->m_animation_speed;
+      float delta =
+          (m_active_scene->m_camera->m_animation_table->at(0)->m_start_time *
+               anim_speed +
+           num_checkpoints) -
+          m_application_current_time * anim_speed;
+
+      std::cout << start_time << " start_time " << std::endl;
+      std::cout << anim_speed << " anim speed " << std::endl;
+      std::cout << delta << " delta " << std::endl;
+      std::cout << num_checkpoints << " num_checkpoint " << std::endl;
+
+      // animate
+      unsigned int tomove_check = std::ceil(num_checkpoints - delta);
+      float remainder = tomove_check - (num_checkpoints - delta);
+      std::cout << remainder << "remainder" << std::endl;
+      if (tomove_check > num_checkpoints - 1) {
+        // done animating? reset.
+        tomove_check = num_checkpoints - 1;
+        log_error("end of anim reached?");
+        m_active_scene->m_camera->m_animation_table->at(0)
+            ->m_trigger_animation = false;
+        m_active_scene->m_camera->m_animation_table->at(0)->m_start_time = 0;
+        log_success("animation done!");
+      }
+
+      unsigned int tomove_next = tomove_check + 1;
+      if (tomove_next > num_checkpoints - 1)
+        tomove_next = num_checkpoints - 1;
+
+      glm::vec3 old_campos_anim =
+          m_active_scene->m_camera->m_animation_table->at(0)->m_checkpoints->at(
+              tomove_check);
+      glm::vec3 next_campos_anim =
+          m_active_scene->m_camera->m_animation_table->at(0)->m_checkpoints->at(
+              tomove_next);
+      glm::vec3 old_campos_anim_rot =
+          m_active_scene->m_camera->m_animation_table->at(0)
+              ->m_checkpoints_rot->at(tomove_check);
+      glm::vec3 next_campos_anim_rot =
+          m_active_scene->m_camera->m_animation_table->at(0)
+              ->m_checkpoints_rot->at(tomove_next);
+
+      glm::vec3 interpolated_camera_pos =
+          (remainder * old_campos_anim) + ((1 - remainder) * next_campos_anim);
+      glm::vec3 interpolated_camera_rot =
+          (remainder * old_campos_anim_rot) +
+          ((1 - remainder) * next_campos_anim_rot);
+
+      m_active_scene->m_camera->m_cameraPos = interpolated_camera_pos;
+      m_active_scene->m_camera->m_cameraLookAt = interpolated_camera_rot;
+
+      std::cout << tomove_check << " tomove_check " << std::endl;
+
+      log_success("anim step done!");
+
+    } else {
+      log_error("no animation running");
+    }
+  }
+}
+
 void Renderer::render_frame() {
 
   if (!m_active_scene->m_camera) {
@@ -358,13 +398,15 @@ void Renderer::render_frame() {
 
   processInput(associated_window);
 
+  handle_scene_animations();
+
   // setup constants for render pass
   glfwGetWindowSize(associated_window, &m_viewport_width, &m_viewport_height);
 
   // TMP make light spin and move
   // m_active_scene->m_loaded_lights[0].m_light_matrix =
-  // glm::rotate(glm::translate(glm::mat4(1.0f),glm::vec3(sin(m_lastFrame)
-  // * 4.5,5,5)),sin(m_lastFrame) * 0.5f,glm::vec3(0, 1, 0));
+  // glm::rotate(glm::translate(glm::mat4(1.0f),glm::vec3(sin(m_application_current_time)
+  // * 4.5,5,5)),sin(m_application_current_time) * 0.5f,glm::vec3(0, 1, 0));
   // m_active_scene->m_loaded_lights[0].m_light_matrix = glm::rotate(
   //  glm::rotate(glm::translate(glm::mat4(1.0f), glm::vec3(-2, 5, 3)), -2.5f,
   //              glm::vec3(0, 1, 0)),
@@ -438,8 +480,8 @@ void Renderer::render_frame() {
 
   // bungie employees hate this simple trick
   float currentFrame = glfwGetTime();
-  m_deltaTime = currentFrame - m_lastFrame;
-  m_lastFrame = currentFrame;
+  m_deltaTime = currentFrame - m_application_current_time;
+  m_application_current_time = currentFrame;
 
   glm::mat4 view_mat = glm::lookAt(m_active_scene->m_camera->m_cameraPos,
                                    m_active_scene->m_camera->m_cameraLookAt +

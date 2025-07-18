@@ -18,9 +18,10 @@ public:
   unsigned int m_last_checkpoint = 0;
   
   bool m_trigger_animation = false;
+  bool m_has_been_smoothed = false;
   
   float m_start_time = 0;
   float m_checkpoint_delta_time = 0;
-  float m_animation_speed = 60;
+  float m_animation_speed = 40;
   
 };
