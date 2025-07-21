@@ -7,17 +7,25 @@
 #include <glm/gtc/type_ptr.hpp>
 
 // stdlib
-#include <cmath>
-#include <cstring>
-#include <iostream>
-#include <string>
-#include <thread>
-#include <chrono>
 #include <vector>
-#include <cstdint>
-#include <iostream>
 
 #include "../components/material.hh"
+
+enum e_mesh_type {
+
+  E_MESH,
+  E_COL_BOX,
+  E_SKYBOX
+
+};
+
+enum e_mesh_render_mode {
+
+  E_WIREFRAME,
+  E_FILLED
+  
+};
+
 
 class Mesh {
 
@@ -44,5 +52,8 @@ public:
   GLuint m_normals_glid;
   GLuint m_tangents_glid;
   GLuint m_binormals_glid;
+
+  e_mesh_type m_type = E_MESH;
+  e_mesh_render_mode m_render_mode = E_FILLED;
   
 };

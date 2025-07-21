@@ -34,6 +34,7 @@
 #include "components/light.hh"
 #include "components/logging.hh"
 #include "components/material.hh"
+#include "components/mesh.hh"
 #include "components/scene.hh"
 #include "components/utility.hh"
 #include "shaders/shaderclass.hh"
@@ -149,64 +150,88 @@ void Renderer::processInput(GLFWwindow *window) {
       m_active_scene->m_camera->m_animation_table->clear();
       m_active_scene->m_camera->m_animation_table->reserve(1);
       m_active_scene->m_camera->m_animation_table->push_back(new animation);
-      m_active_scene->m_camera->m_animation_table->at(0)->m_checkpoints = new std::vector<glm::vec3>();
-      m_active_scene->m_camera->m_animation_table->at(0)->m_checkpoints->clear();
-      m_active_scene->m_camera->m_animation_table->at(0)->m_checkpoints_rot = new std::vector<glm::vec3>();
-      m_active_scene->m_camera->m_animation_table->at(0)->m_checkpoints_rot->clear();
+      m_active_scene->m_camera->m_animation_table->at(0)->m_checkpoints =
+          new std::vector<glm::vec3>();
+      m_active_scene->m_camera->m_animation_table->at(0)
+          ->m_checkpoints->clear();
+      m_active_scene->m_camera->m_animation_table->at(0)->m_checkpoints_rot =
+          new std::vector<glm::vec3>();
+      m_active_scene->m_camera->m_animation_table->at(0)
+          ->m_checkpoints_rot->clear();
     } else {
-      printf("%d ", (int)m_active_scene->m_camera->m_animation_table->at(0)->m_checkpoints->size());
+      printf("%d ", (int)m_active_scene->m_camera->m_animation_table->at(0)
+                        ->m_checkpoints->size());
       m_active_scene->m_camera->m_animation_table->at(0)
           ->m_checkpoints->push_back(m_active_scene->m_camera->m_cameraPos);
       m_active_scene->m_camera->m_animation_table->at(0)
-          ->m_checkpoints_rot->push_back(m_active_scene->m_camera->m_cameraLookAt);
+          ->m_checkpoints_rot->push_back(
+              m_active_scene->m_camera->m_cameraLookAt);
       log_debug("saved animation point");
       //      std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
   }
-  
+
   if (glfwGetKey(window, GLFW_KEY_B) == GLFW_PRESS) {
-    if(m_active_scene->m_camera->m_animation_table && m_active_scene->m_camera->m_animation_table->at(0)->m_checkpoints) {
-      m_active_scene->m_camera->m_animation_table->at(0)->m_checkpoints->clear();
-      m_active_scene->m_camera->m_animation_table->at(0)->m_checkpoints_rot->clear();
+    if (m_active_scene->m_camera->m_animation_table &&
+        m_active_scene->m_camera->m_animation_table->at(0)->m_checkpoints) {
+      m_active_scene->m_camera->m_animation_table->at(0)
+          ->m_checkpoints->clear();
+      m_active_scene->m_camera->m_animation_table->at(0)
+          ->m_checkpoints_rot->clear();
       m_active_scene->m_camera->m_animation_table->at(0)->m_start_time = 0;
-      m_active_scene->m_camera->m_animation_table->at(0)->m_has_been_smoothed = false;
+      m_active_scene->m_camera->m_animation_table->at(0)->m_has_been_smoothed =
+          false;
     }
   }
-  
+
   if (glfwGetKey(window, GLFW_KEY_R) == GLFW_PRESS) {
 
     // does an animation exist? start animation
     if (m_active_scene->m_camera->m_animation_table) {
-      if(m_active_scene->m_camera->m_animation_table->at(0)->m_checkpoints->size() > 1 &&
-	 m_active_scene->m_camera->m_animation_table->at(0)->m_start_time == 0) {
-	m_active_scene->m_camera->m_animation_table->at(0)->m_trigger_animation = true;
-	log_success("queuing animation");
+      if (m_active_scene->m_camera->m_animation_table->at(0)
+                  ->m_checkpoints->size() > 1 &&
+          m_active_scene->m_camera->m_animation_table->at(0)->m_start_time ==
+              0) {
+        m_active_scene->m_camera->m_animation_table->at(0)
+            ->m_trigger_animation = true;
+        log_success("queuing animation");
       }
     }
 
-    if (m_active_scene->m_camera->m_animation_table->at(0)->m_has_been_smoothed == false) {
+    if (m_active_scene->m_camera->m_animation_table->at(0)
+            ->m_has_been_smoothed == false) {
 
-      for(int i = 0; i < ((int)m_active_scene->m_camera->m_animation_table->at(0)->m_checkpoints->size()) - 20; i++) {
-	glm::vec3 step_nosmooth = m_active_scene->m_camera->m_animation_table->at(0)->m_checkpoints->at(i);
-	glm::vec3 step_next_nosmooth = m_active_scene->m_camera->m_animation_table->at(0)->m_checkpoints->at(i+1);
-	glm::vec3 step_smoothed = (step_nosmooth + step_next_nosmooth);
-	step_smoothed /= 2;
-	m_active_scene->m_camera->m_animation_table->at(0)->m_checkpoints->at(i) = step_smoothed;
-	log_error("smooting in progress");
+      for (int i = 0;
+           i < ((int)m_active_scene->m_camera->m_animation_table->at(0)
+                    ->m_checkpoints->size()) -
+                   20;
+           i++) {
+        glm::vec3 step_nosmooth =
+            m_active_scene->m_camera->m_animation_table->at(0)
+                ->m_checkpoints->at(i);
+        glm::vec3 step_next_nosmooth =
+            m_active_scene->m_camera->m_animation_table->at(0)
+                ->m_checkpoints->at(i + 1);
+        glm::vec3 step_smoothed = (step_nosmooth + step_next_nosmooth);
+        step_smoothed /= 2;
+        m_active_scene->m_camera->m_animation_table->at(0)->m_checkpoints->at(
+            i) = step_smoothed;
+        log_error("smooting in progress");
       }
-      m_active_scene->m_camera->m_animation_table->at(0)->m_has_been_smoothed = true;
-      
+      m_active_scene->m_camera->m_animation_table->at(0)->m_has_been_smoothed =
+          true;
     }
 
     // has an animation been set to start? initialize it + set vars
-    if( m_active_scene->m_camera->m_animation_table->at(0)->m_trigger_animation == true) {
-      m_active_scene->m_camera->m_animation_table->at(0)->m_start_time = m_application_current_time;
+    if (m_active_scene->m_camera->m_animation_table->at(0)
+            ->m_trigger_animation == true) {
+      m_active_scene->m_camera->m_animation_table->at(0)->m_start_time =
+          m_application_current_time;
       m_active_scene->m_camera->m_animation_table->at(0)->m_last_checkpoint = 0;
       log_success("initizlizing animation");
     }
-    
   }
-  
+
   if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS) {
     save_frame_to_png("output.png", m_viewport_width, m_viewport_height);
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
@@ -258,6 +283,213 @@ void Renderer::processInput(GLFWwindow *window) {
   if (glfwGetKey(window, GLFW_KEY_G) != GLFW_PRESS) {
 
     m_last_mouse_state = false;
+  }
+
+  return;
+}
+
+void Renderer::calculate_phys_boxes() {
+  //buffer
+  std::vector<Mesh> mesh_buffer;
+  
+  std::cout << "scene contains entities: " << m_active_scene->m_loaded_entities.size() << std::endl;
+  for (Entity &entity : m_active_scene->m_loaded_entities) {
+
+    //    glm::mat4 entity_mat = entity.m_model_matrix;
+    std::cout << "entity contains meshes: " << entity.m_mesh.size() << std::endl;
+
+    for (Mesh &mesh : entity.m_mesh) {
+
+      if (mesh.m_type == E_MESH) {
+	
+	//prevent oob
+	if (mesh.m_vertices_array.size() < 3) {
+	  log_error("attempted to hitbox a plane??? idiot");
+	  continue;
+	}
+	
+	// calc hitbox
+        float max_x = mesh.m_vertices_array[0], max_y = mesh.m_vertices_array[1], max_z = mesh.m_vertices_array[2];
+        float min_x = mesh.m_vertices_array[0], min_y = mesh.m_vertices_array[1], min_z = mesh.m_vertices_array[2];
+	//	glm::mat4 mesh_mat = mesh.m_model_matrix;
+	
+	//prep shit for box oop
+        Shader shader_to_use("src/shaders/shader_src/phong.vert",
+                             "src/shaders/shader_src/phong.frag");
+        Material new_material(E_PHONG, shader_to_use);
+        Mesh new_mesh(new_material);
+        new_mesh.m_render_mode = E_WIREFRAME;
+        new_mesh.m_type = E_COL_BOX;
+
+	std::cout << "size item :" << mesh.m_vertices_array.size() << std::endl;
+	
+	for (int i = 0; i + 2 < (int)mesh.m_vertices_array.size(); i += 3) {
+
+          if (mesh.m_vertices_array[i] < min_x)
+            min_x = mesh.m_vertices_array[i];
+          if (mesh.m_vertices_array[i] > max_x)
+            max_x = mesh.m_vertices_array[i];
+          if (mesh.m_vertices_array[i + 1] < min_y)
+            min_y = mesh.m_vertices_array[i + 1];
+          if (mesh.m_vertices_array[i + 1] > max_y)
+            max_y = mesh.m_vertices_array[i + 1];
+          if (mesh.m_vertices_array[i + 2] < min_z)
+            min_z = mesh.m_vertices_array[i + 2];
+          if (mesh.m_vertices_array[i + 2] > max_z)
+            max_z = mesh.m_vertices_array[i + 2];
+	}
+
+        new_mesh.m_vertices_array = {
+            // Front face (z = max_z)
+            min_x,
+            min_y,
+            max_z,
+            max_x,
+            min_y,
+            max_z,
+            max_x,
+            max_y,
+            max_z,
+
+            max_x,
+            max_y,
+            max_z,
+            min_x,
+            max_y,
+            max_z,
+            min_x,
+            min_y,
+            max_z,
+
+            // Back face (z = min_z)
+            max_x,
+            min_y,
+            min_z,
+            min_x,
+            min_y,
+            min_z,
+            min_x,
+            max_y,
+            min_z,
+
+            min_x,
+            max_y,
+            min_z,
+            max_x,
+            max_y,
+            min_z,
+            max_x,
+            min_y,
+            min_z,
+
+            // Left face (x = min_x)
+            min_x,
+            min_y,
+            min_z,
+            min_x,
+            min_y,
+            max_z,
+            min_x,
+            max_y,
+            max_z,
+
+            min_x,
+            max_y,
+            max_z,
+            min_x,
+            max_y,
+            min_z,
+            min_x,
+            min_y,
+            min_z,
+
+            // Right face (x = max_x)
+            max_x,
+            min_y,
+            max_z,
+            max_x,
+            min_y,
+            min_z,
+            max_x,
+            max_y,
+            min_z,
+
+            max_x,
+            max_y,
+            min_z,
+            max_x,
+            max_y,
+            max_z,
+            max_x,
+            min_y,
+            max_z,
+
+            // Top face (y = max_y)
+            min_x,
+            max_y,
+            max_z,
+            max_x,
+            max_y,
+            max_z,
+            max_x,
+            max_y,
+            min_z,
+
+            max_x,
+            max_y,
+            min_z,
+            min_x,
+            max_y,
+            min_z,
+            min_x,
+            max_y,
+            max_z,
+
+            // Bottom face (y = min_y)
+            min_x,
+            min_y,
+            min_z,
+            max_x,
+            min_y,
+            min_z,
+            max_x,
+            min_y,
+            max_z,
+
+            max_x,
+            min_y,
+            max_z,
+            min_x,
+            min_y,
+            max_z,
+            min_x,
+            min_y,
+            min_z,
+        };
+
+        mesh_buffer.push_back(new_mesh);
+
+	log_success("calculated hitbox for mesh!");
+	
+      }
+    }
+  }
+
+  for(Mesh m : mesh_buffer) {
+    m_active_scene->m_loaded_entities[0].m_mesh.push_back(m);
+  }
+  
+}
+
+void Renderer::handle_scene_physics() { return; }
+
+void Renderer::setup_render_properties() {
+
+  // render mode
+  if (m_render_mode_wireframe)
+    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+  else {
+    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
   }
 
   return;
@@ -387,18 +619,10 @@ void Renderer::render_frame() {
     return;
   }
 
-  // render mode
-  if (m_render_mode_wireframe)
-    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-  else {
-    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-  }
-
-  depth_shader->use();
-
-  processInput(associated_window);
-
+  setup_render_properties();
   handle_scene_animations();
+  handle_scene_physics();
+  processInput(associated_window);
 
   // setup constants for render pass
   glfwGetWindowSize(associated_window, &m_viewport_width, &m_viewport_height);
@@ -412,6 +636,8 @@ void Renderer::render_frame() {
   //              glm::vec3(0, 1, 0)),
   //  -1.0f, glm::vec3(1, 0, 0));
   // ENDTMP
+
+  depth_shader->use();
 
   // configure spotlight shadow mapping
   glm::vec3 light_pos_new =
@@ -497,6 +723,12 @@ void Renderer::render_frame() {
   for (auto &entity : m_active_scene->m_loaded_entities) {
     for (auto &mesh : entity.m_mesh) {
 
+      //change hitbox or flat style
+      if(mesh.m_render_mode == E_WIREFRAME)
+	glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+      else
+	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+      
       // bind meshes vao context
       glBindVertexArray(mesh.m_mesh_vao);
       if (glIsVertexArray(mesh.m_mesh_vao) == GL_FALSE) {
@@ -676,19 +908,20 @@ void Renderer::init_scene(const char *scene_fp) {
   m_active_scene->add_entity_to_scene(load_entity);
   m_active_scene->add_light_to_scene(main_light);
 
+  //calc physboxes for meshes
+  calculate_phys_boxes();
+  
   // initialize scene vbos
   init_scene_vbos();
 
   // Initialize shader programs
   log_debug("Initializing Shader Programs for scene...");
   for (auto &entity_to_render : m_active_scene->m_loaded_entities) {
-    log_debug_sub("Found active scene.");
     for (auto &mesh_of_entity : entity_to_render.m_mesh) {
-      log_debug_sub("Found meshmaterial in active scene.");
-
       mesh_of_entity.m_material.m_shader.use();
     }
   }
+  log_success("Finished initialization for Shader Programs");
 
   // SHADOW MAPPING
   glGenFramebuffers(1, &window_depth_map_fbo);
@@ -713,7 +946,7 @@ void Renderer::init_scene(const char *scene_fp) {
 
   depth_shader = new Shader("src/shaders/shader_src/depth.vert",
                             "src/shaders/shader_src/depth.frag");
-
+  
   log_success("done initializing renderer.");
 }
 

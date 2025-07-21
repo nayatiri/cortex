@@ -14,15 +14,12 @@
 
 // stdlib
 #include <atomic>
-#include <chrono>
 #include <cmath>
 #include <cstdint>
 #include <cstring>
 #include <iostream>
 #include <string>
-#include <thread>
 #include <tuple>
-#include <unordered_map>
 #include <vector>
 
 #define TINYGLTF_IMPLEMENTATION
@@ -781,6 +778,8 @@ std::vector<Mesh> load_all_meshes_from_gltf(
           Material mat_to_use(E_FACE, shader_to_use);
 
           Mesh primitive_mesh(mat_to_use);
+	  primitive_mesh.m_render_mode = E_FILLED;
+	  primitive_mesh.m_type = E_MESH;
           primitive_mesh.m_vertices_array = std::move(final_vertices);
           primitive_mesh.m_normals_array = std::move(final_normals);
           primitive_mesh.m_tangents_array = std::move(final_tangents);
@@ -815,6 +814,8 @@ std::vector<Mesh> load_all_meshes_from_gltf(
           Material mat_to_use(E_FACE, shader_to_use);
 
           Mesh primitive_mesh(mat_to_use);
+	  primitive_mesh.m_render_mode = E_FILLED;
+	  primitive_mesh.m_type = E_MESH;
           primitive_mesh.m_vertices_array = std::move(final_vertices);
           primitive_mesh.m_normals_array = std::move(final_normals);
           primitive_mesh.m_tangents_array = std::move(final_tangents);
