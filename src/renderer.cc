@@ -295,7 +295,7 @@ void Renderer::calculate_phys_boxes() {
   std::cout << "scene contains entities: " << m_active_scene->m_loaded_entities.size() << std::endl;
   for (Entity &entity : m_active_scene->m_loaded_entities) {
 
-    //    glm::mat4 entity_mat = entity.m_model_matrix;
+    glm::mat4 entity_mat = entity.m_model_matrix;
     std::cout << "entity contains meshes: " << entity.m_mesh.size() << std::endl;
 
     for (Mesh &mesh : entity.m_mesh) {
@@ -309,13 +309,13 @@ void Renderer::calculate_phys_boxes() {
 	}
 	
 	// calc hitbox
-        float max_x = mesh.m_vertices_array[0], max_y = mesh.m_vertices_array[1], max_z = mesh.m_vertices_array[2];
-        float min_x = mesh.m_vertices_array[0], min_y = mesh.m_vertices_array[1], min_z = mesh.m_vertices_array[2];
-	//	glm::mat4 mesh_mat = mesh.m_model_matrix;
+        float max_x = -10000.0f, max_y = -10000.0f, max_z = -10000.0f;
+        float min_x = 10000.0f, min_y = 10000.0f, min_z = 10000.0f;
+	glm::mat4 mesh_mat = mesh.m_model_matrix;
 	
 	//prep shit for box oop
-        Shader shader_to_use("src/shaders/shader_src/phong.vert",
-                             "src/shaders/shader_src/phong.frag");
+        Shader shader_to_use("src/shaders/shader_src/wireframe.vert",
+                             "src/shaders/shader_src/wireframe.frag");
         Material new_material(E_PHONG, shader_to_use);
         Mesh new_mesh(new_material);
         new_mesh.m_render_mode = E_WIREFRAME;
@@ -338,6 +338,22 @@ void Renderer::calculate_phys_boxes() {
           if (mesh.m_vertices_array[i + 2] > max_z)
             max_z = mesh.m_vertices_array[i + 2];
 	}
+
+	//transform hitbox to world coordinates
+	glm::mat4 trans_mat = entity_mat * mesh_mat;
+	glm::vec3 min_vec = glm::vec3(min_x,min_y,min_z);
+	glm::vec3 max_vec = glm::vec3(max_x,max_y,max_z);
+
+	glm::vec4 adj_min_vec = trans_mat * glm::vec4(min_vec,1.0f);
+	glm::vec4 adj_max_vec = trans_mat * glm::vec4(max_vec,1.0f);
+
+	min_x = adj_min_vec[0];
+	min_y = adj_min_vec[1];
+	min_z = adj_min_vec[2];
+
+	max_x = adj_max_vec[0];
+	max_y = adj_max_vec[1];
+	max_z = adj_max_vec[2];
 
         new_mesh.m_vertices_array = {
             // Front face (z = max_z)
