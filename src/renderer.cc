@@ -322,38 +322,29 @@ void Renderer::calculate_phys_boxes() {
         new_mesh.m_type = E_COL_BOX;
 
 	std::cout << "size item :" << mesh.m_vertices_array.size() << std::endl;
-	
-	for (int i = 0; i + 2 < (int)mesh.m_vertices_array.size(); i += 3) {
-
-          if (mesh.m_vertices_array[i] < min_x)
-            min_x = mesh.m_vertices_array[i];
-          if (mesh.m_vertices_array[i] > max_x)
-            max_x = mesh.m_vertices_array[i];
-          if (mesh.m_vertices_array[i + 1] < min_y)
-            min_y = mesh.m_vertices_array[i + 1];
-          if (mesh.m_vertices_array[i + 1] > max_y)
-            max_y = mesh.m_vertices_array[i + 1];
-          if (mesh.m_vertices_array[i + 2] < min_z)
-            min_z = mesh.m_vertices_array[i + 2];
-          if (mesh.m_vertices_array[i + 2] > max_z)
-            max_z = mesh.m_vertices_array[i + 2];
-	}
 
 	//transform hitbox to world coordinates
 	glm::mat4 trans_mat = entity_mat * mesh_mat;
-	glm::vec3 min_vec = glm::vec3(min_x,min_y,min_z);
-	glm::vec3 max_vec = glm::vec3(max_x,max_y,max_z);
+	
+	for (int i = 0; i + 2 < (int)mesh.m_vertices_array.size(); i += 3) {
 
-	glm::vec4 adj_min_vec = trans_mat * glm::vec4(min_vec,1.0f);
-	glm::vec4 adj_max_vec = trans_mat * glm::vec4(max_vec,1.0f);
+	  glm::vec4 to_test_vec = glm::vec4(mesh.m_vertices_array[i],mesh.m_vertices_array[i+1],mesh.m_vertices_array[i+2],1.0f);
 
-	min_x = adj_min_vec[0];
-	min_y = adj_min_vec[1];
-	min_z = adj_min_vec[2];
-
-	max_x = adj_max_vec[0];
-	max_y = adj_max_vec[1];
-	max_z = adj_max_vec[2];
+	  to_test_vec = trans_mat * to_test_vec;
+	  
+          if (to_test_vec.x < min_x)
+            min_x = to_test_vec.x;
+          if (to_test_vec.x > max_x)
+            max_x = to_test_vec.x;
+          if (to_test_vec.y < min_y)
+            min_y = to_test_vec.y;
+          if (to_test_vec.y > max_y)
+            max_y = to_test_vec.y;
+          if (to_test_vec.z < min_z)
+            min_z = to_test_vec.z;
+          if (to_test_vec.z> max_z)
+            max_z = to_test_vec.z;
+	}
 
         new_mesh.m_vertices_array = {
             // Front face (z = max_z)
