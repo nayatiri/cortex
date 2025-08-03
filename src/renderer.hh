@@ -3,6 +3,7 @@
 #include "./glad/glad.h"
 #include "./libs/tiny_gltf.h"
 #include "./components/scene.hh"
+#include "./components/input.hh"
 
 #include <GLFW/glfw3.h>
 #include <glm/ext/matrix_transform.hpp>
@@ -23,42 +24,34 @@ class Renderer {
 public:
   bool m_should_shutdown = false;
 
-  // Window control
-  bool m_is_mouse_grabbed = true;
-  bool m_is_mouse_on_cooldown = false;
-  bool m_first_mouse = true;
-  bool m_last_mouse_state = false;
-  int m_viewport_width = 1920;
-  int m_viewport_height = 1080;
+
+  // new input handling
+  std::unique_ptr<Input_Manager> m_input_manager = nullptr;
+  
 
   GLFWwindow* associated_window;
-
-  // Player Position buffers 
-  double m_lastX = 0;
-  double m_lastY = 0;
-  double m_yaw = 0;
-  double m_pitch = 0;
   
   // bungie employees hate this one simple trick
   float m_deltaTime = 0.0f;
   float m_application_current_time = 0.0f;
 
   // Render properties
-  bool m_render_mode_wireframe = false;
-  bool m_last_wireframe_state = false;
-  bool m_is_wireframe_on_cooldown = false;
   unsigned int window_depth_map;
   unsigned int window_depth_map_fbo;
   Shader* depth_shader;
   const unsigned int shadow_map_width = 4000;
   const unsigned int shadow_map_height = 4000;
+
+  int m_viewport_width, m_viewport_height;
+  
+  bool m_render_mode_wireframe = false;
   
   // Scene management
-  std::unique_ptr<Scene> m_active_scene;
+  std::shared_ptr<Scene> m_active_scene;
   std::atomic<uint32_t> num_loaded_textures = 0;
 
   std::vector<std::tuple<std::string, unsigned int, GLuint>> m_texture_map;
-
+  
   /////////////////////
   // CALLBACK FUNCTIONS
   /////////////////////

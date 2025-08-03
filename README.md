@@ -12,6 +12,7 @@ A powerful and lightweight 3D renderer built in C++ and OpenGL, supporting a wid
 -  Physically Based Rendering (PBR)
 -  Support for GLTF/GLB models / full scenes including materials / positioning/
 -  Custom abstraction, making the engine suitable for easy expansion.
+-  Animation system for Camera animations / cutscenes using control points and interpolating between them
 
 ---
 

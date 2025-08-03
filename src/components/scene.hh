@@ -13,16 +13,8 @@
 #include <glm/gtc/type_ptr.hpp>
 
 // stdlib
-#include <cmath>
-#include <cstring>
-#include <iostream>
 #include <memory>
-#include <string>
-#include <thread>
-#include <chrono>
 #include <vector>
-#include <cstdint>
-#include <iostream>
 
 class Scene {
 public:
