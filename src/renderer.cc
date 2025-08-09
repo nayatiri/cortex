@@ -631,9 +631,13 @@ void Renderer::init_scene(const char *scene_fp) {
 
   //  glDisable(GL_CULL_FACE);
 
-  m_active_scene = std::move(std::make_shared<Scene>());
+  m_active_scene = std::make_shared<Scene>();
 
-  m_active_scene->m_camera = std::move(std::make_unique<Camera>());
+  log_error("updated IM with right pointer");
+  std::cout << "w" << m_active_scene << std::endl;
+  m_input_manager->m_active_scene = m_active_scene;
+
+  m_active_scene->m_camera = std::make_unique<Camera>();
 
   Light main_light(std::move(load_all_meshes_from_gltf(
       "models/light/scene.gltf", num_loaded_textures, m_texture_map))[0]);
@@ -887,7 +891,9 @@ _/ ___\/  _ \_  __ \   __\/ __ \\  \/  /
   log_debug("initializing window");
 
   // create input manager
-  m_input_manager = std::move(std::make_unique<Input_Manager>(m_active_scene));
+  log_error("init IM with broken pointer");
+  std::cout << "w" << m_active_scene << std::endl;
+  m_input_manager = std::move(std::make_unique<Input_Manager>(nullptr));
 
   // Create the window for this renderer
   glfwInit();
@@ -923,12 +929,13 @@ _/ ___\/  _ \_  __ \   __\/ __ \\  \/  /
   // format for class usage
   glfwSetFramebufferSizeCallback(associated_window,
                                  Renderer::framebuffer_size_callback);
-  glfwSetWindowUserPointer(associated_window, this);
+  glfwSetWindowUserPointer(associated_window, m_input_manager.get());
 
   // set callbacks using lambda functions
   glfwSetScrollCallback(associated_window, [](GLFWwindow *w, double xoffset,
                                               double yoffset) {
     Input_Manager *imanager = static_cast<Input_Manager *>(glfwGetWindowUserPointer(w));
+    
     if (imanager) {
       imanager->scroll_callback(w, xoffset, yoffset);
     }

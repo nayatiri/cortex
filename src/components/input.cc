@@ -217,19 +217,27 @@ Input_Manager::Input_Manager(std::shared_ptr<Scene> m_scene_ptr) {
   return true;
   }*/
 
+void Input_Manager::scroll_callback(GLFWwindow *window, double xoffset, double yoffset) {
+    Input_Manager* im = static_cast<Input_Manager*>(glfwGetWindowUserPointer(window));
+    
+    if (!im) {
+        std::cerr << "Input_Manager is null in scroll callback!" << std::endl;
+        return;
+    }
 
-void Input_Manager::scroll_callback(GLFWwindow *window, double xoffset,
-                               double yoffset) {
+    if (!im->m_active_scene || !im->m_active_scene->m_camera) {
+        // Don't crash — just ignore input until scene is ready
+        return;
+    }
 
-  std::cout << "changed camera speed to: "
-            << m_active_scene->m_camera->m_camera_base_speed << std::endl;
+    im->m_active_scene->m_camera->m_camera_base_speed += static_cast<float>(yoffset) * 0.1f;
 
-  m_active_scene->m_camera->m_camera_base_speed +=
-      static_cast<float>(yoffset) * 0.1f;
+    if (im->m_active_scene->m_camera->m_camera_base_speed < 0.1f) {
+        im->m_active_scene->m_camera->m_camera_base_speed = 0.1f;
+    }
 
-  if (m_active_scene->m_camera->m_camera_base_speed < 0.1f) {
-    m_active_scene->m_camera->m_camera_base_speed = 0.1f;
-  }
+    // Optional debug
+    // std::cout << "Camera speed: " << im->m_active_scene->m_camera->m_camera_base_speed << std::endl;
 }
 
 void Input_Manager::mouse_callback(GLFWwindow *window, double xpos, double ypos) {
