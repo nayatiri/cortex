@@ -20,7 +20,7 @@ public:
   float m_application_current_time = 0.0f;
 
   bool m_should_shutdown = false;
-
+  
   bool m_render_mode_wireframe = false;
   bool m_last_wireframe_state = false;
   bool m_is_wireframe_on_cooldown = false;

@@ -4,6 +4,7 @@
 #include "./libs/tiny_gltf.h"
 #include "./components/scene.hh"
 #include "./components/input.hh"
+#include "./components/animationmanager.hh"
 
 #include <GLFW/glfw3.h>
 #include <glm/ext/matrix_transform.hpp>
@@ -27,7 +28,9 @@ public:
 
   // new input handling
   std::unique_ptr<Input_Manager> m_input_manager = nullptr;
-  
+
+  // animation handline
+  std::unique_ptr<Animation_Manager> m_animation_manager = nullptr;
 
   GLFWwindow* associated_window;
   
@@ -67,7 +70,6 @@ public:
   void init_scene(const char* scene_fp);
   void render_frame();
   bool save_frame_to_png(const char* filename, int width, int height);
-  void handle_scene_animations();
   void setup_render_properties();
   void handle_scene_physics();
   void calculate_phys_boxes();

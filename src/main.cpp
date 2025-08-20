@@ -10,7 +10,7 @@ int main () {
   //main_renderer.init_scene("models/debug_cubes/debug_cubes.gltf");
   //main_renderer.init_scene("models/diorama/scene.gltf");
 
-  while(!main_renderer.m_should_shutdown) {
+  while(!main_renderer.m_input_manager->m_should_shutdown) {
     main_renderer.render_frame();
   }
 

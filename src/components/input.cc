@@ -6,6 +6,11 @@
 
 void Input_Manager::process_input(GLFWwindow *window) {
 
+  // bungie employees hate this simple trick
+  float currentFrame = glfwGetTime();
+  m_deltaTime = currentFrame - m_application_current_time;
+  m_application_current_time = currentFrame;
+  
   if (m_active_scene == nullptr || m_active_scene->m_camera == nullptr) {
     log_error("active scene is fucked. cant process inputs");
     return;
@@ -22,7 +27,7 @@ void Input_Manager::process_input(GLFWwindow *window) {
 
   float cameraSpeed =
       m_active_scene->m_camera->m_camera_base_speed * 10.0f * m_deltaTime;
-
+  
   if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS) {
     if (!m_last_wireframe_state) {
       m_render_mode_wireframe = !m_render_mode_wireframe;
@@ -135,6 +140,11 @@ void Input_Manager::process_input(GLFWwindow *window) {
   }
 
   if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) {
+    log_error("s press");
+
+    std::cout << m_active_scene << std::endl;
+    
+    std::cout << m_active_scene->m_camera->m_cameraPos.x << " x " << m_active_scene->m_camera->m_cameraPos.y << " y "<< m_active_scene->m_camera->m_cameraPos.z << " z " <<std::endl;
     m_active_scene->m_camera->m_cameraPos +=
         cameraSpeed * glm::normalize(glm::vec3(
                           -m_active_scene->m_camera->m_cameraLookAt.x, 0.0f,
@@ -226,7 +236,6 @@ void Input_Manager::scroll_callback(GLFWwindow *window, double xoffset, double y
     }
 
     if (!im->m_active_scene || !im->m_active_scene->m_camera) {
-        // Don't crash — just ignore input until scene is ready
         return;
     }
 
@@ -236,8 +245,7 @@ void Input_Manager::scroll_callback(GLFWwindow *window, double xoffset, double y
         im->m_active_scene->m_camera->m_camera_base_speed = 0.1f;
     }
 
-    // Optional debug
-    // std::cout << "Camera speed: " << im->m_active_scene->m_camera->m_camera_base_speed << std::endl;
+    std::cout << "Camera speed: " << im->m_active_scene->m_camera->m_camera_base_speed << std::endl;
 }
 
 void Input_Manager::mouse_callback(GLFWwindow *window, double xpos, double ypos) {
