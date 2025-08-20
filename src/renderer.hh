@@ -5,6 +5,7 @@
 #include "./components/scene.hh"
 #include "./components/input.hh"
 #include "./components/animationmanager.hh"
+#include "components/physicsmanager.hh"
 
 #include <GLFW/glfw3.h>
 #include <glm/ext/matrix_transform.hpp>
@@ -32,6 +33,10 @@ public:
   // animation handline
   std::unique_ptr<Animation_Manager> m_animation_manager = nullptr;
 
+  // animation handline
+  std::unique_ptr<Physics_Manager> m_physics_manager = nullptr;
+  
+  
   GLFWwindow* associated_window;
   
   // bungie employees hate this one simple trick
@@ -67,12 +72,11 @@ public:
   template <typename T> void upload_to_uniform(std::string location, GLuint shader_id, T input);
 
   void init_scene_vbos();
+  void cleanup_mesh_vbos(Mesh& mesh);
   void init_scene(const char* scene_fp);
   void render_frame();
   bool save_frame_to_png(const char* filename, int width, int height);
   void setup_render_properties();
-  void handle_scene_physics();
-  void calculate_phys_boxes();
 
   /////////////////////
   // RENDER FUNCTIONS

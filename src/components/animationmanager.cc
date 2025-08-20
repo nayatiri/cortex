@@ -2,9 +2,7 @@
 #include <memory>
 
 Animation_Manager::Animation_Manager(std::shared_ptr<Scene> set_scene) {
-
-  this->m_active_scene = set_scene;
-  
+  this->m_active_scene = set_scene;  
 }
 
 void Animation_Manager::handle_scene_animations(float m_application_current_time) {
@@ -22,8 +20,6 @@ void Animation_Manager::handle_scene_animations(float m_application_current_time
             m_application_current_time &&
         m_active_scene->m_camera->m_animation_table->at(0)->m_start_time != 0) {
 
-      float start_time =
-          m_active_scene->m_camera->m_animation_table->at(0)->m_start_time;
       float num_checkpoints = m_active_scene->m_camera->m_animation_table->at(0)
                                   ->m_checkpoints->size();
       float anim_speed =
@@ -34,15 +30,9 @@ void Animation_Manager::handle_scene_animations(float m_application_current_time
            num_checkpoints) -
           m_application_current_time * anim_speed;
 
-      std::cout << start_time << " start_time " << std::endl;
-      std::cout << anim_speed << " anim speed " << std::endl;
-      std::cout << delta << " delta " << std::endl;
-      std::cout << num_checkpoints << " num_checkpoint " << std::endl;
-
       // animate
       unsigned int tomove_check = std::ceil(num_checkpoints - delta);
       float remainder = tomove_check - (num_checkpoints - delta);
-      std::cout << remainder << "remainder" << std::endl;
       if (tomove_check > num_checkpoints - 1) {
         // done animating? reset.
         tomove_check = num_checkpoints - 1;
@@ -78,8 +68,6 @@ void Animation_Manager::handle_scene_animations(float m_application_current_time
 
       m_active_scene->m_camera->m_cameraPos = interpolated_camera_pos;
       m_active_scene->m_camera->m_cameraLookAt = interpolated_camera_rot;
-
-      std::cout << tomove_check << " tomove_check " << std::endl;
 
       log_success("anim step done!");
 

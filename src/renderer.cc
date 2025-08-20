@@ -42,212 +42,6 @@
 #define DEF_NEAR_CLIP_PLANE 0.01f
 #define DEF_FAR_CLIP_PLANE 10000.0f
 
-void Renderer::calculate_phys_boxes() {
-  //buffer
-  std::vector<Mesh> mesh_buffer;
-  
-  std::cout << "scene contains entities: " << m_active_scene->m_loaded_entities.size() << std::endl;
-  for (Entity &entity : m_active_scene->m_loaded_entities) {
-
-    glm::mat4 entity_mat = entity.m_model_matrix;
-    std::cout << "entity contains meshes: " << entity.m_mesh.size() << std::endl;
-
-    for (Mesh &mesh : entity.m_mesh) {
-
-      if (mesh.m_type == E_MESH) {
-	
-	//prevent oob
-	if (mesh.m_vertices_array.size() < 3) {
-	  log_error("attempted to hitbox a plane??? idiot");
-	  continue;
-	}
-	
-	// calc hitbox
-        float max_x = -10000.0f, max_y = -10000.0f, max_z = -10000.0f;
-        float min_x = 10000.0f, min_y = 10000.0f, min_z = 10000.0f;
-	glm::mat4 mesh_mat = mesh.m_model_matrix;
-	
-	//prep shit for box oop
-        Shader shader_to_use("src/shaders/shader_src/wireframe.vert",
-                             "src/shaders/shader_src/wireframe.frag");
-        Material new_material(E_PHONG, shader_to_use);
-        Mesh new_mesh(new_material);
-        new_mesh.m_render_mode = E_WIREFRAME;
-        new_mesh.m_type = E_COL_BOX;
-
-	std::cout << "size item :" << mesh.m_vertices_array.size() << std::endl;
-
-	//transform hitbox to world coordinates
-	glm::mat4 trans_mat = entity_mat * mesh_mat;
-	
-	for (int i = 0; i + 2 < (int)mesh.m_vertices_array.size(); i += 3) {
-
-	  glm::vec4 to_test_vec = glm::vec4(mesh.m_vertices_array[i],mesh.m_vertices_array[i+1],mesh.m_vertices_array[i+2],1.0f);
-
-	  to_test_vec = trans_mat * to_test_vec;
-	  
-          if (to_test_vec.x < min_x)
-            min_x = to_test_vec.x;
-          if (to_test_vec.x > max_x)
-            max_x = to_test_vec.x;
-          if (to_test_vec.y < min_y)
-            min_y = to_test_vec.y;
-          if (to_test_vec.y > max_y)
-            max_y = to_test_vec.y;
-          if (to_test_vec.z < min_z)
-            min_z = to_test_vec.z;
-          if (to_test_vec.z> max_z)
-            max_z = to_test_vec.z;
-	}
-
-        new_mesh.m_vertices_array = {
-            // Front face (z = max_z)
-            min_x,
-            min_y,
-            max_z,
-            max_x,
-            min_y,
-            max_z,
-            max_x,
-            max_y,
-            max_z,
-
-            max_x,
-            max_y,
-            max_z,
-            min_x,
-            max_y,
-            max_z,
-            min_x,
-            min_y,
-            max_z,
-
-            // Back face (z = min_z)
-            max_x,
-            min_y,
-            min_z,
-            min_x,
-            min_y,
-            min_z,
-            min_x,
-            max_y,
-            min_z,
-
-            min_x,
-            max_y,
-            min_z,
-            max_x,
-            max_y,
-            min_z,
-            max_x,
-            min_y,
-            min_z,
-
-            // Left face (x = min_x)
-            min_x,
-            min_y,
-            min_z,
-            min_x,
-            min_y,
-            max_z,
-            min_x,
-            max_y,
-            max_z,
-
-            min_x,
-            max_y,
-            max_z,
-            min_x,
-            max_y,
-            min_z,
-            min_x,
-            min_y,
-            min_z,
-
-            // Right face (x = max_x)
-            max_x,
-            min_y,
-            max_z,
-            max_x,
-            min_y,
-            min_z,
-            max_x,
-            max_y,
-            min_z,
-
-            max_x,
-            max_y,
-            min_z,
-            max_x,
-            max_y,
-            max_z,
-            max_x,
-            min_y,
-            max_z,
-
-            // Top face (y = max_y)
-            min_x,
-            max_y,
-            max_z,
-            max_x,
-            max_y,
-            max_z,
-            max_x,
-            max_y,
-            min_z,
-
-            max_x,
-            max_y,
-            min_z,
-            min_x,
-            max_y,
-            min_z,
-            min_x,
-            max_y,
-            max_z,
-
-            // Bottom face (y = min_y)
-            min_x,
-            min_y,
-            min_z,
-            max_x,
-            min_y,
-            min_z,
-            max_x,
-            min_y,
-            max_z,
-
-            max_x,
-            min_y,
-            max_z,
-            min_x,
-            min_y,
-            max_z,
-            min_x,
-            min_y,
-            min_z,
-        };
-
-        mesh_buffer.push_back(new_mesh);
-
-	log_success("calculated hitbox for mesh!");
-	
-      }
-    }
-  }
-
-  for(Mesh m : mesh_buffer) {
-    m_active_scene->m_loaded_entities[0].m_mesh.push_back(m);
-  }
-  
-}
-
-void Renderer::handle_scene_physics() {
-
-  
-
-  return; }
-
 void Renderer::setup_render_properties() {
 
   // render mode
@@ -284,26 +78,23 @@ void Renderer::render_frame() {
     return;
   }
 
-  //TMP scuffed, but works ig xd
-  m_application_current_time = m_input_manager->m_application_current_time;
-  
+  // bungie employees hate this simple trick
+  float currentFrame = glfwGetTime();
+  m_deltaTime = currentFrame - m_application_current_time;
+  m_application_current_time = currentFrame;
+
+  // handle all abstracted stuff that changes the scene somehow
   setup_render_properties();
   m_animation_manager->handle_scene_animations(m_application_current_time);
-  handle_scene_physics();
-  m_input_manager->process_input(associated_window);
+  m_physics_manager->handle_scene_physics();
+  m_input_manager->process_input(associated_window, m_application_current_time, m_deltaTime);
 
+  // make sure data changes get reflected in VRAM
+  if(m_active_scene->m_scene_vbos_need_refresh)
+    init_scene_vbos();
+  
   // setup constants for render pass
   glfwGetWindowSize(associated_window, &m_viewport_width, &m_viewport_height);
-
-  // TMP make light spin and move
-  // m_active_scene->m_loaded_lights[0].m_light_matrix =
-  // glm::rotate(glm::translate(glm::mat4(1.0f),glm::vec3(sin(m_application_current_time)
-  // * 4.5,5,5)),sin(m_application_current_time) * 0.5f,glm::vec3(0, 1, 0));
-  // m_active_scene->m_loaded_lights[0].m_light_matrix = glm::rotate(
-  //  glm::rotate(glm::translate(glm::mat4(1.0f), glm::vec3(-2, 5, 3)), -2.5f,
-  //              glm::vec3(0, 1, 0)),
-  //  -1.0f, glm::vec3(1, 0, 0));
-  // ENDTMP
 
   depth_shader->use();
 
@@ -558,7 +349,8 @@ void Renderer::init_scene(const char *scene_fp) {
   m_active_scene = std::make_shared<Scene>();
   m_input_manager->m_active_scene = m_active_scene;
   m_animation_manager->m_active_scene = m_active_scene;
-  log_success("set Scene ptr to IM and AM");
+  m_physics_manager->m_active_scene = m_active_scene;
+  log_success("set Scene ptr to IM, AM and PM");
   
   m_active_scene->m_camera = std::make_unique<Camera>();
 
@@ -574,9 +366,6 @@ void Renderer::init_scene(const char *scene_fp) {
   m_active_scene->add_entity_to_scene(load_entity);
   m_active_scene->add_light_to_scene(main_light);
 
-  //calc physboxes for meshes
-  calculate_phys_boxes();
-  
   // initialize scene vbos
   init_scene_vbos();
 
@@ -616,168 +405,185 @@ void Renderer::init_scene(const char *scene_fp) {
   log_success("done initializing renderer.");
 }
 
+void Renderer::cleanup_mesh_vbos(Mesh& mesh) {
+  if (mesh.m_mesh_vao != 0) {
+    glDeleteVertexArrays(1, &mesh.m_mesh_vao);
+    mesh.m_mesh_vao = 0;
+  }
+
+  auto delete_buffer = [](GLuint& buffer_id) {
+    if (buffer_id != 0) {
+      glDeleteBuffers(1, &buffer_id);
+      buffer_id = 0;
+    }
+  };
+
+  delete_buffer(mesh.m_vertices_glid);
+  delete_buffer(mesh.m_tex_coords_glid);
+  delete_buffer(mesh.m_normals_glid);
+  delete_buffer(mesh.m_tangents_glid);
+  delete_buffer(mesh.m_binormals_glid);
+}
+
 void Renderer::init_scene_vbos() {
+  if (m_active_scene->m_loaded_entities.empty() ||
+      m_active_scene->m_loaded_lights.empty()) {
+    log_error("Scene doesn't contain at least one light + entity, not initializing VBOs");
+    return;
+  }
 
-  if (m_active_scene->m_loaded_entities.size() > 0 &&
-      m_active_scene->m_loaded_lights.size() > 0) {
+  log_debug("Initializing/Updating VBOs for scene...");
 
-    log_debug("Initializing VBOs for Lights...");
+  ////////////////////////////////////
+  // Update Light VBOs (for visualizers)
+  ////////////////////////////////////
+  for (auto &light : m_active_scene->m_loaded_lights) {
+    if (!light.m_light_visualizer_mesh.m_mesh_vbo_needs_refresh)
+      continue;
 
-    ///////////////////////
-    // create vbos for the  mesh (legit only need one lol)
-    ///////////////////////
-    Light &light_source = m_active_scene->m_loaded_lights[0];
-    // vao
-    glGenVertexArrays(1, &light_source.m_light_visualizer_mesh.m_mesh_vao);
+    auto &mesh = light.m_light_visualizer_mesh;
 
-    glBindVertexArray(light_source.m_light_visualizer_mesh.m_mesh_vao);
+    // Clean up existing GL resources if they exist
+    cleanup_mesh_vbos(mesh);
 
-    // vbo mesh (vertices)
-    glGenBuffers(1, &light_source.m_light_visualizer_mesh.m_vertices_glid);
-    glBindBuffer(GL_ARRAY_BUFFER,
-                 light_source.m_light_visualizer_mesh.m_vertices_glid);
-    glBufferData(GL_ARRAY_BUFFER,
-                 light_source.m_light_visualizer_mesh.m_vertices_array.size() *
-                     sizeof(float),
-                 light_source.m_light_visualizer_mesh.m_vertices_array.data(),
-                 GL_STATIC_DRAW);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float),
-                          (void *)0);
-    glEnableVertexAttribArray(0);
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    // Generate new VAO + VBOs
+    glGenVertexArrays(1, &mesh.m_mesh_vao);
+    glBindVertexArray(mesh.m_mesh_vao);
 
-    glGenBuffers(1, &light_source.m_light_visualizer_mesh.m_tex_coords_glid);
-    glBindBuffer(GL_ARRAY_BUFFER,
-                 light_source.m_light_visualizer_mesh.m_tex_coords_glid);
-    glBufferData(
-        GL_ARRAY_BUFFER,
-        light_source.m_light_visualizer_mesh.m_tex_coords_array.size() *
-            sizeof(float),
-        light_source.m_light_visualizer_mesh.m_tex_coords_array.data(),
-        GL_STATIC_DRAW);
-    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float),
-                          (void *)0);
-    glEnableVertexAttribArray(1);
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-
-    ///////////////////////
-    // now load all the data for the rest of the scene
-    ///////////////////////
-    log_debug("Initializing VBOs for scene...");
-    for (auto &entity_to_render : m_active_scene->m_loaded_entities) {
-      log_debug_sub("Found active scene.");
-      for (auto &mesh_of_entity : entity_to_render.m_mesh) {
-
-        if (!mesh_of_entity.m_mesh_vbo_needs_refresh)
-          return;
-
-        log_debug_sub("Found mesh in active scene.");
-
-        // generate missing geometry if its missing (500iq)
-        if (mesh_of_entity.m_normals_array.size() < 1) {
-          log_debug("mesh doesnt have normals, calculating them now!");
-          mesh_of_entity.m_normals_array =
-              calculate_vert_normals(mesh_of_entity.m_vertices_array);
-        }
-
-        if (mesh_of_entity.m_tex_coords_array.size() > 0) {
-
-          // calculate vertex tangents / binormals if they are missing and
-          // texture coords are present
-          if (mesh_of_entity.m_binormals_array.size() < 2) {
-
-            log_debug(
-                "texture coords available, but not tangents. calculating.");
-
-            tan_bin_glob retglob = calculate_vert_tan_bin(
-                mesh_of_entity.m_vertices_array, mesh_of_entity.m_normals_array,
-                mesh_of_entity.m_tex_coords_array);
-
-            mesh_of_entity.m_binormals_array = retglob.vert_binormals;
-            mesh_of_entity.m_tangents_array = retglob.vert_tangents;
-          }
-
-        } else {
-
-          log_error("imported mesh has missing UV coordinates, using fallback "
-                    "coords.");
-
-          mesh_of_entity.m_binormals_array.resize(
-              mesh_of_entity.m_vertices_array.size());
-          mesh_of_entity.m_tangents_array.resize(
-              mesh_of_entity.m_vertices_array.size());
-        }
-
-        // vao
-        glGenVertexArrays(1, &mesh_of_entity.m_mesh_vao);
-        glBindVertexArray(mesh_of_entity.m_mesh_vao);
-
-        // vbo mesh (vertices)
-        glGenBuffers(1, &mesh_of_entity.m_vertices_glid);
-        glBindBuffer(GL_ARRAY_BUFFER, mesh_of_entity.m_vertices_glid);
-        glBufferData(GL_ARRAY_BUFFER,
-                     mesh_of_entity.m_vertices_array.size() * sizeof(float),
-                     mesh_of_entity.m_vertices_array.data(), GL_STATIC_DRAW);
-        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float),
-                              (void *)0);
-        glEnableVertexAttribArray(0);
-        glBindBuffer(GL_ARRAY_BUFFER, 0);
-
-        // vbo mesh (tex coords)
-        glGenBuffers(1, &mesh_of_entity.m_tex_coords_glid);
-        glBindBuffer(GL_ARRAY_BUFFER, mesh_of_entity.m_tex_coords_glid);
-        glBufferData(GL_ARRAY_BUFFER,
-                     mesh_of_entity.m_tex_coords_array.size() * sizeof(float),
-                     mesh_of_entity.m_tex_coords_array.data(), GL_STATIC_DRAW);
-        glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float),
-                              (void *)0);
-        glEnableVertexAttribArray(1);
-        glBindBuffer(GL_ARRAY_BUFFER, 0);
-
-        // vbo mesh (normals)
-        glGenBuffers(1, &mesh_of_entity.m_normals_glid);
-        glBindBuffer(GL_ARRAY_BUFFER, mesh_of_entity.m_normals_glid);
-        glBufferData(GL_ARRAY_BUFFER,
-                     mesh_of_entity.m_normals_array.size() * sizeof(float),
-                     mesh_of_entity.m_normals_array.data(), GL_STATIC_DRAW);
-        glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float),
-                              (void *)0);
-        glEnableVertexAttribArray(2);
-        glBindBuffer(GL_ARRAY_BUFFER, 0);
-
-        // vbo mesh (tangents)
-        glGenBuffers(1, &mesh_of_entity.m_tangents_glid);
-        glBindBuffer(GL_ARRAY_BUFFER, mesh_of_entity.m_tangents_glid);
-        glBufferData(GL_ARRAY_BUFFER,
-                     mesh_of_entity.m_tangents_array.size() * sizeof(float),
-                     mesh_of_entity.m_tangents_array.data(), GL_STATIC_DRAW);
-        glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float),
-                              (void *)0);
-        glEnableVertexAttribArray(3);
-        glBindBuffer(GL_ARRAY_BUFFER, 0);
-
-        // vbo mesh (bitangents)
-        glGenBuffers(1, &mesh_of_entity.m_binormals_glid);
-        glBindBuffer(GL_ARRAY_BUFFER, mesh_of_entity.m_binormals_glid);
-        glBufferData(GL_ARRAY_BUFFER,
-                     mesh_of_entity.m_binormals_array.size() * sizeof(float),
-                     mesh_of_entity.m_binormals_array.data(), GL_STATIC_DRAW);
-        glVertexAttribPointer(4, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float),
-                              (void *)0);
-        glEnableVertexAttribArray(4);
-        glBindBuffer(GL_ARRAY_BUFFER, 0);
-
-        mesh_of_entity.m_mesh_vbo_needs_refresh = false;
-      }
+    // Vertices
+    if (!mesh.m_vertices_array.empty()) {
+      glGenBuffers(1, &mesh.m_vertices_glid);
+      glBindBuffer(GL_ARRAY_BUFFER, mesh.m_vertices_glid);
+      glBufferData(GL_ARRAY_BUFFER,
+                   mesh.m_vertices_array.size() * sizeof(float),
+                   mesh.m_vertices_array.data(),
+                   GL_STATIC_DRAW);
+      glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+      glEnableVertexAttribArray(0);
     }
 
-    log_success("done initializing VBOs for all entities!");
+    // TexCoords (optional)
+    if (!mesh.m_tex_coords_array.empty()) {
+      glGenBuffers(1, &mesh.m_tex_coords_glid);
+      glBindBuffer(GL_ARRAY_BUFFER, mesh.m_tex_coords_glid);
+      glBufferData(GL_ARRAY_BUFFER,
+                   mesh.m_tex_coords_array.size() * sizeof(float),
+                   mesh.m_tex_coords_array.data(),
+                   GL_STATIC_DRAW);
+      glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), (void*)0);
+      glEnableVertexAttribArray(1);
+    }
 
-  } else {
+    glBindVertexArray(0);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
 
-    log_error("scene doesnt contain at least one light + entity, not "
-              "initializing vbos");
+    mesh.m_mesh_vbo_needs_refresh = false;
+    log_debug_sub("Updated VBOs for light visualizer");
   }
+
+  ////////////////////////////////////
+  // Update Entity Mesh VBOs
+  ////////////////////////////////////
+  for (auto &entity : m_active_scene->m_loaded_entities) {
+    for (auto &mesh : entity.m_mesh) {
+      if (!mesh.m_mesh_vbo_needs_refresh)
+        continue;  
+
+      log_debug_sub("Reinitializing VBOs for mesh (needs refresh)");
+
+      // Clean up old buffers to prevent leaks
+      cleanup_mesh_vbos(mesh);
+
+      // Recalculate normals if missing
+      if (mesh.m_normals_array.empty()) {
+        log_debug("Mesh missing normals, recalculating...");
+        mesh.m_normals_array = calculate_vert_normals(mesh.m_vertices_array);
+      }
+
+      // Recalculate tangents/binormals if needed and texcoords exist
+      if (!mesh.m_tex_coords_array.empty()) {
+        if (mesh.m_tangents_array.empty() || mesh.m_binormals_array.empty()) {
+          log_debug("Missing tangents/binormals, calculating...");
+          tan_bin_glob tb = calculate_vert_tan_bin(
+              mesh.m_vertices_array, mesh.m_normals_array, mesh.m_tex_coords_array);
+          mesh.m_tangents_array = tb.vert_tangents;
+          mesh.m_binormals_array = tb.vert_binormals;
+        }
+      } else {
+        log_error("Mesh has no UVs; using zeroed tangents/binormals");
+        mesh.m_tangents_array.resize(mesh.m_vertices_array.size(), 0.0f);
+        mesh.m_binormals_array.resize(mesh.m_vertices_array.size(), 0.0f);
+      }
+
+      // Create VAO
+      glGenVertexArrays(1, &mesh.m_mesh_vao);
+      glBindVertexArray(mesh.m_mesh_vao);
+
+      // verts
+      if (!mesh.m_vertices_array.empty()) {
+        glGenBuffers(1, &mesh.m_vertices_glid);
+        glBindBuffer(GL_ARRAY_BUFFER, mesh.m_vertices_glid);
+        glBufferData(GL_ARRAY_BUFFER,
+                     mesh.m_vertices_array.size() * sizeof(float),
+                     mesh.m_vertices_array.data(), GL_STATIC_DRAW);
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+        glEnableVertexAttribArray(0);
+      }
+
+      // tex coords
+      if (!mesh.m_tex_coords_array.empty()) {
+        glGenBuffers(1, &mesh.m_tex_coords_glid);
+        glBindBuffer(GL_ARRAY_BUFFER, mesh.m_tex_coords_glid);
+        glBufferData(GL_ARRAY_BUFFER,
+                     mesh.m_tex_coords_array.size() * sizeof(float),
+                     mesh.m_tex_coords_array.data(), GL_STATIC_DRAW);
+        glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), (void*)0);
+        glEnableVertexAttribArray(1);
+      }
+
+      // normals
+      if (!mesh.m_normals_array.empty()) {
+        glGenBuffers(1, &mesh.m_normals_glid);
+        glBindBuffer(GL_ARRAY_BUFFER, mesh.m_normals_glid);
+        glBufferData(GL_ARRAY_BUFFER,
+                     mesh.m_normals_array.size() * sizeof(float),
+                     mesh.m_normals_array.data(), GL_STATIC_DRAW);
+        glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+        glEnableVertexAttribArray(2);
+      }
+
+      // tangents
+      if (!mesh.m_tangents_array.empty()) {
+        glGenBuffers(1, &mesh.m_tangents_glid);
+        glBindBuffer(GL_ARRAY_BUFFER, mesh.m_tangents_glid);
+        glBufferData(GL_ARRAY_BUFFER,
+                     mesh.m_tangents_array.size() * sizeof(float),
+                     mesh.m_tangents_array.data(), GL_STATIC_DRAW);
+        glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+        glEnableVertexAttribArray(3);
+      }
+
+      // binormals
+      if (!mesh.m_binormals_array.empty()) {
+        glGenBuffers(1, &mesh.m_binormals_glid);
+        glBindBuffer(GL_ARRAY_BUFFER, mesh.m_binormals_glid);
+        glBufferData(GL_ARRAY_BUFFER,
+                     mesh.m_binormals_array.size() * sizeof(float),
+                     mesh.m_binormals_array.data(), GL_STATIC_DRAW);
+        glVertexAttribPointer(4, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+        glEnableVertexAttribArray(4);
+      }
+
+      glBindVertexArray(0);
+      glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+      mesh.m_mesh_vbo_needs_refresh = false;
+      log_debug_sub("Successfully updated VBOs for mesh");
+    }
+  }
+
+  m_active_scene->m_scene_vbos_need_refresh = false;
+  log_success("Successfully initialized/updated VBOs for all dirty meshes!");
 }
 
 template <typename T>
@@ -818,7 +624,8 @@ _/ ___\/  _ \_  __ \   __\/ __ \\  \/  /
   std::cout << "w" << m_active_scene << std::endl;
   m_input_manager = std::move(std::make_unique<Input_Manager>(nullptr));
   m_animation_manager = std::move(std::make_unique<Animation_Manager>(nullptr));
-
+  m_physics_manager = std::move(std::make_unique<Physics_Manager>(nullptr));
+  
   // Create the window for this renderer
   glfwInit();
   glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);

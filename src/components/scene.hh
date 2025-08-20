@@ -26,5 +26,7 @@ public:
   std::vector<Light> m_loaded_lights;
 
   std::unique_ptr<Camera> m_camera;
+
+  bool m_scene_vbos_need_refresh = false;
   
 };

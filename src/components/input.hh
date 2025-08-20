@@ -15,9 +15,6 @@ public:
   int m_viewport_height = 1080;
 
   std::shared_ptr<Scene> m_active_scene = nullptr;
-  
-  float m_deltaTime = 0.0f;
-  float m_application_current_time = 0.0f;
 
   bool m_should_shutdown = false;
   
@@ -38,7 +35,7 @@ public:
 
   void mouse_callback(GLFWwindow *window, double xpos, double ypos);
 
-  void process_input(GLFWwindow *window);
+  void process_input(GLFWwindow *window, float m_application_current_time, float m_delta_time);
 
   bool save_frame_to_png(const char *filename, int width, int height);
 };

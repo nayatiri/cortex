@@ -4,12 +4,7 @@
 #include "../libs/tiny_gltf.h"
 
 
-void Input_Manager::process_input(GLFWwindow *window) {
-
-  // bungie employees hate this simple trick
-  float currentFrame = glfwGetTime();
-  m_deltaTime = currentFrame - m_application_current_time;
-  m_application_current_time = currentFrame;
+void Input_Manager::process_input(GLFWwindow *window, float m_application_current_time, float m_delta_time) {
   
   if (m_active_scene == nullptr || m_active_scene->m_camera == nullptr) {
     log_error("active scene is fucked. cant process inputs");
@@ -26,7 +21,7 @@ void Input_Manager::process_input(GLFWwindow *window) {
   }
 
   float cameraSpeed =
-      m_active_scene->m_camera->m_camera_base_speed * 10.0f * m_deltaTime;
+      m_active_scene->m_camera->m_camera_base_speed * 10.0f * m_delta_time;
   
   if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS) {
     if (!m_last_wireframe_state) {
@@ -140,11 +135,6 @@ void Input_Manager::process_input(GLFWwindow *window) {
   }
 
   if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) {
-    log_error("s press");
-
-    std::cout << m_active_scene << std::endl;
-    
-    std::cout << m_active_scene->m_camera->m_cameraPos.x << " x " << m_active_scene->m_camera->m_cameraPos.y << " y "<< m_active_scene->m_camera->m_cameraPos.z << " z " <<std::endl;
     m_active_scene->m_camera->m_cameraPos +=
         cameraSpeed * glm::normalize(glm::vec3(
                           -m_active_scene->m_camera->m_cameraLookAt.x, 0.0f,
