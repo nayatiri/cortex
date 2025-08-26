@@ -60,6 +60,12 @@ void Renderer::framebuffer_size_callback(GLFWwindow *window, int width,
   glViewport(0, 0, width, height);
 }
 
+void Renderer::update_scene_time() {
+  // bungie employees hate this simple trick
+  float currentFrame = glfwGetTime();
+  m_deltaTime = currentFrame - m_application_current_time;
+  m_application_current_time = currentFrame;
+}
 
 void Renderer::render_frame() {
 
@@ -78,18 +84,18 @@ void Renderer::render_frame() {
     return;
   }
 
-  // bungie employees hate this simple trick
-  float currentFrame = glfwGetTime();
-  m_deltaTime = currentFrame - m_application_current_time;
-  m_application_current_time = currentFrame;
+  update_scene_time();
 
   // handle all abstracted stuff that changes the scene somehow
   setup_render_properties();
+  // calculate animation deltas
   m_animation_manager->handle_scene_animations(m_application_current_time);
+  // calculate all scene physics for the frame
   m_physics_manager->handle_scene_physics();
+  // handle user input
   m_input_manager->process_input(associated_window, m_application_current_time, m_deltaTime);
 
-  // make sure data changes get reflected in VRAM
+  // make sure data changes from anim / get reflected in VRAM
   if(m_active_scene->m_scene_vbos_need_refresh)
     init_scene_vbos();
   
@@ -138,9 +144,9 @@ void Renderer::render_frame() {
 
       check_gl_error("before setting uniforms (depth)");
 
-      upload_to_uniform("model", depth_shader->ID,
+      upload_to_uniform(*depth_shader,"model",
                         entity.m_model_matrix * mesh.m_model_matrix);
-      upload_to_uniform("light_space_matrix", depth_shader->ID,
+      upload_to_uniform(*depth_shader,"light_space_matrix",
                         light_space_matrix);
 
       check_gl_error("after setting uniforms (depth)");
@@ -200,8 +206,12 @@ void Renderer::render_frame() {
         // bind texture to uniform
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, mesh.m_material.bound_texture_id);
+
+	
         GLint loc_tex =
-            glGetUniformLocation(mesh.m_material.m_shader.ID, "uTexture");
+	  mesh.m_material.m_shader.get_cached_uniform_id("uTexture");
+
+
         glUniform1i(loc_tex, 0);
         // bind depth map to uniform
         glActiveTexture(GL_TEXTURE1);
@@ -217,25 +227,25 @@ void Renderer::render_frame() {
       glm::vec3 light_position =
           m_active_scene->m_loaded_lights[0].get_light_position();
 
-      upload_to_uniform("objectColor", mesh.m_material.m_shader.ID,
+      upload_to_uniform(mesh.m_material.m_shader,"objectColor",
                         glm::vec3(0.5, 0.8, 0.2));
-      upload_to_uniform("lightColor", mesh.m_material.m_shader.ID,
+      upload_to_uniform(mesh.m_material.m_shader,"lightColor",
                         glm::vec3(0.8, 0.8, 0.8));
 
-      upload_to_uniform("model", mesh.m_material.m_shader.ID,
+      upload_to_uniform(mesh.m_material.m_shader,"model", 
                         entity.m_model_matrix * mesh.m_model_matrix);
 
-      upload_to_uniform("view", mesh.m_material.m_shader.ID, view_mat);
-      upload_to_uniform("viewPosition", mesh.m_material.m_shader.ID,
+      upload_to_uniform(mesh.m_material.m_shader,"view", view_mat);
+      upload_to_uniform(mesh.m_material.m_shader,"viewPosition", 
                         m_active_scene->m_camera->m_cameraPos);
-      upload_to_uniform("projection", mesh.m_material.m_shader.ID,
+      upload_to_uniform(mesh.m_material.m_shader,"projection", 
                         projection_mat);
-      upload_to_uniform("lightPosition", mesh.m_material.m_shader.ID,
+      upload_to_uniform(mesh.m_material.m_shader,"lightPosition", 
                         light_position);
-      upload_to_uniform("viewPos", mesh.m_material.m_shader.ID,
+      upload_to_uniform(mesh.m_material.m_shader,"viewPos", 
                         m_active_scene->m_camera->m_cameraPos);
 
-      upload_to_uniform("light_space_matrix", mesh.m_material.m_shader.ID,
+      upload_to_uniform(mesh.m_material.m_shader,"light_space_matrix", 
                         light_space_matrix);
 
       check_gl_error("after setting uniforms");
@@ -289,39 +299,42 @@ void Renderer::render_frame() {
     }
 
     upload_to_uniform(
-        "objectColor",
-        light_source.m_light_visualizer_mesh.m_material.m_shader.ID,
-        glm::vec3(0.5, 0.8, 0.2));
+		      light_source.m_light_visualizer_mesh.m_material.m_shader,
+		      "objectColor",
+		      glm::vec3(0.5, 0.8, 0.2));
     upload_to_uniform(
-        "lightColor",
-        light_source.m_light_visualizer_mesh.m_material.m_shader.ID,
-        glm::vec3(0.8, 0.8, 0.8));
+		      light_source.m_light_visualizer_mesh.m_material.m_shader,
+		      "lightColor",
+		      glm::vec3(0.8, 0.8, 0.8));
     upload_to_uniform(
-        "model", light_source.m_light_visualizer_mesh.m_material.m_shader.ID,
-        light_source.m_light_matrix);
-
+		      light_source.m_light_visualizer_mesh.m_material.m_shader,
+		      "model", 
+		      light_source.m_light_matrix);
+    
     upload_to_uniform(
-        "view", light_source.m_light_visualizer_mesh.m_material.m_shader.ID,
+		      light_source.m_light_visualizer_mesh.m_material.m_shader,
+        "view", 
         view_mat);
     upload_to_uniform(
-        "viewPosition",
-        light_source.m_light_visualizer_mesh.m_material.m_shader.ID,
-        m_active_scene->m_camera->m_cameraPos);
+		      light_source.m_light_visualizer_mesh.m_material.m_shader,
+		      "viewPosition",
+		      m_active_scene->m_camera->m_cameraPos);
     upload_to_uniform(
-        "projection",
-        light_source.m_light_visualizer_mesh.m_material.m_shader.ID,
-        projection_mat);
+		      light_source.m_light_visualizer_mesh.m_material.m_shader,
+		      "projection",
+		      projection_mat);
     upload_to_uniform(
-        "lightPosition",
-        light_source.m_light_visualizer_mesh.m_material.m_shader.ID,
-        glm::vec3(0.0f));
+		      light_source.m_light_visualizer_mesh.m_material.m_shader,
+		      "lightPosition",
+		      glm::vec3(0.0f));
     upload_to_uniform(
-        "viewPos", light_source.m_light_visualizer_mesh.m_material.m_shader.ID,
-        m_active_scene->m_camera->m_cameraPos);
+		      light_source.m_light_visualizer_mesh.m_material.m_shader,
+		      "viewPos", 
+		      m_active_scene->m_camera->m_cameraPos);
     upload_to_uniform(
-        "light_space_matrix",
-        light_source.m_light_visualizer_mesh.m_material.m_shader.ID,
-        light_space_matrix);
+		      light_source.m_light_visualizer_mesh.m_material.m_shader,
+		      "light_space_matrix",
+		      light_space_matrix);
 
     check_gl_error("after setting uniforms");
 
@@ -587,21 +600,22 @@ void Renderer::init_scene_vbos() {
 }
 
 template <typename T>
-void Renderer::upload_to_uniform(std::string location, GLuint shader_id,
-                                 T input) {
+void Renderer::upload_to_uniform(Shader bound_shader,
+				 std::string uniform_name,
+                                 T upload_data) {
 
-  GLuint loc = glGetUniformLocation(shader_id, location.c_str());
+  GLuint loc = bound_shader.get_cached_uniform_id(uniform_name);
 
   if constexpr (std::is_same<T, glm::mat4>::value) {
-    glUniformMatrix4fv(loc, 1, GL_FALSE, glm::value_ptr(input));
+    glUniformMatrix4fv(loc, 1, GL_FALSE, glm::value_ptr(upload_data));
   } else
 
       if constexpr (std::is_same<T, glm::vec3>::value) {
-    glUniform3fv(loc, 1, glm::value_ptr(input));
+    glUniform3fv(loc, 1, glm::value_ptr(upload_data));
   } else
 
       if constexpr (std::is_same<T, glm::mat3>::value) {
-    glUniformMatrix3fv(loc, 1, GL_FALSE, glm::value_ptr(input));
+    glUniformMatrix3fv(loc, 1, GL_FALSE, glm::value_ptr(upload_data));
   } else {
     log_error("unknown datatype passed to uniform!");
   }

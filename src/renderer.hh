@@ -69,7 +69,7 @@ public:
   static void framebuffer_size_callback(GLFWwindow *window, int width, int height);
   void processInput(GLFWwindow *window);
 
-  template <typename T> void upload_to_uniform(std::string location, GLuint shader_id, T input);
+  template <typename T> void upload_to_uniform(Shader bound_shader,std::string uniform_name, T input);
 
   void init_scene_vbos();
   void cleanup_mesh_vbos(Mesh& mesh);
@@ -77,7 +77,8 @@ public:
   void render_frame();
   bool save_frame_to_png(const char* filename, int width, int height);
   void setup_render_properties();
-
+  void update_scene_time();
+  
   /////////////////////
   // RENDER FUNCTIONS
   /////////////////////
