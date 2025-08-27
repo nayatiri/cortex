@@ -474,35 +474,6 @@ glm::mat4 hipster_rotation_bullshit(float m_lastFrame) {
   return glm::rotate(glm::mat4(1.0f), angle, axis);
 }
 
-void check_gl_error(const char *context = "") {
-  GLenum err;
-  while ((err = glGetError()) != GL_NO_ERROR) {
-    const char *errorStr = "Unknown error";
-    switch (err) {
-    case GL_INVALID_ENUM:
-      errorStr = "GL_INVALID_ENUM";
-      break;
-    case GL_INVALID_VALUE:
-      errorStr = "GL_INVALID_VALUE";
-      break;
-    case GL_INVALID_OPERATION:
-      errorStr = "GL_INVALID_OPERATION";
-      break;
-    case GL_OUT_OF_MEMORY:
-      errorStr = "GL_OUT_OF_MEMORY";
-      break;
-    case GL_INVALID_FRAMEBUFFER_OPERATION:
-      errorStr = "GL_INVALID_FRAMEBUFFER_OPERATION";
-      break;
-    }
-
-    if (context && *context)
-      printf("OpenGL Error [%s]: %s (0x%X)\n", context, errorStr, err);
-    else
-      printf("OpenGL Error: %s (0x%X)\n", errorStr, err);
-  }
-}
-
 bool check_pbr_textures_present_mesh(const tinygltf::Mesh &mesh,
                                      const tinygltf::Model &model) {
 

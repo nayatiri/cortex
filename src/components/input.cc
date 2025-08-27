@@ -1,8 +1,6 @@
 #include "input.hh"
 #include "logging.hh"
 #include "../glad/glad.h"
-#include "../libs/tiny_gltf.h"
-
 
 void Input_Manager::process_input(GLFWwindow *window, float m_application_current_time, float m_delta_time) {
   

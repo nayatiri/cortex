@@ -47,14 +47,8 @@ public:
   //abstract render function
   Renderpass_Object* m_rpo_depth;
   Renderpass_Object* m_rpo_color;
+  Renderpass_Object* m_rpo_overlay;
   
-  // shadow mapping utils
-  unsigned int window_depth_map;
-  unsigned int window_depth_map_fbo;
-  Shader* depth_shader;
-  const unsigned int shadow_map_width = 4000;
-  const unsigned int shadow_map_height = 4000;
-
   // Scene management
   std::shared_ptr<Scene> m_active_scene;
 
