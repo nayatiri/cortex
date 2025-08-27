@@ -24,6 +24,7 @@
 #include <iostream>
 #include <memory>
 #include <string>
+#include <type_traits>
 #include <vector>
 
 // components (custom)
@@ -33,6 +34,7 @@
 #include "components/light.hh"
 #include "components/logging.hh"
 #include "components/mesh.hh"
+#include "components/renderpass.hh"
 #include "components/scene.hh"
 #include "components/utility.hh"
 #include "components/animationmanager.hh"
@@ -43,15 +45,12 @@
 #define DEF_FAR_CLIP_PLANE 10000.0f
 
 void Renderer::setup_render_properties() {
-
   // render mode
   if (m_render_mode_wireframe)
     glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
   else {
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
   }
-
-  return;
 }
 
 void Renderer::framebuffer_size_callback(GLFWwindow *window, int width,
@@ -67,8 +66,16 @@ void Renderer::update_scene_time() {
   m_application_current_time = currentFrame;
 }
 
+void Renderer::abstract_render(Renderpass_Object* rpo) {
+
+  rpo->render_frame();  
+  
+}
+
 void Renderer::render_frame() {
 
+  abstract_render(m_rpo_depth);
+  
   if (!m_active_scene->m_camera) {
     log_error("no camera in scene! stopping render!");
     return;
@@ -118,12 +125,10 @@ void Renderer::render_frame() {
   // use for sanity
   float width = m_active_scene->m_loaded_lights[0].light_width;
   glm::mat4 light_projection_mat =
-      glm::ortho(-width, width, -width, width, 0.01f, 20.0f);
-
-  // glm::mat4 light_projection_mat = glm::perspective(glm::radians(90.0f),
-  // (float)shadow_width / (float)shadow_height, 0.1f,50.0f);
+    glm::ortho(-width, width, -width, width, 0.01f, 20.0f);
+  
   glm::mat4 light_space_matrix = light_projection_mat * light_look_at;
-
+  
   depth_shader->use();
 
   glViewport(0, 0, shadow_map_width, shadow_map_height);
@@ -161,6 +166,8 @@ void Renderer::render_frame() {
   // rebind old fb
   glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
+
+  abstract_render(m_rpo_color);
   // render scene with old settings
   glViewport(0, 0, m_viewport_width, m_viewport_height);
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -353,6 +360,9 @@ void Renderer::render_frame() {
 
 void Renderer::init_scene(const char *scene_fp) {
 
+  m_rpo_color = new Renderpass_Color();
+  m_rpo_depth = new Renderpass_Depth(); 
+  
   Entity load_entity;
   load_entity.m_mesh = std::move(
       load_all_meshes_from_gltf(scene_fp, num_loaded_textures, m_texture_map));

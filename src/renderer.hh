@@ -6,6 +6,7 @@
 #include "./components/input.hh"
 #include "./components/animationmanager.hh"
 #include "components/physicsmanager.hh"
+#include "components/renderpass.hh"
 
 #include <GLFW/glfw3.h>
 #include <glm/ext/matrix_transform.hpp>
@@ -24,9 +25,6 @@
 
 class Renderer {
 public:
-  bool m_should_shutdown = false;
-
-
   // new input handling
   std::unique_ptr<Input_Manager> m_input_manager = nullptr;
 
@@ -35,55 +33,67 @@ public:
 
   // animation handline
   std::unique_ptr<Physics_Manager> m_physics_manager = nullptr;
-  
-  
-  GLFWwindow* associated_window;
-  
+
   // bungie employees hate this one simple trick
   float m_deltaTime = 0.0f;
   float m_application_current_time = 0.0f;
 
-  // Render properties
+  //FLAGS / ATTRIBUTE
+  bool m_should_shutdown = false;
+  bool m_render_mode_wireframe = false;
+  int m_viewport_width, m_viewport_height;
+  GLFWwindow* associated_window;
+
+  //abstract render function
+  Renderpass_Object* m_rpo_depth;
+  Renderpass_Object* m_rpo_color;
+  
+  // shadow mapping utils
   unsigned int window_depth_map;
   unsigned int window_depth_map_fbo;
   Shader* depth_shader;
   const unsigned int shadow_map_width = 4000;
   const unsigned int shadow_map_height = 4000;
 
-  int m_viewport_width, m_viewport_height;
-  
-  bool m_render_mode_wireframe = false;
-  
   // Scene management
   std::shared_ptr<Scene> m_active_scene;
-  std::atomic<uint32_t> num_loaded_textures = 0;
 
+  // texture cache index
+  std::atomic<uint32_t> num_loaded_textures = 0;
   std::vector<std::tuple<std::string, unsigned int, GLuint>> m_texture_map;
   
   /////////////////////
   // CALLBACK FUNCTIONS
   /////////////////////
-  
+  static void framebuffer_size_callback(GLFWwindow *window, int width, int height);
   void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
   void mouse_callback(GLFWwindow *window, double xpos, double ypos);
-  static void framebuffer_size_callback(GLFWwindow *window, int width, int height);
   void processInput(GLFWwindow *window);
 
+  /////////////////////
+  // VRAM MANAGEMENT FUNCTIONS
+  /////////////////////
   template <typename T> void upload_to_uniform(Shader bound_shader,std::string uniform_name, T input);
-
   void init_scene_vbos();
   void cleanup_mesh_vbos(Mesh& mesh);
-  void init_scene(const char* scene_fp);
-  void render_frame();
-  bool save_frame_to_png(const char* filename, int width, int height);
+
+  /////////////////////
+  // SCENE MANAGEMENT
+  /////////////////////
+  void init_scene(const char* scene_fp);  
   void setup_render_properties();
+
+  /////////////////////
+  // UTILITY FUNCTIONS
+  /////////////////////
   void update_scene_time();
+  bool save_frame_to_png(const char* filename, int width, int height);
   
   /////////////////////
   // RENDER FUNCTIONS
   /////////////////////
-
   Renderer(uint window_width, uint window_height);
- 
+  void render_frame();
+  void abstract_render(Renderpass_Object* rpo);
 };
 
