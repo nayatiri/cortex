@@ -34,9 +34,9 @@
 #include "components/mesh.hh"
 #include "components/renderpass.hh"
 #include "components/scene.hh"
-#include "components/utility.hh"
 #include "components/animationmanager.hh"
 #include "shaders/shaderclass.hh"
+#include "components/importer.hh"
 
 
 #define DEF_NEAR_CLIP_PLANE 0.01f
@@ -126,7 +126,7 @@ void Renderer::init_scene(const char *scene_fp) {
   
   Entity load_entity;
   load_entity.m_mesh = std::move(
-      load_all_meshes_from_gltf(scene_fp, num_loaded_textures, m_texture_map));
+				 Importer::load_all_meshes_from_gltf(scene_fp, num_loaded_textures, m_texture_map));
 
   //  glDisable(GL_CULL_FACE);
 
@@ -142,7 +142,7 @@ void Renderer::init_scene(const char *scene_fp) {
   
   m_active_scene->m_camera = std::make_unique<Camera>();
 
-  Light main_light(std::move(load_all_meshes_from_gltf(
+  Light main_light(std::move(Importer::load_all_meshes_from_gltf(
       "models/light/scene.gltf", num_loaded_textures, m_texture_map))[0]);
   main_light.m_light_type = E_POINT_LIGHT;
   main_light.m_color = 0xFFFFFF;
@@ -263,14 +263,14 @@ void Renderer::init_scene_vbos() {
       // Recalculate normals if missing
       if (mesh.m_normals_array.empty()) {
         log_debug("Mesh missing normals, recalculating...");
-        mesh.m_normals_array = calculate_vert_normals(mesh.m_vertices_array);
+        mesh.m_normals_array = Importer::calculate_vert_normals(mesh.m_vertices_array);
       }
 
       // Recalculate tangents/binormals if needed and texcoords exist
       if (!mesh.m_tex_coords_array.empty()) {
         if (mesh.m_tangents_array.empty() || mesh.m_binormals_array.empty()) {
           log_debug("Missing tangents/binormals, calculating...");
-          tan_bin_glob tb = calculate_vert_tan_bin(
+	  Importer::tan_bin_glob tb = Importer::calculate_vert_tan_bin(
               mesh.m_vertices_array, mesh.m_normals_array, mesh.m_tex_coords_array);
           mesh.m_tangents_array = tb.vert_tangents;
           mesh.m_binormals_array = tb.vert_binormals;
