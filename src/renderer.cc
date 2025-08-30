@@ -32,12 +32,11 @@
 #include "components/light.hh"
 #include "components/logging.hh"
 #include "components/mesh.hh"
-#include "components/renderpass.hh"
 #include "components/scene.hh"
 #include "components/animationmanager.hh"
 #include "shaders/shaderclass.hh"
 #include "components/importer.hh"
-
+#include "components/pipeline.hh"
 
 #define DEF_NEAR_CLIP_PLANE 0.01f
 #define DEF_FAR_CLIP_PLANE 10000.0f
@@ -64,8 +63,8 @@ void Renderer::update_scene_time() {
   m_application_current_time = currentFrame;
 }
 
-void Renderer::abstract_render(Renderpass_Object* rpo) {
-  rpo->render_frame();  
+void Renderer::abstract_render() {
+  m_pipeline->render_frame();
 }
 
 void Renderer::render_frame() {
@@ -102,16 +101,12 @@ void Renderer::render_frame() {
   // setup constants for render pass
   glfwGetWindowSize(associated_window, &m_viewport_width, &m_viewport_height);
 
-  m_rpo_color->m_viewport_height = m_viewport_height;
-  m_rpo_color->m_viewport_width = m_viewport_width;
+  //TMP unclean
+  m_pipeline->m_viewport_height = m_viewport_height;
+  m_pipeline->m_viewport_width = m_viewport_width;
 
   //launch depth render pass impl
-  abstract_render(m_rpo_depth);
-  
-  // launch color pass render impl
-  abstract_render(m_rpo_color);
-
-  abstract_render(m_rpo_overlay);
+  abstract_render();
 
   // draw to screen
   glfwSwapBuffers(associated_window);
@@ -120,9 +115,7 @@ void Renderer::render_frame() {
 
 void Renderer::init_scene(const char *scene_fp) {
 
-  m_rpo_color = new Renderpass_Color();
-  m_rpo_depth = new Renderpass_Depth();
-  m_rpo_overlay = new Renderpass_Overlay(); 
+  m_pipeline = std::make_unique<Shadow_Map_Pipeline>();
   
   Entity load_entity;
   load_entity.m_mesh = std::move(
@@ -136,7 +129,7 @@ void Renderer::init_scene(const char *scene_fp) {
   m_physics_manager->m_active_scene = m_active_scene;
 
   //TMP unclean ig
-  m_rpo_color->update_active_scene(m_active_scene);
+  m_pipeline->m_active_scene = m_active_scene;
   
   log_success("set Scene ptr to IM, AM and PM");
   
@@ -166,7 +159,8 @@ void Renderer::init_scene(const char *scene_fp) {
   }
   log_success("Finished initialization for Shader Programs");
 
-  m_rpo_depth->setup_vbos();
+  //TMP setup vbos n shi
+  m_pipeline->init_pipeline();
   
   log_success("done initializing renderer.");
 }

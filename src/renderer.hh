@@ -6,7 +6,7 @@
 #include "./components/input.hh"
 #include "./components/animationmanager.hh"
 #include "components/physicsmanager.hh"
-#include "components/renderpass.hh"
+#include "components/pipeline.hh"
 
 #include <GLFW/glfw3.h>
 #include <glm/ext/matrix_transform.hpp>
@@ -45,9 +45,7 @@ public:
   GLFWwindow* associated_window;
 
   //abstract render function
-  Renderpass_Object* m_rpo_depth;
-  Renderpass_Object* m_rpo_color;
-  Renderpass_Object* m_rpo_overlay;
+  std::unique_ptr<Pipeline> m_pipeline = nullptr;
   
   // Scene management
   std::shared_ptr<Scene> m_active_scene;
@@ -88,6 +86,6 @@ public:
   /////////////////////
   Renderer(uint window_width, uint window_height);
   void render_frame();
-  void abstract_render(Renderpass_Object* rpo);
+  void abstract_render();
 };
 

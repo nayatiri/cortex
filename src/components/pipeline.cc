@@ -1,15 +1,17 @@
-#include "renderpass.hh"
-#include <glm/ext/matrix_clip_space.hpp>
-#include <glm/ext/matrix_float3x3.hpp>
-#include <glm/ext/matrix_transform.hpp>
-#include <glm/ext/vector_float3.hpp>
+#include "pipeline.hh"
 
-#include "logging.hh"
+#include <glm/glm.hpp>
 
-#define DEF_NEAR_CLIP_PLANE 0.01f
-#define DEF_FAR_CLIP_PLANE 10000.0f
+/// Pipeline boilerplate empty impl
 
-void check_gl_error(const char *context = "") {
+void Pipeline::render_frame() {}
+void Pipeline::update_scene() {}
+void Pipeline::update_time() {}
+void Pipeline::init_pipeline() {}
+
+/// Pipeline util functions
+
+void Pipeline::check_gl_error(const char *context = "") {
   GLenum err;
   while ((err = glGetError()) != GL_NO_ERROR) {
     const char *errorStr = "Unknown error";
@@ -39,9 +41,8 @@ void check_gl_error(const char *context = "") {
 }
 
 template <typename T>
-void Renderpass_Object::upload_to_uniform(Shader bound_shader,
-                                          std::string uniform_name,
-                                          T upload_data) {
+void Pipeline::upload_to_uniform(Shader bound_shader, std::string uniform_name,
+                                 T upload_data) {
 
   GLuint loc = bound_shader.get_cached_uniform_id(uniform_name);
 
@@ -60,20 +61,80 @@ void Renderpass_Object::upload_to_uniform(Shader bound_shader,
   }
 };
 
-void Renderpass_Color::setup_vbos() {
-  printf("setup vbos called from color!\n");
+/// shadowmapping impl
+
+void Shadow_Map_Pipeline::render_depth_pass() {
+
+  printf("render frame called from depth!\n");
+
+  if (m_active_scene == nullptr)
+    return;
+
+  depth_shader->use();
+
+  // configure spotlight shadow mapping
+  glm::vec3 light_pos_new =
+      m_active_scene->m_loaded_lights[0].get_light_position();
+  glm::mat3 light_rotation =
+      m_active_scene->m_loaded_lights[0].get_light_rotation_matrix();
+
+  glm::mat4 light_look_at = glm::lookAt(
+      light_pos_new,
+      light_pos_new + glm::normalize(light_rotation * glm::vec3(0, 0, -1)),
+      glm::vec3(0.0f, 1.0f, 0.0f));
+
+  // use for sanity
+  float width = m_active_scene->m_loaded_lights[0].light_width;
+  glm::mat4 light_projection_mat =
+      glm::ortho(-width, width, -width, width, 0.01f, 20.0f);
+
+  shared_light_space_matrix = light_projection_mat * light_look_at;
+
+  depth_shader->use();
+
+  glViewport(0, 0, shadow_map_width, shadow_map_height);
+  glBindFramebuffer(GL_FRAMEBUFFER, window_depth_map_fbo);
+  glClear(GL_DEPTH_BUFFER_BIT);
+
+  check_gl_error("after setting viewport stuff up (depth)");
+
+  // render scene from light pov
+  for (auto &entity : m_active_scene->m_loaded_entities) {
+    for (auto &mesh : entity.m_mesh) {
+
+      // bind meshes vao context
+      glBindVertexArray(mesh.m_mesh_vao);
+      if (glIsVertexArray(mesh.m_mesh_vao) == GL_FALSE) {
+        log_error("no valid VAO id! cant render mesh.");
+      }
+
+      check_gl_error("before setting uniforms (depth)");
+
+      upload_to_uniform(*depth_shader, "model",
+                        entity.m_model_matrix * mesh.m_model_matrix);
+      upload_to_uniform(*depth_shader, "light_space_matrix",
+                        shared_light_space_matrix);
+
+      check_gl_error("after setting uniforms (depth)");
+
+      // we renderin
+      glDrawArrays(GL_TRIANGLES, 0, mesh.m_vertices_array.size() / 3);
+
+      check_gl_error("after glDrawArrays (depth)");
+    }
+  }
 };
 
-void Renderpass_Color::render_frame() {
-  
-  if(m_active_scene == nullptr)
+void Shadow_Map_Pipeline::render_color_pass() {
+
+  if (m_active_scene == nullptr)
     return;
-  
+
   printf("render frame called from color!\n");
-  
+
   // rebind old fb
   glBindFramebuffer(GL_FRAMEBUFFER, 0);
-  
+
   // render scene with old settings
   glViewport(0, 0, m_viewport_width, m_viewport_height);
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -82,10 +143,11 @@ void Renderpass_Color::render_frame() {
 
   check_gl_error("after clearing frame");
 
-  shared_camera_view_matrix = glm::lookAt(m_active_scene->m_camera->m_cameraPos,
-                                   m_active_scene->m_camera->m_cameraLookAt +
-                                       m_active_scene->m_camera->m_cameraPos,
-                                   m_active_scene->m_camera->m_cameraUp);
+  shared_camera_view_matrix =
+      glm::lookAt(m_active_scene->m_camera->m_cameraPos,
+                  m_active_scene->m_camera->m_cameraLookAt +
+                      m_active_scene->m_camera->m_cameraPos,
+                  m_active_scene->m_camera->m_cameraUp);
 
   // projection matrix
   shared_camera_projection_matrix = glm::perspective(
@@ -146,10 +208,12 @@ void Renderpass_Color::render_frame() {
       upload_to_uniform(mesh.m_material.m_shader, "model",
                         entity.m_model_matrix * mesh.m_model_matrix);
 
-      upload_to_uniform(mesh.m_material.m_shader, "view", shared_camera_view_matrix);
+      upload_to_uniform(mesh.m_material.m_shader, "view",
+                        shared_camera_view_matrix);
       upload_to_uniform(mesh.m_material.m_shader, "viewPosition",
                         m_active_scene->m_camera->m_cameraPos);
-      upload_to_uniform(mesh.m_material.m_shader, "projection", shared_camera_projection_matrix);
+      upload_to_uniform(mesh.m_material.m_shader, "projection",
+                        shared_camera_projection_matrix);
       upload_to_uniform(mesh.m_material.m_shader, "lightPosition",
                         light_position);
       upload_to_uniform(mesh.m_material.m_shader, "viewPos",
@@ -166,112 +230,13 @@ void Renderpass_Color::render_frame() {
       check_gl_error("after glDrawArrays");
     }
   }
-};
+}
 
-void Renderpass_Depth::setup_vbos() {
+void Shadow_Map_Pipeline::render_overlay_pass() {
 
-  if(m_active_scene == nullptr)
+  if (m_active_scene == nullptr)
     return;
-    
-  printf("setup vbos called from depth!\n");
-  
-  // SHADOW MAPPING
-  glGenFramebuffers(1, &window_depth_map_fbo);
-  
-  glGenTextures(1, &window_depth_map);
-  glBindTexture(GL_TEXTURE_2D, window_depth_map);
-  glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT32F, shadow_map_width,
-               shadow_map_height, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
-  float borderColor[] = {1.0f, 1.0f, 1.0f, 1.0f};
-  glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
-  
-  glBindFramebuffer(GL_FRAMEBUFFER, window_depth_map_fbo);
-  glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D,
-                         window_depth_map, 0);
-  glDrawBuffer(GL_NONE);
-  glReadBuffer(GL_NONE);
-  glBindFramebuffer(GL_FRAMEBUFFER, 0);
-  
-  depth_shader = new Shader("src/shaders/shader_src/depth.vert",
-                            "src/shaders/shader_src/depth.frag");
-  
-};
 
-void Renderpass_Depth::render_frame() {
-  printf("render frame called from depth!\n");
-
-  if(m_active_scene == nullptr)
-    return;
-  
-  depth_shader->use();
-
-  // configure spotlight shadow mapping
-  glm::vec3 light_pos_new =
-      m_active_scene->m_loaded_lights[0].get_light_position();
-  glm::mat3 light_rotation =
-      m_active_scene->m_loaded_lights[0].get_light_rotation_matrix();
-
-  glm::mat4 light_look_at = glm::lookAt(
-      light_pos_new,
-      light_pos_new + glm::normalize(light_rotation * glm::vec3(0, 0, -1)),
-      glm::vec3(0.0f, 1.0f, 0.0f));
-
-  // use for sanity
-  float width = m_active_scene->m_loaded_lights[0].light_width;
-  glm::mat4 light_projection_mat =
-      glm::ortho(-width, width, -width, width, 0.01f, 20.0f);
-
-  shared_light_space_matrix = light_projection_mat * light_look_at;
-
-  depth_shader->use();
-
-  glViewport(0, 0, shadow_map_width, shadow_map_height);
-  glBindFramebuffer(GL_FRAMEBUFFER, window_depth_map_fbo);
-  glClear(GL_DEPTH_BUFFER_BIT);
-
-  check_gl_error("after setting viewport stuff up (depth)");
-
-  // render scene from light pov
-  for (auto &entity : m_active_scene->m_loaded_entities) {
-    for (auto &mesh : entity.m_mesh) {
-
-      // bind meshes vao context
-      glBindVertexArray(mesh.m_mesh_vao);
-      if (glIsVertexArray(mesh.m_mesh_vao) == GL_FALSE) {
-        log_error("no valid VAO id! cant render mesh.");
-      }
-
-      check_gl_error("before setting uniforms (depth)");
-
-      upload_to_uniform(*depth_shader, "model",
-                        entity.m_model_matrix * mesh.m_model_matrix);
-      upload_to_uniform(*depth_shader, "light_space_matrix",
-                        shared_light_space_matrix);
-
-      check_gl_error("after setting uniforms (depth)");
-
-      // we renderin
-      glDrawArrays(GL_TRIANGLES, 0, mesh.m_vertices_array.size() / 3);
-
-      check_gl_error("after glDrawArrays (depth)");
-    }
-  }
-};
-
-// only define needed.
-void Renderpass_Object::setup_vbos() {};
-void Renderpass_Object::render_frame() {};
-
-void Renderpass_Overlay::setup_vbos() {};
-void Renderpass_Overlay::render_frame() {
-  
-  if(m_active_scene == nullptr)
-    return;
-  
   // draw visualizers for lights in the scene
   for (auto &light_source : m_active_scene->m_loaded_lights) {
 
@@ -340,8 +305,71 @@ void Renderpass_Overlay::render_frame() {
 
     check_gl_error("after glDrawArrays (lights)");
   }
-};
+}
 
-void Renderpass_Object::update_active_scene(std::shared_ptr<Scene> active_scene) {
-  m_active_scene = active_scene;
-};
+void Shadow_Map_Pipeline::render_frame() {
+  if(pipeline_is_setup) {
+    render_depth_pass();
+    render_color_pass();
+    render_overlay_pass();
+  } else {
+    init_pipeline();
+  }
+}
+
+void Shadow_Map_Pipeline::init_pipeline() {
+  
+  init_depth_pass();
+  init_color_pass();
+  
+  pipeline_is_setup = true;
+  
+}
+
+void Shadow_Map_Pipeline::init_depth_pass() {
+
+  if(m_active_scene == nullptr)
+    return;
+    
+  printf("setup vbos called from depth!\n");
+  
+  // SHADOW MAPPING
+  glGenFramebuffers(1, &window_depth_map_fbo);
+  
+  glGenTextures(1, &window_depth_map);
+  glBindTexture(GL_TEXTURE_2D, window_depth_map);
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT32F, shadow_map_width,
+               shadow_map_height, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+  float borderColor[] = {1.0f, 1.0f, 1.0f, 1.0f};
+  glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
+  
+  glBindFramebuffer(GL_FRAMEBUFFER, window_depth_map_fbo);
+  glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D,
+                         window_depth_map, 0);
+  glDrawBuffer(GL_NONE);
+  glReadBuffer(GL_NONE);
+  glBindFramebuffer(GL_FRAMEBUFFER, 0);
+  
+  depth_shader = new Shader("src/shaders/shader_src/depth.vert",
+                            "src/shaders/shader_src/depth.frag");
+}
+
+void Shadow_Map_Pipeline::init_color_pass() {
+
+
+  
+}
+
+void Shadow_Map_Pipeline::update_scene() {}
+
+void Shadow_Map_Pipeline::update_time() {}
+
+/// Raytrace impl
+
+void Ray_Traced_Pipeline::render_frame() {}
+void Ray_Traced_Pipeline::update_scene() {}
+void Ray_Traced_Pipeline::update_time() {}

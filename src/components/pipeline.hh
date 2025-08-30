@@ -1,19 +1,24 @@
 #pragma once
 
-#include "../shaders/shaderclass.hh"
 #include "scene.hh"
 
-class Renderpass_Object {
+class Pipeline {
 public:
-  
-  virtual ~Renderpass_Object() = default;
-  virtual void setup_vbos();
-  virtual void render_frame();
 
-  void update_active_scene(std::shared_ptr<Scene> active_scene);
+  ~Pipeline() = default;
+
+  virtual void init_pipeline() = 0;
+  virtual void render_frame() = 0;
+  virtual void update_scene() = 0;
+  virtual void update_time() = 0;
+  
+  void check_gl_error(const char *context);
   template <typename T> void upload_to_uniform(Shader bound_shader,
 					       std::string uniform_name,
 					       T upload_data);
+  
+  bool vbos_need_refresh = false;
+  bool pipeline_is_setup = false;
 
   //shared variables between render passes
   std::shared_ptr<Scene> m_active_scene = nullptr;
@@ -22,35 +27,36 @@ public:
   glm::mat4 shared_light_space_matrix;
   glm::mat4 shared_camera_view_matrix;
   glm::mat4 shared_camera_projection_matrix;
-  
-  };
 
-// depth pass renderpass  
-class Renderpass_Depth: public Renderpass_Object {
-public:
+  
+};
+
+class Shadow_Map_Pipeline : public Pipeline {
+private:
+  void render_depth_pass();
+  void render_color_pass();
+  void render_overlay_pass();
+
+  void init_depth_pass();
+  void init_color_pass();
+
   // shadow mapping utils
   unsigned int window_depth_map_fbo;
   const unsigned int shadow_map_width = 4000;
   const unsigned int shadow_map_height = 4000;
   Shader* depth_shader = nullptr;
   
-  void setup_vbos();
-  void render_frame();
-  
-};
-
-// color pass renderpass
-class Renderpass_Color:public Renderpass_Object {
-public:  
-  void setup_vbos();
-  void render_frame();
-};
-
-// overlay pass renderpass
-class Renderpass_Overlay : public Renderpass_Object {
 public:
-
-  void setup_vbos();
   void render_frame();
-  
+  void init_pipeline();
+  void update_scene();
+  void update_time();
+};
+
+
+class Ray_Traced_Pipeline : public Pipeline {
+public:
+  void render_frame();
+  void update_scene();
+  void update_time();  
 };
