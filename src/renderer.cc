@@ -142,7 +142,7 @@ void Renderer::init_scene(const char *scene_fp) {
   main_light.m_strength = 10;
 
   main_light.m_light_matrix =
-      glm::translate(main_light.m_light_matrix, glm::vec3(10.0f, 2.0f, 1.0f));
+      glm::translate(main_light.m_light_matrix, glm::vec3(10.0f, 8.0f, 5.0f));
 
   m_active_scene->add_entity_to_scene(load_entity);
   m_active_scene->add_light_to_scene(main_light);

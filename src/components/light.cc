@@ -32,5 +32,10 @@ glm::vec3 Light::get_light_position() {
 glm::mat3 Light::get_light_rotation_matrix() {
 
   return glm::mat3(m_light_matrix);
+}
+
+glm::mat4 Light::get_light_matrix() {
+
+  return glm::translate(glm::mat4(1.0f), m_light_position);
   
 }

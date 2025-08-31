@@ -1,5 +1,7 @@
 #include "pipeline.hh"
+#include "mesh.hh"
 
+#include <glm/ext/vector_float3.hpp>
 #include <glm/glm.hpp>
 
 /// Pipeline boilerplate empty impl
@@ -65,22 +67,18 @@ void Pipeline::upload_to_uniform(Shader bound_shader, std::string uniform_name,
 
 void Shadow_Map_Pipeline::render_depth_pass() {
 
-  printf("render frame called from depth!\n");
-
-  if (m_active_scene == nullptr)
-    return;
-
   depth_shader->use();
 
   // configure spotlight shadow mapping
   glm::vec3 light_pos_new =
       m_active_scene->m_loaded_lights[0].get_light_position();
-  glm::mat3 light_rotation =
-      m_active_scene->m_loaded_lights[0].get_light_rotation_matrix();
+  //  glm::mat3 light_rotation =
+  //  m_active_scene->m_loaded_lights[0].get_light_rotation_matrix();
 
   glm::mat4 light_look_at = glm::lookAt(
       light_pos_new,
-      light_pos_new + glm::normalize(light_rotation * glm::vec3(0, 0, -1)),
+      //light_pos_new + glm::normalize(light_rotation * glm::vec3(0, 0, -1)),
+      glm::vec3(0.0f,0.0f,0.0f),
       glm::vec3(0.0f, 1.0f, 0.0f));
 
   // use for sanity
@@ -101,6 +99,9 @@ void Shadow_Map_Pipeline::render_depth_pass() {
   // render scene from light pov
   for (auto &entity : m_active_scene->m_loaded_entities) {
     for (auto &mesh : entity.m_mesh) {
+
+      if(mesh.m_render_mode == E_WIREFRAME)
+	return;
 
       // bind meshes vao context
       glBindVertexArray(mesh.m_mesh_vao);
@@ -126,11 +127,6 @@ void Shadow_Map_Pipeline::render_depth_pass() {
 };
 
 void Shadow_Map_Pipeline::render_color_pass() {
-
-  if (m_active_scene == nullptr)
-    return;
-
-  printf("render frame called from color!\n");
 
   // rebind old fb
   glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -234,9 +230,6 @@ void Shadow_Map_Pipeline::render_color_pass() {
 
 void Shadow_Map_Pipeline::render_overlay_pass() {
 
-  if (m_active_scene == nullptr)
-    return;
-
   // draw visualizers for lights in the scene
   for (auto &light_source : m_active_scene->m_loaded_lights) {
 
@@ -308,6 +301,10 @@ void Shadow_Map_Pipeline::render_overlay_pass() {
 }
 
 void Shadow_Map_Pipeline::render_frame() {
+  
+  if (m_active_scene == nullptr)
+    return;
+  
   if(pipeline_is_setup) {
     render_depth_pass();
     render_color_pass();
@@ -319,6 +316,9 @@ void Shadow_Map_Pipeline::render_frame() {
 
 void Shadow_Map_Pipeline::init_pipeline() {
   
+  if (m_active_scene == nullptr)
+    return;
+  
   init_depth_pass();
   init_color_pass();
   
@@ -327,9 +327,6 @@ void Shadow_Map_Pipeline::init_pipeline() {
 }
 
 void Shadow_Map_Pipeline::init_depth_pass() {
-
-  if(m_active_scene == nullptr)
-    return;
     
   printf("setup vbos called from depth!\n");
   

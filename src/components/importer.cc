@@ -72,13 +72,14 @@ GLuint Importer::bind_texture_to_slot(
 
 
 std::vector<Mesh> Importer::load_all_meshes_from_gltf(
-    const std::string &file_path,
-    std::atomic<unsigned int> &num_loaded_textures,
-    std::vector<std::tuple<std::string, unsigned int, GLuint>> &texture_map) {
+						      const std::string &file_path,
+						      std::atomic<unsigned int> &num_loaded_textures,
+						      std::vector<std::tuple<std::string, unsigned int, GLuint>> &texture_map) {
+
   tinygltf::Model model;
   tinygltf::TinyGLTF loader;
   std::string err, warn;
-
+  
   log_success("importing a gltf file... loading ascii file...");
   bool ret = loader.LoadASCIIFromFile(&model, &err, &warn, file_path);
 
@@ -118,7 +119,7 @@ std::vector<Mesh> Importer::load_all_meshes_from_gltf(
   process_node = [&](int node_idx, glm::mat4 parent_transform) {
     const auto &node = model.nodes[node_idx];
     glm::mat4 node_transform = glm::mat4(1.0f);
-
+    
     if (node.matrix.size() == 16)
       node_transform = glm::make_mat4(node.matrix.data());
     else {
@@ -185,13 +186,19 @@ std::vector<Mesh> Importer::load_all_meshes_from_gltf(
         log_debug("checking material for textures etc");
 	
 	uint8_t shader_type_carry = 0;
+	//0 invalid
+	//1 phong (fallback - always possible if we have a mesh)
+	//2 texture shading (possible if albedo exists)
+	//3 pbr (albedo, normal, roughness, [depth])
+	
 	std::string texture_path_of_model;
 	
 	if(primitive.material >= 0) {
-
+	  
 	  const tinygltf::Material &material =
             model.materials[primitive.material];
-	  
+
+	  //check for albedo texure present
 	  auto it = material.values.find("baseColorTexture");
 	  if (it != material.values.end() && it->second.TextureIndex() >= 0) {
 	    const tinygltf::Texture &texture =
@@ -199,13 +206,17 @@ std::vector<Mesh> Importer::load_all_meshes_from_gltf(
 	    const tinygltf::Image &image = model.images[texture.source];
 	    std::cout << "Texture path: " << image.uri << std::endl;
 	    texture_path_of_model = image.uri;
-	    shader_type_carry = 2;
-	  } else {    
+	    shader_type_carry = 2; // flat shading is possible
+	  } else {
+	    // use fallback if no color tex is in mesh.
 	    log_error("no materials in mesh! using phong shaders as a fallback.");
 	    shader_type_carry = 1;
 	  }
+
+	  // TODO check for other textures for pbr
+	  
 	} else {
-	  //also need to use fallback
+	  //also need to use fallback if there is 0 materials in mesh
 	  shader_type_carry = 1;
 	}
         
@@ -298,7 +309,7 @@ std::vector<Mesh> Importer::load_all_meshes_from_gltf(
 
           meshes.push_back(std::move(primitive_mesh));
 
-          log_success("yay pbr mesh or so");
+          log_success("texture shaded mesh successfully imported.");
 
         } else {
           // use phong shading (fallback)
@@ -320,7 +331,7 @@ std::vector<Mesh> Importer::load_all_meshes_from_gltf(
 
           meshes.push_back(std::move(primitive_mesh));
 
-          log_success("shit phong mesh detected");
+          log_success("fallback phong shaded mesh successfully imported.");
         }
       }
     }
@@ -339,12 +350,6 @@ std::vector<Mesh> Importer::load_all_meshes_from_gltf(
   }
 
   log_success("GLTF scene fully loaded with multiple meshes!");
-
-  for (auto mesh : meshes) {
-
-    std::cout << "mesh in meshes with n vertices: "
-              << mesh.m_vertices_array.size() << std::endl;
-  }
 
   return meshes;
 }
