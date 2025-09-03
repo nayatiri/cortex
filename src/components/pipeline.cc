@@ -112,7 +112,7 @@ void Shadow_Map_Pipeline::render_depth_pass() {
       check_gl_error("before setting uniforms (depth)");
 
       upload_to_uniform(*depth_shader, "model",
-                        entity.m_model_matrix * mesh.m_model_matrix);
+                        entity.get_model_matrix() * mesh.get_model_matrix());
       upload_to_uniform(*depth_shader, "light_space_matrix",
                         shared_light_space_matrix);
 
@@ -125,6 +125,12 @@ void Shadow_Map_Pipeline::render_depth_pass() {
     }
   }
 };
+
+void Shadow_Map_Pipeline::render_color_point_cloud() {
+
+  
+  
+}
 
 void Shadow_Map_Pipeline::render_color_pass() {
 
@@ -202,7 +208,7 @@ void Shadow_Map_Pipeline::render_color_pass() {
                         glm::vec3(0.8, 0.8, 0.8));
 
       upload_to_uniform(mesh.m_material.m_shader, "model",
-                        entity.m_model_matrix * mesh.m_model_matrix);
+                        entity.get_model_matrix() * mesh.get_model_matrix());
 
       upload_to_uniform(mesh.m_material.m_shader, "view",
                         shared_camera_view_matrix);
@@ -218,7 +224,7 @@ void Shadow_Map_Pipeline::render_color_pass() {
       upload_to_uniform(mesh.m_material.m_shader, "light_space_matrix",
                         shared_light_space_matrix);
 
-      check_gl_error("after setting uniforms");
+      check_gl_error("after setting uniforms (shadow map color pass)");
 
       // we renderin
       glDrawArrays(GL_TRIANGLES, 0, mesh.m_vertices_array.size() / 3);
@@ -230,7 +236,12 @@ void Shadow_Map_Pipeline::render_color_pass() {
 
 void Shadow_Map_Pipeline::render_overlay_pass() {
 
-  // draw visualizers for lights in the scene
+  /////////////////////////////////
+  // rendering light visualizers //
+  /////////////////////////////////
+
+  glBindFramebuffer(GL_FRAMEBUFFER, 0);
+  
   for (auto &light_source : m_active_scene->m_loaded_lights) {
 
     // bind meshes vao context
@@ -266,7 +277,7 @@ void Shadow_Map_Pipeline::render_overlay_pass() {
           "uDepthMap");
       glUniform1i(loc_depth, 1);
 
-      check_gl_error("after uploading textures");
+      check_gl_error("after uploading textures (lights)");
     }
 
     upload_to_uniform(light_source.m_light_visualizer_mesh.m_material.m_shader,
@@ -274,7 +285,7 @@ void Shadow_Map_Pipeline::render_overlay_pass() {
     upload_to_uniform(light_source.m_light_visualizer_mesh.m_material.m_shader,
                       "lightColor", glm::vec3(0.8, 0.8, 0.8));
     upload_to_uniform(light_source.m_light_visualizer_mesh.m_material.m_shader,
-                      "model", light_source.m_light_matrix);
+                      "model", glm::translate(glm::mat4(1.0f),light_source.get_light_position()) * light_source.get_light_rotation_matrix());
 
     upload_to_uniform(light_source.m_light_visualizer_mesh.m_material.m_shader,
                       "view", shared_camera_view_matrix);
@@ -289,7 +300,7 @@ void Shadow_Map_Pipeline::render_overlay_pass() {
     upload_to_uniform(light_source.m_light_visualizer_mesh.m_material.m_shader,
                       "light_space_matrix", shared_light_space_matrix);
 
-    check_gl_error("after setting uniforms");
+    check_gl_error("after setting uniforms (overlay pass light)");
 
     // we renderin
     glDrawArrays(GL_TRIANGLES, 0,
@@ -297,6 +308,46 @@ void Shadow_Map_Pipeline::render_overlay_pass() {
                      3);
 
     check_gl_error("after glDrawArrays (lights)");
+  }
+
+
+  ///////////////////////////////
+  // rendering hitbox overlays //
+  ///////////////////////////////
+
+  // render hitbox meshes
+  for (auto &entity : m_active_scene->m_loaded_entities) {
+    for (auto &mesh : entity.m_mesh) {
+      
+      // change to hitbox style
+      glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+
+      // bind meshes vao context
+      glBindVertexArray(mesh.AABB_visualizer->m_mesh_vao);
+      if (glIsVertexArray(mesh.AABB_visualizer->m_mesh_vao) == GL_FALSE) {
+        log_error("no valid VAO id! cant render mesh.");
+      }
+
+      check_gl_error("after binding vao (overlay pass hitboxes)");
+
+      mesh.AABB_visualizer->m_material.m_shader.use();
+
+      check_gl_error("after setting shader active (overlay pass hitboxes)");
+
+      upload_to_uniform(mesh.m_material.m_shader, "model",
+                        entity.get_model_matrix() * mesh.get_model_matrix());
+      upload_to_uniform(mesh.m_material.m_shader, "view",
+                        shared_camera_view_matrix);
+      upload_to_uniform(mesh.m_material.m_shader, "projection",
+                        shared_camera_projection_matrix);
+
+      check_gl_error("after setting uniforms (overlay pass hitboxes)");
+
+      // we renderin
+      glDrawArrays(GL_TRIANGLES, 0, mesh.AABB_visualizer->m_vertices_array.size() / 3);
+
+      check_gl_error("after glDrawArrays (overlay pass hitboxes)");
+    }
   }
 }
 

@@ -28,5 +28,8 @@ public:
   std::unique_ptr<Camera> m_camera;
 
   bool m_scene_vbos_need_refresh = false;
+
+  float m_scene_deltatime = 0;
+  float m_scene_abstime = 0;
   
 };

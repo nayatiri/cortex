@@ -7,16 +7,12 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
-// stdlib
-#include <cmath>
-#include <cstring>
-#include <iostream>
-#include <string>
-
 //material constructor
 Material::Material(e_mat_type material_type, Shader use_shader) : m_shader(use_shader) {
   
   m_material_type = material_type;
+
+  m_shader.use();
   
 }
 

@@ -1,4 +1,6 @@
 #include "physicsmanager.hh"
+#include "entity.hh"
+#include "logging.hh"
 #include <array>
 #include <memory>
 
@@ -8,29 +10,33 @@ Physics_Manager::Physics_Manager(std::shared_ptr<Scene> set_scene) {
 
 Mesh Physics_Manager::create_collision_box_mesh(const AABB &box) {
   std::array<glm::vec3, 8> corners = {
-      glm::vec3(box.min.x, box.min.y, box.min.z),
-      glm::vec3(box.max.x, box.min.y, box.min.z),
-      glm::vec3(box.max.x, box.max.y, box.min.z),
-      glm::vec3(box.min.x, box.max.y, box.min.z),
-      glm::vec3(box.min.x, box.min.y, box.max.z),
-      glm::vec3(box.max.x, box.min.y, box.max.z),
-      glm::vec3(box.max.x, box.max.y, box.max.z),
-      glm::vec3(box.min.x, box.max.y, box.max.z)};
+    glm::vec3(box.min.x, box.min.y, box.min.z),
+    glm::vec3(box.max.x, box.min.y, box.min.z),
+    glm::vec3(box.max.x, box.max.y, box.min.z),
+    glm::vec3(box.min.x, box.max.y, box.min.z),
+    glm::vec3(box.min.x, box.min.y, box.max.z),
+    glm::vec3(box.max.x, box.min.y, box.max.z),
+    glm::vec3(box.max.x, box.max.y, box.max.z),
+    glm::vec3(box.min.x, box.max.y, box.max.z) 
+  };
 
-  std::array<int, 24> edge_indices = {0, 1, 1, 2, 2, 3, 3, 0, 4, 5, 5, 6,
-                                      6, 7, 7, 4, 0, 4, 1, 5, 2, 6, 3, 7};
-
+  std::array<int, 36> face_indices = {
+    0, 1, 2,  0, 2, 3,
+    4, 7, 6,  4, 6, 5,
+    0, 3, 2,  0, 2, 1,
+    4, 5, 6,  4, 6, 7,
+    0, 4, 7,  0, 7, 3,
+    1, 2, 6,  1, 6, 5
+  };
+  
   std::vector<float> vertices;
-  vertices.reserve(24 * 3);
-
-  for (int i = 0; i < 24; i += 2) {
-    glm::vec3 v1 = corners[edge_indices[i]];
-    glm::vec3 v2 = corners[edge_indices[i + 1]];
-
-    vertices.insert(vertices.end(), {v1.x, v1.y, v1.z});
-    vertices.insert(vertices.end(), {v2.x, v2.y, v2.z});
+  vertices.reserve(36 * 3); 
+  
+  for (int i = 0; i < 36; i++) {
+    glm::vec3 vertex = corners[face_indices[i]];
+    vertices.insert(vertices.end(), {vertex.x, vertex.y, vertex.z});
   }
-
+  
   Shader wireframe_shader("src/shaders/shader_src/wireframe.vert",
                           "src/shaders/shader_src/wireframe.frag");
   Material material(E_PHONG, wireframe_shader);
@@ -43,11 +49,11 @@ Mesh Physics_Manager::create_collision_box_mesh(const AABB &box) {
   return mesh;
 }
 
-AABB Physics_Manager::compute_world_space_aabb(const Mesh &mesh,
+AABB Physics_Manager::compute_world_space_aabb(Mesh &mesh,
                                                const glm::mat4 &transform) {
   AABB bbox{{10000.0f, 10000.0f, 10000.0f}, {-10000.0f, -10000.0f, -10000.0f}};
 
-  const glm::mat4 mesh_transform = transform * mesh.m_model_matrix;
+  const glm::mat4 mesh_transform = transform * mesh.get_model_matrix();
 
   for (size_t i = 0; i + 2 < mesh.m_vertices_array.size(); i += 3) {
     glm::vec4 vertex{mesh.m_vertices_array[i], mesh.m_vertices_array[i + 1],
@@ -68,13 +74,12 @@ AABB Physics_Manager::compute_world_space_aabb(const Mesh &mesh,
 }
 
 void Physics_Manager::calculate_phys_boxes() {
-  std::vector<Mesh> mesh_buffer;
 
   std::cout << "Scene contains entities: "
             << m_active_scene->m_loaded_entities.size() << std::endl;
 
   for (Entity &entity : m_active_scene->m_loaded_entities) {
-    glm::mat4 entity_transform = entity.m_model_matrix;
+    glm::mat4 entity_transform = entity.get_model_matrix();
     std::cout << "Entity contains meshes: " << entity.m_mesh.size()
               << std::endl;
 
@@ -91,15 +96,11 @@ void Physics_Manager::calculate_phys_boxes() {
       }
 
       AABB bbox = compute_world_space_aabb(mesh, entity_transform);
-      Mesh col_box = create_collision_box_mesh(bbox);
-      mesh_buffer.push_back(col_box);
+      
+      mesh.AABB_visualizer = std::make_shared<Mesh>( create_collision_box_mesh(bbox) );
 
-      log_success("Calculated hitbox for mesh!");
+      log_success("Calculated hitbox for mesh, and added it to Mesh!");
     }
-  }
-
-  for(Mesh m : mesh_buffer) {
-    m_active_scene->m_loaded_entities[0].m_mesh.push_back(m);
   }
 
   m_active_scene->m_scene_vbos_need_refresh = true;
@@ -112,4 +113,20 @@ void Physics_Manager::handle_scene_physics() {
     calculate_phys_boxes();
     m_phys_boxes_initialized = true;
   }
+
+  //gravity?
+
+  for(Entity &e : m_active_scene->m_loaded_entities) {
+    for(Mesh &m : e.m_mesh) {
+
+      if(m.phys_props.is_physics_object) {
+
+	m.change_position(1.0*m_active_scene->m_scene_deltatime, 0, 0);
+	
+	log_success("changed pos");
+	
+      }
+    }
+  }
+  
 }

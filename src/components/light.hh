@@ -31,16 +31,16 @@ public:
   float light_width = 10.0f;
   
   Mesh m_light_visualizer_mesh;
-  
-  glm::mat4 m_light_matrix = glm::mat4(1.0f);
 
   glm::vec3 m_light_position = glm::vec3(0.0f);
-  glm::vec3 m_light_rotation = glm::vec3(0.0f);
+  glm::vec3 m_light_look_at_point = glm::vec3(0.0f);
 
-  glm::mat4 get_light_matrix();
-  
+  glm::mat4 get_light_look_at();
   glm::vec3 get_light_position();
-  glm::mat3 get_light_rotation_matrix();
+  glm::mat4 get_light_rotation_matrix();
+
+  void set_light_position(float x,float y,float z);
+  void set_light_look_at(float x,float y,float z);
   
   Light(Mesh to_use);
   

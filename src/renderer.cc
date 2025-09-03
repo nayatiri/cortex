@@ -1,32 +1,22 @@
 #include "renderer.hh"
 
-// components
-#include <glm/ext/matrix_clip_space.hpp>
-#include <glm/ext/matrix_float4x4.hpp>
-#include <glm/matrix.hpp>
-#include <glm/trigonometric.hpp>
-#include <iostream>
-
+// third party libraries
 #include "./glad/glad.h"
 #include "./libs/tiny_gltf.h"
-
 #include <GLFW/glfw3.h>
-#include <glm/ext/matrix_transform.hpp>
-#include <glm/ext/vector_float3.hpp>
-#include <glm/geometric.hpp>
 #include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-#include <glm/gtc/type_ptr.hpp>
 
 // stdlib
 #include <cstring>
 #include <iostream>
 #include <memory>
+#include <stdexcept>
 #include <string>
 #include <type_traits>
 #include <vector>
+#include <iostream>
 
-// components (custom)
+// components
 #include "components/entity.hh"
 #include "components/input.hh"
 #include "components/light.hh"
@@ -34,9 +24,9 @@
 #include "components/mesh.hh"
 #include "components/scene.hh"
 #include "components/animationmanager.hh"
-#include "shaders/shaderclass.hh"
 #include "components/importer.hh"
 #include "components/pipeline.hh"
+#include "shaders/shaderclass.hh"
 
 #define DEF_NEAR_CLIP_PLANE 0.01f
 #define DEF_FAR_CLIP_PLANE 10000.0f
@@ -61,6 +51,9 @@ void Renderer::update_scene_time() {
   float currentFrame = glfwGetTime();
   m_deltaTime = currentFrame - m_application_current_time;
   m_application_current_time = currentFrame;
+  //update dT in activeScene.
+  m_active_scene->m_scene_deltatime = m_deltaTime;
+  m_active_scene->m_scene_abstime = m_application_current_time;
 }
 
 void Renderer::abstract_render() {
@@ -104,7 +97,7 @@ void Renderer::render_frame() {
   //TMP unclean
   m_pipeline->m_viewport_height = m_viewport_height;
   m_pipeline->m_viewport_width = m_viewport_width;
-
+  
   //launch depth render pass impl
   abstract_render();
 
@@ -141,9 +134,8 @@ void Renderer::init_scene(const char *scene_fp) {
   main_light.m_color = 0xFFFFFF;
   main_light.m_strength = 10;
 
-  main_light.m_light_matrix =
-      glm::translate(main_light.m_light_matrix, glm::vec3(10.0f, 8.0f, 5.0f));
-
+  main_light.set_light_position(10,8,5);
+  
   m_active_scene->add_entity_to_scene(load_entity);
   m_active_scene->add_light_to_scene(main_light);
 
@@ -161,6 +153,9 @@ void Renderer::init_scene(const char *scene_fp) {
 
   //TMP setup vbos n shi
   m_pipeline->init_pipeline();
+  //TMP make one of the cubes a phys object for testing
+  m_active_scene->m_loaded_entities[0].m_mesh[1].phys_props.is_physics_object=true;
+
   
   log_success("done initializing renderer.");
 }
@@ -244,8 +239,9 @@ void Renderer::init_scene_vbos() {
   ////////////////////////////////////
   // Update Entity Mesh VBOs
   ////////////////////////////////////
-  for (auto &entity : m_active_scene->m_loaded_entities) {
-    for (auto &mesh : entity.m_mesh) {
+  for (Entity &entity : m_active_scene->m_loaded_entities) {
+    for (Mesh &mesh : entity.m_mesh) {
+      
       if (!mesh.m_mesh_vbo_needs_refresh)
         continue;  
 
@@ -342,6 +338,40 @@ void Renderer::init_scene_vbos() {
     }
   }
 
+
+  ///////////////////////////////
+  // Update Entity Hitbox VBOs //
+  ///////////////////////////////
+  for (Entity &entity : m_active_scene->m_loaded_entities) {
+    for (Mesh &mesh : entity.m_mesh) {
+
+      if(mesh.AABB_visualizer == nullptr || !mesh.AABB_visualizer->m_mesh_vbo_needs_refresh)
+	continue;
+      
+      log_debug_sub("Reinitializing VBOs for meshes hitbox (needs refresh)");
+
+      std::cout << "initialized hitbox mesh with n verts:" << mesh.AABB_visualizer->m_vertices_array.size() << std::endl;
+      
+      // Clean up old buffers to prevent leaks
+      cleanup_mesh_vbos(*mesh.AABB_visualizer);
+
+      // Create VAO
+      glGenVertexArrays(1, &mesh.AABB_visualizer->m_mesh_vao);
+      glBindVertexArray(mesh.AABB_visualizer->m_mesh_vao);
+
+      // verts
+      if (!mesh.AABB_visualizer->m_vertices_array.empty()) {
+        glGenBuffers(1, &mesh.AABB_visualizer->m_vertices_glid);
+        glBindBuffer(GL_ARRAY_BUFFER, mesh.AABB_visualizer->m_vertices_glid);
+        glBufferData(GL_ARRAY_BUFFER,
+                     mesh.AABB_visualizer->m_vertices_array.size() * sizeof(float),
+                     mesh.AABB_visualizer->m_vertices_array.data(), GL_STATIC_DRAW);
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+        glEnableVertexAttribArray(0);
+      }
+    }
+  }
+  
   m_active_scene->m_scene_vbos_need_refresh = false;
   log_success("Successfully initialized/updated VBOs for all dirty meshes!");
 }

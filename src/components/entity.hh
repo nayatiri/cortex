@@ -3,27 +3,31 @@
 #include "animation.hh"
 #include "mesh.hh"
 
-#include <glm/ext/matrix_float4x4.hpp>
 #include <GLFW/glfw3.h>
-#include <glm/ext/matrix_transform.hpp>
-#include <glm/ext/vector_float3.hpp>
-#include <glm/geometric.hpp>
 #include <glm/glm.hpp>
-#include <glm/matrix.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-#include <glm/gtc/type_ptr.hpp>
 
 // stdlib
 #include <vector>
 
 class Entity {
+private:
+  glm::mat4 m_model_matrix_buffer;
+  
 public:
-
   bool is_initialized();
+
+  bool model_matrix_deprecated = true;
+  float m_pos_x = 0, m_pos_y = 0, m_pos_z = 0;
+  float m_rot_x = 0, m_rot_y = 0, m_rot_z = 0;
+  glm::mat4 get_model_matrix();
+
+  void set_position(float x ,float y, float z);
+  void change_position(float x ,float y, float z);
+
+  void set_rotation (float rx ,float ry, float rz);
+  void change_rotation (float rx ,float ry, float rz);
   
   std::vector<Mesh> m_mesh;
-
-  glm::mat4 m_model_matrix = glm::mat4(1.0f);
 
   std::vector<animation>* m_animation_table;
   

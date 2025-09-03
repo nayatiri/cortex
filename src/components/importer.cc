@@ -289,7 +289,7 @@ std::vector<Mesh> Importer::load_all_meshes_from_gltf(
           primitive_mesh.m_tangents_array = std::move(final_tangents);
           primitive_mesh.m_binormals_array = std::move(final_bitangents);
           primitive_mesh.m_tex_coords_array = std::move(final_texcoords);
-          primitive_mesh.m_model_matrix = global_transform;
+          primitive_mesh.exp_overwrite_model_matrix(global_transform);
 
           // bind tex to num_loaded_tex and increment.
           std::filesystem::path cwd = std::filesystem::current_path();
@@ -325,7 +325,7 @@ std::vector<Mesh> Importer::load_all_meshes_from_gltf(
           primitive_mesh.m_tangents_array = std::move(final_tangents);
           primitive_mesh.m_binormals_array = std::move(final_bitangents);
           primitive_mesh.m_tex_coords_array = std::move(final_texcoords);
-          primitive_mesh.m_model_matrix = global_transform;
+          primitive_mesh.exp_overwrite_model_matrix(global_transform);
 
           primitive_mesh.m_material.m_material_type = E_PHONG;
 

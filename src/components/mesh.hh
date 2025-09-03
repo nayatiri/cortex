@@ -7,9 +7,21 @@
 #include <glm/gtc/type_ptr.hpp>
 
 // stdlib
+#include <memory>
 #include <vector>
 
 #include "../components/material.hh"
+
+//TODO make this shit not be declared here :-) 
+struct Physics_properties {
+
+  bool is_physics_object = false;
+
+  float mass = 1;
+
+  float surface_area = 1;
+  
+};
 
 enum e_mesh_type {
 
@@ -28,8 +40,26 @@ enum e_mesh_render_mode {
 
 
 class Mesh {
+private:
+  glm::mat4 m_model_matrix_buffer;
 
 public:
+  std::shared_ptr<Mesh> AABB_visualizer = nullptr;
+  
+  bool model_matrix_deprecated = true;
+  float m_pos_x = 0, m_pos_y = 0, m_pos_z = 0;
+  float m_rot_x = 0, m_rot_y = 0, m_rot_z = 0;
+  glm::mat4 get_model_matrix();
+
+  void set_position(float x ,float y, float z);
+  void change_position(float x ,float y, float z);
+
+  void set_rotation (float rx ,float ry, float rz);
+  void change_rotation (float rx ,float ry, float rz);
+
+  void exp_overwrite_model_matrix(glm::mat4 new_mat);
+  
+  Physics_properties phys_props;
 
   Mesh(Material use_material);
 
@@ -45,7 +75,6 @@ public:
 
   GLuint m_mesh_vao;
   Material m_material;
-  glm::mat4 m_model_matrix = glm::mat4(1.0f);
 
   GLuint m_vertices_glid;
   GLuint m_tex_coords_glid;
