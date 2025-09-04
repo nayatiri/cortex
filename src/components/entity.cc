@@ -53,3 +53,10 @@ void Entity::change_position(float x, float y, float z) {
   m_pos_z += z;
   model_matrix_deprecated = true;
 }
+
+bool Entity::is_initialized() {
+  if(m_mesh.size()>0)
+    return true;
+  else
+    return false;
+}    

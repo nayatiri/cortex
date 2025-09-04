@@ -7,8 +7,8 @@ in vec3 Normal;
 in vec3 LightPos;   
 
 uniform vec3 viewPos;
-uniform vec3 lightColor;
-uniform vec3 objectColor;
+uniform vec3 lightColor = vec3(0.8,0.8,0.8);
+uniform vec3 objectColor = vec3(0.5,0.8,0.2);
 
 void main()
 {

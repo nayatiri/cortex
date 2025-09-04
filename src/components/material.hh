@@ -21,7 +21,8 @@ enum e_mat_type {
   E_PHONG,
   E_PHONG_TEX,
   E_FACE,
-  E_FACE_TEX
+  E_FACE_TEX,
+  E_POINT
 };
 
 class Material {

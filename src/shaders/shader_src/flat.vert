@@ -10,7 +10,6 @@ uniform mat4 model;
 uniform mat4 view;                      
 uniform mat4 projection;
 uniform mat4 light_space_matrix;
-uniform vec3 lightPosition;             
 
 void main() {
     FragLightSpacePos = light_space_matrix *  model *  vec4(aPos, 1.0);

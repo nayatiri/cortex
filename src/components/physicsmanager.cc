@@ -122,9 +122,7 @@ void Physics_Manager::handle_scene_physics() {
       if(m.phys_props.is_physics_object) {
 
 	m.change_position(1.0*m_active_scene->m_scene_deltatime, 0, 0);
-	
-	log_success("changed pos");
-	
+        
       }
     }
   }

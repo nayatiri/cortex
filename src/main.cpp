@@ -7,7 +7,8 @@ int main () {
 
   Renderer main_renderer(1920,1080);
   main_renderer.init_scene("models/test_scene/test_scene.gltf");
-
+  main_renderer.add_point_to_scene(0,8,0);
+  
   while(!main_renderer.m_input_manager->m_should_shutdown) {
     main_renderer.render_frame();
   }

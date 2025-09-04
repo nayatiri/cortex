@@ -1,4 +1,7 @@
 #include "pipeline.hh"
+#include "entity.hh"
+#include "logging.hh"
+#include "material.hh"
 #include "mesh.hh"
 
 #include <glm/ext/vector_float3.hpp>
@@ -45,22 +48,30 @@ void Pipeline::check_gl_error(const char *context = "") {
 template <typename T>
 void Pipeline::upload_to_uniform(Shader bound_shader, std::string uniform_name,
                                  T upload_data) {
-
-  GLuint loc = bound_shader.get_cached_uniform_id(uniform_name);
-
+  
+  int loc = bound_shader.get_cached_uniform_id(uniform_name);
+  if(loc < 0){
+    log_error("invalid uniform ID returned. Cant upload data!");
+    return;
+  }
+  
   if constexpr (std::is_same<T, glm::mat4>::value) {
     glUniformMatrix4fv(loc, 1, GL_FALSE, glm::value_ptr(upload_data));
   } else
-
-      if constexpr (std::is_same<T, glm::vec3>::value) {
-    glUniform3fv(loc, 1, glm::value_ptr(upload_data));
-  } else
-
-      if constexpr (std::is_same<T, glm::mat3>::value) {
-    glUniformMatrix3fv(loc, 1, GL_FALSE, glm::value_ptr(upload_data));
-  } else {
-    log_error("unknown datatype passed to uniform!");
-  }
+    
+    if constexpr (std::is_same<T, glm::vec3>::value) {
+      glUniform3fv(loc, 1, glm::value_ptr(upload_data));
+    } else
+      
+      if constexpr (std::is_same<T, float>::value) {
+	glUniform1f(loc, upload_data);
+      } else
+	
+	if constexpr (std::is_same<T, glm::mat3>::value) {
+	  glUniformMatrix3fv(loc, 1, GL_FALSE, glm::value_ptr(upload_data));
+	} else {
+	  log_error("unknown datatype passed to uniform!");
+	}
 };
 
 /// shadowmapping impl
@@ -72,24 +83,21 @@ void Shadow_Map_Pipeline::render_depth_pass() {
   // configure spotlight shadow mapping
   glm::vec3 light_pos_new =
       m_active_scene->m_loaded_lights[0].get_light_position();
-  //  glm::mat3 light_rotation =
-  //  m_active_scene->m_loaded_lights[0].get_light_rotation_matrix();
 
   glm::mat4 light_look_at = glm::lookAt(
-      light_pos_new,
-      //light_pos_new + glm::normalize(light_rotation * glm::vec3(0, 0, -1)),
-      glm::vec3(0.0f,0.0f,0.0f),
-      glm::vec3(0.0f, 1.0f, 0.0f));
+					light_pos_new, // location
+					glm::vec3(0.0f,0.0f,0.0f), // look at
+					glm::vec3(0.0f, 1.0f, 0.0f)); // up vector 
 
-  // use for sanity
   float width = m_active_scene->m_loaded_lights[0].light_width;
   glm::mat4 light_projection_mat =
-      glm::ortho(-width, width, -width, width, 0.01f, 20.0f);
+    glm::ortho(-width, width, -width, width, 0.01f, 20.0f); // TODO make clip planes work properly
 
   shared_light_space_matrix = light_projection_mat * light_look_at;
 
   depth_shader->use();
 
+  // set viewport to light settings (not fb output for user)
   glViewport(0, 0, shadow_map_width, shadow_map_height);
   glBindFramebuffer(GL_FRAMEBUFFER, window_depth_map_fbo);
   glClear(GL_DEPTH_BUFFER_BIT);
@@ -100,6 +108,7 @@ void Shadow_Map_Pipeline::render_depth_pass() {
   for (auto &entity : m_active_scene->m_loaded_entities) {
     for (auto &mesh : entity.m_mesh) {
 
+      //prevent rendering hitboxes / other non solid geometry
       if(mesh.m_render_mode == E_WIREFRAME)
 	return;
 
@@ -108,36 +117,29 @@ void Shadow_Map_Pipeline::render_depth_pass() {
       if (glIsVertexArray(mesh.m_mesh_vao) == GL_FALSE) {
         log_error("no valid VAO id! cant render mesh.");
       }
-
-      check_gl_error("before setting uniforms (depth)");
+      check_gl_error("after settin VAO (depth)");
 
       upload_to_uniform(*depth_shader, "model",
                         entity.get_model_matrix() * mesh.get_model_matrix());
       upload_to_uniform(*depth_shader, "light_space_matrix",
                         shared_light_space_matrix);
-
       check_gl_error("after setting uniforms (depth)");
 
-      // we renderin
+      // render scene from light pov
       glDrawArrays(GL_TRIANGLES, 0, mesh.m_vertices_array.size() / 3);
-
       check_gl_error("after glDrawArrays (depth)");
     }
   }
 };
 
-void Shadow_Map_Pipeline::render_color_point_cloud() {
-
-  
-  
-}
+void Shadow_Map_Pipeline::render_color_point_cloud() {}
 
 void Shadow_Map_Pipeline::render_color_pass() {
 
-  // rebind old fb
+  // rebind main "visible" fb
   glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-  // render scene with old settings
+  // clear fb + setup viewport back to the output size
   glViewport(0, 0, m_viewport_width, m_viewport_height);
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
   glClearColor(0.3f, 0.3f, 0.3f, 1.0f);
@@ -145,19 +147,21 @@ void Shadow_Map_Pipeline::render_color_pass() {
 
   check_gl_error("after clearing frame");
 
+  // adjust camera view / projection matrices
   shared_camera_view_matrix =
       glm::lookAt(m_active_scene->m_camera->m_cameraPos,
                   m_active_scene->m_camera->m_cameraLookAt +
                       m_active_scene->m_camera->m_cameraPos,
                   m_active_scene->m_camera->m_cameraUp);
 
-  // projection matrix
   shared_camera_projection_matrix = glm::perspective(
       glm::radians(90.0f), (float)m_viewport_width / (float)m_viewport_height,
       0.001f, 1000.0f);
 
   // render meshes
   for (auto &entity : m_active_scene->m_loaded_entities) {
+    if(entity.entity_type == Entity_Point)
+      continue;
     for (auto &mesh : entity.m_mesh) {
 
       // change hitbox or flat style
@@ -171,16 +175,15 @@ void Shadow_Map_Pipeline::render_color_pass() {
       if (glIsVertexArray(mesh.m_mesh_vao) == GL_FALSE) {
         log_error("no valid VAO id! cant render mesh.");
       }
-
       check_gl_error("after binding vao");
 
+      // use shader of mesh
       mesh.m_material.m_shader.use();
-
       check_gl_error("after setting shader active");
 
       if (mesh.m_material.m_material_type == E_PBR_TEX) {
-
-        // bind texture to uniform
+	
+        // bind texture to sampler slot + set uniform to texture sampler ID
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, mesh.m_material.bound_texture_id);
 
@@ -188,7 +191,8 @@ void Shadow_Map_Pipeline::render_color_pass() {
             mesh.m_material.m_shader.get_cached_uniform_id("uTexture");
 
         glUniform1i(loc_tex, 0);
-        // bind depth map to uniform
+	
+	// bind depth map to sampler slot + set depth map to texture sampler ID
         glActiveTexture(GL_TEXTURE1);
         glBindTexture(GL_TEXTURE_2D, window_depth_map);
         GLint loc_depth =
@@ -196,39 +200,32 @@ void Shadow_Map_Pipeline::render_color_pass() {
         glUniform1i(loc_depth, 1);
 
         check_gl_error("after uploading textures");
+
+	// set rest of uniforms
+	upload_to_uniform(mesh.m_material.m_shader, "light_space_matrix",
+			  shared_light_space_matrix);	
+      }
+      
+      if(mesh.m_material.m_material_type == E_PHONG) {
+
+	// set rest of uniforms
+	upload_to_uniform(mesh.m_material.m_shader, "lightPosition",
+			  m_active_scene->m_loaded_lights[0].get_light_position());
+	upload_to_uniform(mesh.m_material.m_shader, "viewPos",
+			  m_active_scene->m_camera->m_cameraPos);	
       }
 
-      // TMP ghetto light + color
-      glm::vec3 light_position =
-          m_active_scene->m_loaded_lights[0].get_light_position();
-
-      upload_to_uniform(mesh.m_material.m_shader, "objectColor",
-                        glm::vec3(0.5, 0.8, 0.2));
-      upload_to_uniform(mesh.m_material.m_shader, "lightColor",
-                        glm::vec3(0.8, 0.8, 0.8));
-
-      upload_to_uniform(mesh.m_material.m_shader, "model",
+      upload_to_uniform(mesh.m_material.m_shader, "model",//
                         entity.get_model_matrix() * mesh.get_model_matrix());
-
-      upload_to_uniform(mesh.m_material.m_shader, "view",
+      upload_to_uniform(mesh.m_material.m_shader, "view",//
                         shared_camera_view_matrix);
-      upload_to_uniform(mesh.m_material.m_shader, "viewPosition",
-                        m_active_scene->m_camera->m_cameraPos);
-      upload_to_uniform(mesh.m_material.m_shader, "projection",
+      upload_to_uniform(mesh.m_material.m_shader, "projection",//
                         shared_camera_projection_matrix);
-      upload_to_uniform(mesh.m_material.m_shader, "lightPosition",
-                        light_position);
-      upload_to_uniform(mesh.m_material.m_shader, "viewPos",
-                        m_active_scene->m_camera->m_cameraPos);
-
-      upload_to_uniform(mesh.m_material.m_shader, "light_space_matrix",
-                        shared_light_space_matrix);
 
       check_gl_error("after setting uniforms (shadow map color pass)");
 
       // we renderin
       glDrawArrays(GL_TRIANGLES, 0, mesh.m_vertices_array.size() / 3);
-
       check_gl_error("after glDrawArrays");
     }
   }
@@ -243,6 +240,9 @@ void Shadow_Map_Pipeline::render_overlay_pass() {
   glBindFramebuffer(GL_FRAMEBUFFER, 0);
   
   for (auto &light_source : m_active_scene->m_loaded_lights) {
+    /*
+      Lights always get Materials of type E_PHONG and shaders phong.vert / phong.frag
+    */
 
     // bind meshes vao context
     glBindVertexArray(light_source.m_light_visualizer_mesh.m_mesh_vao);
@@ -250,55 +250,22 @@ void Shadow_Map_Pipeline::render_overlay_pass() {
         GL_FALSE) {
       log_error("no valid VAO id! cant render mesh.");
     }
-
     check_gl_error("after binding vao (lights)");
-
+    
     light_source.m_light_visualizer_mesh.m_material.m_shader.use();
-
     check_gl_error("after setting shader active (lights)");
 
-    if (light_source.m_light_visualizer_mesh.m_material.m_material_type ==
-        E_PBR_TEX) {
-
-      // bind texture to uniform
-      glActiveTexture(GL_TEXTURE0);
-      glBindTexture(
-          GL_TEXTURE_2D,
-          light_source.m_light_visualizer_mesh.m_material.bound_texture_id);
-      GLint loc_tex = glGetUniformLocation(
-          light_source.m_light_visualizer_mesh.m_material.m_shader.ID,
-          "uTexture");
-      glUniform1i(loc_tex, 0);
-      // bind depth map to uniform
-      glActiveTexture(GL_TEXTURE1);
-      glBindTexture(GL_TEXTURE_2D, window_depth_map);
-      GLint loc_depth = glGetUniformLocation(
-          light_source.m_light_visualizer_mesh.m_material.m_shader.ID,
-          "uDepthMap");
-      glUniform1i(loc_depth, 1);
-
-      check_gl_error("after uploading textures (lights)");
-    }
-
-    upload_to_uniform(light_source.m_light_visualizer_mesh.m_material.m_shader,
-                      "objectColor", glm::vec3(0.5, 0.8, 0.2));
-    upload_to_uniform(light_source.m_light_visualizer_mesh.m_material.m_shader,
-                      "lightColor", glm::vec3(0.8, 0.8, 0.8));
     upload_to_uniform(light_source.m_light_visualizer_mesh.m_material.m_shader,
                       "model", glm::translate(glm::mat4(1.0f),light_source.get_light_position()) * light_source.get_light_rotation_matrix());
-
     upload_to_uniform(light_source.m_light_visualizer_mesh.m_material.m_shader,
                       "view", shared_camera_view_matrix);
     upload_to_uniform(light_source.m_light_visualizer_mesh.m_material.m_shader,
-                      "viewPosition", m_active_scene->m_camera->m_cameraPos);
-    upload_to_uniform(light_source.m_light_visualizer_mesh.m_material.m_shader,
-                      "projection", shared_camera_projection_matrix);
+                      "projection", shared_camera_projection_matrix);    
     upload_to_uniform(light_source.m_light_visualizer_mesh.m_material.m_shader,
                       "lightPosition", glm::vec3(0.0f));
     upload_to_uniform(light_source.m_light_visualizer_mesh.m_material.m_shader,
                       "viewPos", m_active_scene->m_camera->m_cameraPos);
-    upload_to_uniform(light_source.m_light_visualizer_mesh.m_material.m_shader,
-                      "light_space_matrix", shared_light_space_matrix);
+
 
     check_gl_error("after setting uniforms (overlay pass light)");
 
@@ -315,38 +282,84 @@ void Shadow_Map_Pipeline::render_overlay_pass() {
   // rendering hitbox overlays //
   ///////////////////////////////
 
+  //TODO: - make hitbox shader a dedicated line shader
+  //      - on the same note make AABB only the corners instead of lots of tris
+  
   // render hitbox meshes
   for (auto &entity : m_active_scene->m_loaded_entities) {
+    if(entity.entity_type == Entity_Point)
+      continue;
     for (auto &mesh : entity.m_mesh) {
       
-      // change to hitbox style
+      /*
+	Wireframe hitboxes always use shader wireframe.vert / wireframe.frag
+	They have their own VAO / VBO for AABB coords as a member of the mesh.
+	Yes this can result in every mesh having infinite mesh members, since
+	every hitbox can have a hitbox too. but since we calculate AABB this
+	shouldnt be an issue.
+       */
+      
+      // change to hitbox style (wireframe)
       glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-
+      
       // bind meshes vao context
       glBindVertexArray(mesh.AABB_visualizer->m_mesh_vao);
       if (glIsVertexArray(mesh.AABB_visualizer->m_mesh_vao) == GL_FALSE) {
         log_error("no valid VAO id! cant render mesh.");
       }
-
       check_gl_error("after binding vao (overlay pass hitboxes)");
 
       mesh.AABB_visualizer->m_material.m_shader.use();
-
       check_gl_error("after setting shader active (overlay pass hitboxes)");
 
+      // set uniforms
       upload_to_uniform(mesh.m_material.m_shader, "model",
                         entity.get_model_matrix() * mesh.get_model_matrix());
       upload_to_uniform(mesh.m_material.m_shader, "view",
                         shared_camera_view_matrix);
       upload_to_uniform(mesh.m_material.m_shader, "projection",
                         shared_camera_projection_matrix);
-
       check_gl_error("after setting uniforms (overlay pass hitboxes)");
 
-      // we renderin
+      // render call
       glDrawArrays(GL_TRIANGLES, 0, mesh.AABB_visualizer->m_vertices_array.size() / 3);
-
       check_gl_error("after glDrawArrays (overlay pass hitboxes)");
+    }
+  }
+
+  //////////////////////////////////////
+  // rendering point cloud visualizer //
+  //////////////////////////////////////
+  
+  for (auto &entity : m_active_scene->m_loaded_entities) {
+
+    if(entity.entity_type==Entity_Point) {
+
+      entity.m_mesh[0].m_material.m_shader.use();
+      
+      check_gl_error("after shader use (point cloud)");
+      
+      // bind meshes vao context
+      glBindVertexArray(entity.m_mesh[0].m_mesh_vao);
+      if (glIsVertexArray(entity.m_mesh[0].m_mesh_vao) == GL_FALSE) {
+        log_error("no valid VAO id! cant render mesh.");
+      }
+      
+      check_gl_error("after vao bind (point cloud)");
+
+      upload_to_uniform(entity.m_mesh[0].m_material.m_shader,"a_point_radius",5.0f);
+      upload_to_uniform(entity.m_mesh[0].m_material.m_shader,"a_point_location",glm::vec3(1.0,1.0,1.0));
+      upload_to_uniform(entity.m_mesh[0].m_material.m_shader, "model",
+                        entity.get_model_matrix() * entity.m_mesh[0].get_model_matrix());
+      upload_to_uniform(entity.m_mesh[0].m_material.m_shader, "view",
+                        shared_camera_view_matrix);
+      upload_to_uniform(entity.m_mesh[0].m_material.m_shader, "projection",
+                        shared_camera_projection_matrix);
+      
+      //impostor point rendering :swag_glasses:
+      glDrawArrays(GL_TRIANGLES, 0,6);
+      check_gl_error("after glDrawArrays (point cloud)");
+
     }
   }
 }

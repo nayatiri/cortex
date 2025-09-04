@@ -240,10 +240,50 @@ void Renderer::init_scene_vbos() {
   // Update Entity Mesh VBOs
   ////////////////////////////////////
   for (Entity &entity : m_active_scene->m_loaded_entities) {
+    
+    if( entity.entity_type == Entity_Point && entity.m_mesh.size() < 1) {
+      //if entity is a point, we can simply init a mesh,
+      //and init it with 3 0's as a vbo since we render
+      //the dots as signed distance fields anyway and
+      //dont need a vbo with vertex data.
+
+      Shader toload = Shader("src/shaders/shader_src/point_vertex.glsl","src/shaders/shader_src/point_fragment.glsl");
+      Material tomat = Material(E_POINT,toload);
+      Mesh newmesh = Mesh(tomat);
+      entity.m_mesh.emplace_back(newmesh);
+      
+      Mesh &toadjust = entity.m_mesh[0];
+      
+      if(!toadjust.m_mesh_vbo_needs_refresh)
+	continue;
+      
+      log_debug_sub("Reinitializing VBOs for point (needs refresh [this shouldnt happen more than once lmao])");
+
+      std::cout << "initialized hitbox mesh with n verts:" << toadjust.m_vertices_array.size() << std::endl;
+      
+      // Clean up old buffers to prevent leaks
+      cleanup_mesh_vbos(toadjust);
+
+      // Create VAO n load 0es xd
+      glGenVertexArrays(1, &toadjust.m_mesh_vao);
+      glBindVertexArray(toadjust.m_mesh_vao);
+      std::vector<float> tmp = {-1.0f,-1.0f, 0.9f,
+				1.0f, -1.0f, 0.9f,
+				-1.0f, 1.0f, 0.9f};
+      glGenBuffers(1, &toadjust.m_vertices_glid);
+      glBindBuffer(GL_ARRAY_BUFFER, toadjust.m_vertices_glid);
+      glBufferData(GL_ARRAY_BUFFER,
+		   tmp.size() * sizeof(float), tmp.data() , GL_STATIC_DRAW);
+      glVertexAttribPointer(0, 9, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+      glEnableVertexAttribArray(0);
+
+      continue;
+    }
+    
     for (Mesh &mesh : entity.m_mesh) {
       
       if (!mesh.m_mesh_vbo_needs_refresh)
-        continue;  
+        continue;
 
       log_debug_sub("Reinitializing VBOs for mesh (needs refresh)");
 
@@ -451,5 +491,17 @@ _/ ___\/  _ \_  __ \   __\/ __ \\  \/  /
 
   glfwSetInputMode(associated_window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
   return;
+  
+}
+
+void Renderer::add_point_to_scene(float x, float y, float z) {
+
+  Entity to_add = Entity();
+
+  to_add.entity_type = Entity_Point;
+
+  to_add.set_position(x,y,z);
+  
+  m_active_scene->add_entity_to_scene(to_add);
   
 }
