@@ -59,4 +59,10 @@ bool Entity::is_initialized() {
     return true;
   else
     return false;
-}    
+}
+
+glm::vec3 Entity::get_position() {
+
+  return glm::vec3(m_pos_x,m_pos_y,m_pos_z);
+  
+}

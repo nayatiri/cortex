@@ -36,6 +36,8 @@ public:
   void set_rotation (float rx ,float ry, float rz);
   void change_rotation (float rx ,float ry, float rz);
 
+  glm::vec3 get_position();
+  
   std::shared_ptr<Shader> point_cloud_shader = nullptr;
   
   std::vector<Mesh> m_mesh = {};

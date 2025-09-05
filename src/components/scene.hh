@@ -31,5 +31,9 @@ public:
 
   float m_scene_deltatime = 0;
   float m_scene_abstime = 0;
+
+  //TODO: make this not be here xd
+  int m_scene_framebuffer_width;
+  int m_scene_framebuffer_height;
   
 };

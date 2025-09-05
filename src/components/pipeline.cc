@@ -335,29 +335,37 @@ void Shadow_Map_Pipeline::render_overlay_pass() {
 
     if(entity.entity_type==Entity_Point) {
 
-      entity.m_mesh[0].m_material.m_shader.use();
+      // back to solid + blending yippie
+      glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+      glEnable(GL_BLEND);
       
+      entity.m_mesh[0].m_material.m_shader.use();    
       check_gl_error("after shader use (point cloud)");
       
       // bind meshes vao context
       glBindVertexArray(entity.m_mesh[0].m_mesh_vao);
       if (glIsVertexArray(entity.m_mesh[0].m_mesh_vao) == GL_FALSE) {
         log_error("no valid VAO id! cant render mesh.");
-      }
-      
+      }      
       check_gl_error("after vao bind (point cloud)");
 
-      upload_to_uniform(entity.m_mesh[0].m_material.m_shader,"a_point_radius",5.0f);
-      upload_to_uniform(entity.m_mesh[0].m_material.m_shader,"a_point_location",glm::vec3(1.0,1.0,1.0));
+
+      upload_to_uniform(entity.m_mesh[0].m_material.m_shader,"camera_position", m_active_scene->m_camera->m_cameraPos);
+      upload_to_uniform(entity.m_mesh[0].m_material.m_shader,"point_position", entity.get_position());
+      upload_to_uniform(entity.m_mesh[0].m_material.m_shader,"radius", 0.3f);
+      
       upload_to_uniform(entity.m_mesh[0].m_material.m_shader, "model",
                         entity.get_model_matrix() * entity.m_mesh[0].get_model_matrix());
       upload_to_uniform(entity.m_mesh[0].m_material.m_shader, "view",
                         shared_camera_view_matrix);
       upload_to_uniform(entity.m_mesh[0].m_material.m_shader, "projection",
                         shared_camera_projection_matrix);
+
+      upload_to_uniform(entity.m_mesh[0].m_material.m_shader,"screen_width", (float)m_active_scene->m_scene_framebuffer_width);
+      upload_to_uniform(entity.m_mesh[0].m_material.m_shader,"screen_height", (float)m_active_scene->m_scene_framebuffer_height);
       
-      //impostor point rendering :swag_glasses:
-      glDrawArrays(GL_TRIANGLES, 0,6);
+      
+      glDrawArrays(GL_TRIANGLES, 0,3);
       check_gl_error("after glDrawArrays (point cloud)");
 
     }

@@ -93,6 +93,8 @@ void Renderer::render_frame() {
   
   // setup constants for render pass
   glfwGetWindowSize(associated_window, &m_viewport_width, &m_viewport_height);
+  m_active_scene->m_scene_framebuffer_width = m_viewport_width;
+  m_active_scene->m_scene_framebuffer_height = m_viewport_height;
 
   //TMP unclean
   m_pipeline->m_viewport_height = m_viewport_height;
@@ -268,13 +270,13 @@ void Renderer::init_scene_vbos() {
       glGenVertexArrays(1, &toadjust.m_mesh_vao);
       glBindVertexArray(toadjust.m_mesh_vao);
       std::vector<float> tmp = {-1.0f,-1.0f, 0.9f,
-				1.0f, -1.0f, 0.9f,
-				-1.0f, 1.0f, 0.9f};
+				3.0f, -1.0f, 0.9f,
+				-1.0f, 3.0f, 0.9f};
       glGenBuffers(1, &toadjust.m_vertices_glid);
       glBindBuffer(GL_ARRAY_BUFFER, toadjust.m_vertices_glid);
       glBufferData(GL_ARRAY_BUFFER,
 		   tmp.size() * sizeof(float), tmp.data() , GL_STATIC_DRAW);
-      glVertexAttribPointer(0, 9, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+      glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
       glEnableVertexAttribArray(0);
 
       continue;
