@@ -34,13 +34,16 @@ void main() {
      point_screen_position.x *= aspect_ratio;
 
      float distance = length(fragPos - point_screen_position);
-
-     if(abs(point_screen_position.x) > 1.0 || abs(point_screen_position.y) > 1.0) { discard; }
-
+     
      float distance_point_cam = length(point_position - camera_position);
-
      float radius_adjusted = (1/distance_point_cam) * radius;
 
+     //adjust depth buffer, this shit lowkey magic nojoke
+     float ndc_z = point_clip.z / point_clip.w;  
+     float window_z = ndc_z * 0.5 + 0.5;
+     gl_FragDepth = window_z;
+
+     //write color
      if(distance < radius_adjusted) {
      	 FragColor = vec4(1.0, 0.0, 0.0, 1.0);	
      } else {
