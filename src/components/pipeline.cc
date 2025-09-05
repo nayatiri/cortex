@@ -352,7 +352,7 @@ void Shadow_Map_Pipeline::render_overlay_pass() {
 
       upload_to_uniform(entity.m_mesh[0].m_material.m_shader,"camera_position", m_active_scene->m_camera->m_cameraPos);
       upload_to_uniform(entity.m_mesh[0].m_material.m_shader,"point_position", entity.get_position());
-      upload_to_uniform(entity.m_mesh[0].m_material.m_shader,"radius", 0.3f);
+      upload_to_uniform(entity.m_mesh[0].m_material.m_shader,"radius", 0.2f);
       
       upload_to_uniform(entity.m_mesh[0].m_material.m_shader, "model",
                         entity.get_model_matrix() * entity.m_mesh[0].get_model_matrix());

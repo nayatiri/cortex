@@ -269,9 +269,9 @@ void Renderer::init_scene_vbos() {
       // Create VAO n load 0es xd
       glGenVertexArrays(1, &toadjust.m_mesh_vao);
       glBindVertexArray(toadjust.m_mesh_vao);
-      std::vector<float> tmp = {-1.0f,-1.0f, 0.9f,
-				3.0f, -1.0f, 0.9f,
-				-1.0f, 3.0f, 0.9f};
+      std::vector<float> tmp = {-1.0f,-1.0f, -1.0f,
+				3.0f, -1.0f, -1.0f,
+				-1.0f, 3.0f, -1.0f};
       glGenBuffers(1, &toadjust.m_vertices_glid);
       glBindBuffer(GL_ARRAY_BUFFER, toadjust.m_vertices_glid);
       glBufferData(GL_ARRAY_BUFFER,
