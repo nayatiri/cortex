@@ -6,13 +6,7 @@
 
 #include <glm/ext/vector_float3.hpp>
 #include <glm/glm.hpp>
-
-/// Pipeline boilerplate empty impl
-
-void Pipeline::render_frame() {}
-void Pipeline::update_scene() {}
-void Pipeline::update_time() {}
-void Pipeline::init_pipeline() {}
+#include <memory>
 
 /// Pipeline util functions
 
@@ -215,11 +209,11 @@ void Shadow_Map_Pipeline::render_color_pass() {
 			  m_active_scene->m_camera->m_cameraPos);	
       }
 
-      upload_to_uniform(mesh.m_material.m_shader, "model",//
+      upload_to_uniform(mesh.m_material.m_shader, "model",
                         entity.get_model_matrix() * mesh.get_model_matrix());
-      upload_to_uniform(mesh.m_material.m_shader, "view",//
+      upload_to_uniform(mesh.m_material.m_shader, "view",
                         shared_camera_view_matrix);
-      upload_to_uniform(mesh.m_material.m_shader, "projection",//
+      upload_to_uniform(mesh.m_material.m_shader, "projection",
                         shared_camera_projection_matrix);
 
       check_gl_error("after setting uniforms (shadow map color pass)");
@@ -286,18 +280,18 @@ void Shadow_Map_Pipeline::render_overlay_pass() {
   //      - on the same note make AABB only the corners instead of lots of tris
   
   // render hitbox meshes
-  for (auto &entity : m_active_scene->m_loaded_entities) {
+  /*for (auto &entity : m_active_scene->m_loaded_entities) {
     if(entity.entity_type == Entity_Point)
       continue;
     for (auto &mesh : entity.m_mesh) {
       
-      /*
+
 	Wireframe hitboxes always use shader wireframe.vert / wireframe.frag
 	They have their own VAO / VBO for AABB coords as a member of the mesh.
 	Yes this can result in every mesh having infinite mesh members, since
 	every hitbox can have a hitbox too. but since we calculate AABB this
 	shouldnt be an issue.
-       */
+       
       
       // change to hitbox style (wireframe)
       glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
@@ -309,7 +303,7 @@ void Shadow_Map_Pipeline::render_overlay_pass() {
       }
       check_gl_error("after binding vao (overlay pass hitboxes)");
 
-      mesh.AABB_visualizer->m_material.m_shader.use();
+      mesh.AABB_visualizer->hitbox_shader.use();
       check_gl_error("after setting shader active (overlay pass hitboxes)");
 
       // set uniforms
@@ -325,7 +319,7 @@ void Shadow_Map_Pipeline::render_overlay_pass() {
       glDrawArrays(GL_TRIANGLES, 0, mesh.AABB_visualizer->m_vertices_array.size() / 3);
       check_gl_error("after glDrawArrays (overlay pass hitboxes)");
     }
-  }
+  }*/
 
   //////////////////////////////////////
   // rendering point cloud visualizer //
@@ -352,8 +346,8 @@ void Shadow_Map_Pipeline::render_overlay_pass() {
 
       upload_to_uniform(entity.m_mesh[0].m_material.m_shader,"camera_position", m_active_scene->m_camera->m_cameraPos);
       upload_to_uniform(entity.m_mesh[0].m_material.m_shader,"point_position", entity.get_position());
-      upload_to_uniform(entity.m_mesh[0].m_material.m_shader,"radius", 0.2f);
-      
+      upload_to_uniform(entity.m_mesh[0].m_material.m_shader,"radius", 2.0f);
+
       upload_to_uniform(entity.m_mesh[0].m_material.m_shader, "model",
                         entity.get_model_matrix() * entity.m_mesh[0].get_model_matrix());
       upload_to_uniform(entity.m_mesh[0].m_material.m_shader, "view",
@@ -433,12 +427,17 @@ void Shadow_Map_Pipeline::init_color_pass() {
   
 }
 
-void Shadow_Map_Pipeline::update_scene() {}
+void Shadow_Map_Pipeline::update_scene(std::shared_ptr<Scene> new_scene) { m_active_scene = new_scene; }
+void Shadow_Map_Pipeline::update_time(float new_time) { }
 
-void Shadow_Map_Pipeline::update_time() {}
-
-/// Raytrace impl
+/// Raytrace impl coming soon xd
 
 void Ray_Traced_Pipeline::render_frame() {}
 void Ray_Traced_Pipeline::update_scene() {}
 void Ray_Traced_Pipeline::update_time() {}
+
+/// Pipeline boilerplate empty impl
+
+void Pipeline::render_frame() {}
+void Pipeline::init_pipeline() {}
+

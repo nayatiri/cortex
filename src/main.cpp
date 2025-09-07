@@ -1,5 +1,4 @@
 #include "renderer.hh"
-#include <cmath>
 
 //defines
 #define window_width 1920

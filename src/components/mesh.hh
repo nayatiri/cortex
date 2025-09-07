@@ -11,6 +11,7 @@
 #include <vector>
 
 #include "../components/material.hh"
+#include "AABB.hh"
 
 //TODO make this shit not be declared here :-) 
 struct Physics_properties {
@@ -18,33 +19,26 @@ struct Physics_properties {
   bool is_physics_object = false;
 
   float mass = 1;
-
   float surface_area = 1;
+  float gravity = 0.982;
+  
+  glm::vec3 impulse = {0,0,0};
+
+  float kinetic_energy = 0;
+  float potential_energy = 0;
+
+  glm::vec3 velocity = {0,0,0};
+  
+  bool stationary = true;
   
 };
-
-enum e_mesh_type {
-
-  E_MESH,
-  E_COL_BOX,
-  E_SKYBOX
-
-};
-
-enum e_mesh_render_mode {
-
-  E_WIREFRAME,
-  E_FILLED
-  
-};
-
 
 class Mesh {
 private:
   glm::mat4 m_model_matrix_buffer;
 
 public:
-  std::shared_ptr<Mesh> AABB_visualizer = nullptr;
+  std::shared_ptr<AABB_Box> AABB_visualizer = nullptr;
   
   bool model_matrix_deprecated = true;
   float m_pos_x = 0, m_pos_y = 0, m_pos_z = 0;

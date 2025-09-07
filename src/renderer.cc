@@ -155,9 +155,6 @@ void Renderer::init_scene(const char *scene_fp) {
 
   //TMP setup vbos n shi
   m_pipeline->init_pipeline();
-  //TMP make one of the cubes a phys object for testing
-  m_active_scene->m_loaded_entities[0].m_mesh[1].phys_props.is_physics_object=true;
-
   
   log_success("done initializing renderer.");
 }
@@ -191,9 +188,9 @@ void Renderer::init_scene_vbos() {
 
   log_debug("Initializing/Updating VBOs for scene...");
 
-  ////////////////////////////////////
-  // Update Light VBOs (for visualizers)
-  ////////////////////////////////////
+  /////////////////////////////////////////
+  // Update Light VBOs (for visualizers) //
+  /////////////////////////////////////////
   for (auto &light : m_active_scene->m_loaded_lights) {
     if (!light.m_light_visualizer_mesh.m_mesh_vbo_needs_refresh)
       continue;
@@ -238,9 +235,9 @@ void Renderer::init_scene_vbos() {
     log_debug_sub("Updated VBOs for light visualizer");
   }
 
-  ////////////////////////////////////
-  // Update Entity Mesh VBOs
-  ////////////////////////////////////
+  /////////////////////////////
+  // Update Entity Mesh VBOs //
+  /////////////////////////////
   for (Entity &entity : m_active_scene->m_loaded_entities) {
     
     if( entity.entity_type == Entity_Point && entity.m_mesh.size() < 1) {
@@ -252,6 +249,8 @@ void Renderer::init_scene_vbos() {
       Shader toload = Shader("src/shaders/shader_src/point_vertex.glsl","src/shaders/shader_src/point_fragment.glsl");
       Material tomat = Material(E_POINT,toload);
       Mesh newmesh = Mesh(tomat);
+      //TMP make all points phys objects
+      newmesh.phys_props.is_physics_object = true;
       entity.m_mesh.emplace_back(newmesh);
       
       Mesh &toadjust = entity.m_mesh[0];
@@ -387,30 +386,35 @@ void Renderer::init_scene_vbos() {
   for (Entity &entity : m_active_scene->m_loaded_entities) {
     for (Mesh &mesh : entity.m_mesh) {
 
-      if(mesh.AABB_visualizer == nullptr || !mesh.AABB_visualizer->m_mesh_vbo_needs_refresh)
+      if(mesh.AABB_visualizer == nullptr)
 	continue;
       
       log_debug_sub("Reinitializing VBOs for meshes hitbox (needs refresh)");
 
-      std::cout << "initialized hitbox mesh with n verts:" << mesh.AABB_visualizer->m_vertices_array.size() << std::endl;
+      AABB_Box* toadjust = mesh.AABB_visualizer.get();
       
-      // Clean up old buffers to prevent leaks
-      cleanup_mesh_vbos(*mesh.AABB_visualizer);
-
-      // Create VAO
-      glGenVertexArrays(1, &mesh.AABB_visualizer->m_mesh_vao);
-      glBindVertexArray(mesh.AABB_visualizer->m_mesh_vao);
-
-      // verts
-      if (!mesh.AABB_visualizer->m_vertices_array.empty()) {
-        glGenBuffers(1, &mesh.AABB_visualizer->m_vertices_glid);
-        glBindBuffer(GL_ARRAY_BUFFER, mesh.AABB_visualizer->m_vertices_glid);
-        glBufferData(GL_ARRAY_BUFFER,
-                     mesh.AABB_visualizer->m_vertices_array.size() * sizeof(float),
-                     mesh.AABB_visualizer->m_vertices_array.data(), GL_STATIC_DRAW);
-        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
-        glEnableVertexAttribArray(0);
-      }
+      auto delete_buffer = [](GLuint& buffer_id) {
+	if (buffer_id != 0) {
+	  glDeleteBuffers(1, &buffer_id);
+	  buffer_id = 0;
+	}
+      };// end
+      
+      delete_buffer(toadjust->m_mesh_vao);
+      
+      // Create VAO n load 0es xd
+      glGenVertexArrays(1, &toadjust->m_mesh_vao);
+      glBindVertexArray(toadjust->m_mesh_vao);
+      std::vector<float> tmp = {-1.0f,-1.0f, -1.0f,
+				3.0f, -1.0f, -1.0f,
+				-1.0f, 3.0f, -1.0f};
+      glGenBuffers(1, &toadjust->m_vertices_glid);
+      glBindBuffer(GL_ARRAY_BUFFER, toadjust->m_vertices_glid);
+      glBufferData(GL_ARRAY_BUFFER,
+		   tmp.size() * sizeof(float), tmp.data() , GL_STATIC_DRAW);
+      glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+      glEnableVertexAttribArray(0);
+      
     }
   }
   

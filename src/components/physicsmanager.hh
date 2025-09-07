@@ -10,6 +10,12 @@ struct AABB {
 };
 
 class Physics_Manager {
+
+private:
+  void handle_scene_physics_diy();
+  void handle_scene_physics_book();
+  bool check_inside_AABB(Mesh &mesh, glm::vec3 check_position);
+  
 public:
   
   std::shared_ptr<Scene> m_active_scene = nullptr;
@@ -19,7 +25,7 @@ public:
 
   void handle_scene_physics();
 
-  Mesh create_collision_box_mesh(const AABB& box);
+  AABB_Box create_collision_box_mesh(const AABB& box);
 
   AABB compute_world_space_aabb(Mesh& mesh, const glm::mat4& transform);
 

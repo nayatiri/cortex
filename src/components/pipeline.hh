@@ -9,14 +9,13 @@ public:
 
   virtual void init_pipeline() = 0;
   virtual void render_frame() = 0;
-  virtual void update_scene() = 0;
-  virtual void update_time() = 0;
   
   void check_gl_error(const char *context);
   template <typename T> void upload_to_uniform(Shader bound_shader,
 					       std::string uniform_name,
 					       T upload_data);
-  
+
+  // flags
   bool vbos_need_refresh = false;
   bool pipeline_is_setup = false;
 
@@ -51,8 +50,8 @@ private:
 public:
   void render_frame();
   void init_pipeline();
-  void update_scene();
-  void update_time();
+  void update_scene(std::shared_ptr<Scene> new_scene);
+  void update_time(float new_time);
 };
 
 

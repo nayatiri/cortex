@@ -1,56 +1,27 @@
 #include "physicsmanager.hh"
+#include "AABB.hh"
 #include "entity.hh"
 #include "logging.hh"
-#include <array>
 #include <memory>
 
 Physics_Manager::Physics_Manager(std::shared_ptr<Scene> set_scene) {
   m_active_scene = set_scene;
 };
 
-Mesh Physics_Manager::create_collision_box_mesh(const AABB &box) {
-  std::array<glm::vec3, 8> corners = {
-    glm::vec3(box.min.x, box.min.y, box.min.z),
-    glm::vec3(box.max.x, box.min.y, box.min.z),
-    glm::vec3(box.max.x, box.max.y, box.min.z),
-    glm::vec3(box.min.x, box.max.y, box.min.z),
-    glm::vec3(box.min.x, box.min.y, box.max.z),
-    glm::vec3(box.max.x, box.min.y, box.max.z),
-    glm::vec3(box.max.x, box.max.y, box.max.z),
-    glm::vec3(box.min.x, box.max.y, box.max.z) 
-  };
+AABB_Box Physics_Manager::create_collision_box_mesh(const AABB &box) {
 
-  std::array<int, 36> face_indices = {
-    0, 1, 2,  0, 2, 3,
-    4, 7, 6,  4, 6, 5,
-    0, 3, 2,  0, 2, 1,
-    4, 5, 6,  4, 6, 7,
-    0, 4, 7,  0, 7, 3,
-    1, 2, 6,  1, 6, 5
-  };
+  Shader touse = Shader("src/shaders/shader_src/point_vertex.glsl","src/shaders/shader_src/point_fragment.glsl");
+  AABB_Box newbox = AABB_Box(touse);
+  newbox.min_corner = box.min;
+  newbox.max_corner = box.max;
   
-  std::vector<float> vertices;
-  vertices.reserve(36 * 3); 
+  return newbox;
   
-  for (int i = 0; i < 36; i++) {
-    glm::vec3 vertex = corners[face_indices[i]];
-    vertices.insert(vertices.end(), {vertex.x, vertex.y, vertex.z});
-  }
-  
-  Shader wireframe_shader("src/shaders/shader_src/wireframe.vert",
-                          "src/shaders/shader_src/wireframe.frag");
-  Material material(E_PHONG, wireframe_shader);
-
-  Mesh mesh(material);
-  mesh.m_vertices_array = std::move(vertices);
-  mesh.m_render_mode = E_WIREFRAME;
-  mesh.m_type = E_COL_BOX;
-
-  return mesh;
 }
 
 AABB Physics_Manager::compute_world_space_aabb(Mesh &mesh,
                                                const glm::mat4 &transform) {
+  
   AABB bbox{{10000.0f, 10000.0f, 10000.0f}, {-10000.0f, -10000.0f, -10000.0f}};
 
   const glm::mat4 mesh_transform = transform * mesh.get_model_matrix();
@@ -97,7 +68,7 @@ void Physics_Manager::calculate_phys_boxes() {
 
       AABB bbox = compute_world_space_aabb(mesh, entity_transform);
       
-      mesh.AABB_visualizer = std::make_shared<Mesh>( create_collision_box_mesh(bbox) );
+      mesh.AABB_visualizer = std::make_shared<AABB_Box>( create_collision_box_mesh(bbox) );
 
       log_success("Calculated hitbox for mesh, and added it to Mesh!");
     }
@@ -115,16 +86,65 @@ void Physics_Manager::handle_scene_physics() {
   }
 
   //gravity?
+  handle_scene_physics_diy();
 
-  for(Entity &e : m_active_scene->m_loaded_entities) {
-    for(Mesh &m : e.m_mesh) {
+}
 
-      if(m.phys_props.is_physics_object) {
+void Physics_Manager::handle_scene_physics_book() {
+  
+}
 
-	m.change_position(1.0*m_active_scene->m_scene_deltatime, 0, 0);
-        
-      }
+void Physics_Manager::handle_scene_physics_diy() {
+  for ( Entity &e : m_active_scene->m_loaded_entities) {
+    for ( Mesh &m : e.m_mesh) {
+      /*
+
+       check if entity is stationary
+       if not, check impulse. if its not 0, turn  velocity += impulse/mass
+       impulse = 0
+       velocity += gravity * deltatime
+       preview position vector =  position + velocity * deltatime
+       create relative movement vector from  preview - position
+       check if movement vector collides with any face of the scene
+       if collission, mark entity as colliding, dont do movement, but adjust energies to calculate bounce or similar
+       if no collission, adjust position by movement vector, set impulse to 0
+       
+      */
+
+      // if its a point, and its a physics object
+      if(e.entity_type == Entity_Point && m.phys_props.is_physics_object) {
+
+	// check our bozo acceleration structure (its not an acceleration structure xd)
+	for ( Entity &check_e : m_active_scene->m_loaded_entities) {
+	  for ( Mesh &check_m : check_e.m_mesh) {
+	    if(!check_inside_AABB(check_m, e.get_position()))
+	      continue;
+	    
+	    if(m.phys_props.impulse.length() == 0) {
+	      m.phys_props.stationary = true;
+	    } else {
+	      m.phys_props.stationary = false;
+	    }
+	    
+	    if(m.phys_props.stationary)
+	      continue;
+	    
+	    
+	    
+	    // m.change_position( 0 , - m.phys_props.gravity * m_active_scene->m_scene_deltatime , 0 );
+	    
+	  }
+	}	
+      } else {continue;}
+
     }
   }
+}
+
+bool Physics_Manager::check_inside_AABB(Mesh &check_mesh, glm::vec3 check_position) {
+
+
   
+  
+  return false;
 }
