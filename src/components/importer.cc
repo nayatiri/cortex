@@ -70,21 +70,20 @@ GLuint Importer::bind_texture_to_slot(
   return texture;
 }
 
-
 std::vector<Mesh> Importer::load_all_meshes_from_gltf(
-						      const std::string &file_path,
-						      std::atomic<unsigned int> &num_loaded_textures,
-						      std::vector<std::tuple<std::string, unsigned int, GLuint>> &texture_map) {
+    const std::string &file_path,
+    std::atomic<unsigned int> &num_loaded_textures,
+    std::vector<std::tuple<std::string, unsigned int, GLuint>> &texture_map) {
 
   tinygltf::Model model;
   tinygltf::TinyGLTF loader;
   std::string err, warn;
-  
+
   log_success("importing a gltf file... loading ascii file...");
   bool ret = loader.LoadASCIIFromFile(&model, &err, &warn, file_path);
 
-  if(!ret)
-    log_error("couldnt load ASCII gltf file!!!");  
+  if (!ret)
+    log_error("couldnt load ASCII gltf file!!!");
   if (!warn.empty())
     printf("Warn: %s\n", warn.c_str());
   if (!err.empty())
@@ -119,7 +118,7 @@ std::vector<Mesh> Importer::load_all_meshes_from_gltf(
   process_node = [&](int node_idx, glm::mat4 parent_transform) {
     const auto &node = model.nodes[node_idx];
     glm::mat4 node_transform = glm::mat4(1.0f);
-    
+
     if (node.matrix.size() == 16)
       node_transform = glm::make_mat4(node.matrix.data());
     else {
@@ -184,42 +183,43 @@ std::vector<Mesh> Importer::load_all_meshes_from_gltf(
         }
 
         log_debug("checking material for textures etc");
-	
-	uint8_t shader_type_carry = 0;
-	//0 invalid
-	//1 phong (fallback - always possible if we have a mesh)
-	//2 texture shading (possible if albedo exists)
-	//3 pbr (albedo, normal, roughness, [depth])
-	
-	std::string texture_path_of_model;
-	
-	if(primitive.material >= 0) {
-	  
-	  const tinygltf::Material &material =
-            model.materials[primitive.material];
 
-	  //check for albedo texure present
-	  auto it = material.values.find("baseColorTexture");
-	  if (it != material.values.end() && it->second.TextureIndex() >= 0) {
-	    const tinygltf::Texture &texture =
-              model.textures[it->second.TextureIndex()];
-	    const tinygltf::Image &image = model.images[texture.source];
-	    std::cout << "Texture path: " << image.uri << std::endl;
-	    texture_path_of_model = image.uri;
-	    shader_type_carry = 2; // flat shading is possible
-	  } else {
-	    // use fallback if no color tex is in mesh.
-	    log_error("no materials in mesh! using phong shaders as a fallback.");
-	    shader_type_carry = 1;
-	  }
+        uint8_t shader_type_carry = 0;
+        // 0 invalid
+        // 1 phong (fallback - always possible if we have a mesh)
+        // 2 texture shading (possible if albedo exists)
+        // 3 pbr (albedo, normal, roughness, [depth])
 
-	  // TODO check for other textures for pbr
-	  
-	} else {
-	  //also need to use fallback if there is 0 materials in mesh
-	  shader_type_carry = 1;
-	}
-        
+        std::string texture_path_of_model;
+
+        if (primitive.material >= 0) {
+
+          const tinygltf::Material &material =
+              model.materials[primitive.material];
+
+          // check for albedo texure present
+          auto it = material.values.find("baseColorTexture");
+          if (it != material.values.end() && it->second.TextureIndex() >= 0) {
+            const tinygltf::Texture &texture =
+                model.textures[it->second.TextureIndex()];
+            const tinygltf::Image &image = model.images[texture.source];
+            std::cout << "Texture path: " << image.uri << std::endl;
+            texture_path_of_model = image.uri;
+            shader_type_carry = 2; // flat shading is possible
+          } else {
+            // use fallback if no color tex is in mesh.
+            log_error(
+                "no materials in mesh! using phong shaders as a fallback.");
+            shader_type_carry = 1;
+          }
+
+          // TODO check for other textures for pbr
+
+        } else {
+          // also need to use fallback if there is 0 materials in mesh
+          shader_type_carry = 1;
+        }
+
         // END TMP
 
         std::vector<float> final_vertices, final_normals, final_tangents,
@@ -282,21 +282,57 @@ std::vector<Mesh> Importer::load_all_meshes_from_gltf(
           Material mat_to_use(E_FACE, shader_to_use);
 
           Mesh primitive_mesh(mat_to_use);
-	  primitive_mesh.m_render_mode = E_FILLED;
-	  primitive_mesh.m_type = E_MESH;
+          primitive_mesh.m_render_mode = E_FILLED;
+          primitive_mesh.m_type = E_MESH;
           primitive_mesh.m_vertices_array = std::move(final_vertices);
           primitive_mesh.m_normals_array = std::move(final_normals);
           primitive_mesh.m_tangents_array = std::move(final_tangents);
           primitive_mesh.m_binormals_array = std::move(final_bitangents);
           primitive_mesh.m_tex_coords_array = std::move(final_texcoords);
-          primitive_mesh.exp_overwrite_model_matrix(global_transform);
 
-          // bind tex to num_loaded_tex and increment.
-          std::filesystem::path cwd = std::filesystem::current_path();
+          // TMP
+          // primitive_mesh.exp_overwrite_model_matrix(global_transform);
+          glm::vec3 translation(global_transform[3][0], global_transform[3][1],
+                                global_transform[3][2]);
+          glm::vec3 x_axis = glm::vec3(global_transform[0]);
+          glm::vec3 y_axis = glm::vec3(global_transform[1]);
+          glm::vec3 z_axis = glm::vec3(global_transform[2]);
+          float scale_x = glm::length(x_axis);
+          float scale_y = glm::length(y_axis);
+          float scale_z = glm::length(z_axis);
+
+          // im a programmer bypass
+          if (scale_x < 1e-8f)
+            scale_x = 1e-8f;
+          if (scale_y < 1e-8f)
+            scale_y = 1e-8f;
+          if (scale_z < 1e-8f)
+            scale_z = 1e-8f;
+
+          x_axis /= scale_x;
+          y_axis /= scale_y;
+          z_axis /= scale_z;
+
+          glm::mat3 rotMatrix(x_axis, y_axis, z_axis);
+          glm::quat rotation = glm::quat_cast(rotMatrix);
+          glm::vec3 eulerAngles = glm::eulerAngles(rotation);
+
+          primitive_mesh.set_position(translation.x, translation.y,
+                                      translation.z);
+          primitive_mesh.set_rotation(glm::degrees(eulerAngles.x),
+                                      glm::degrees(eulerAngles.y),
+                                      glm::degrees(eulerAngles.z));
+          primitive_mesh.m_sca_x = scale_x;
+          primitive_mesh.m_sca_y = scale_y;
+          primitive_mesh.m_sca_z = scale_z;
+           // endTMP
+
+           // bind tex to num_loaded_tex and increment.
+           std::filesystem::path cwd = std::filesystem::current_path();
           std::cout << "Current working directory: " << cwd.string()
                     << std::endl;
 
-          // this is garbage hacky shit again TODO: clean shit up lol
+          // this is garbage hacky shit again TODO: clean shit up lol (ill never clean this up xd)
           std::filesystem::path model_path = file_path;
           std::filesystem::path full_tex_path =
               cwd / model_path.parent_path() / texture_path_of_model;
@@ -318,14 +354,50 @@ std::vector<Mesh> Importer::load_all_meshes_from_gltf(
           Material mat_to_use(E_FACE, shader_to_use);
 
           Mesh primitive_mesh(mat_to_use);
-	  primitive_mesh.m_render_mode = E_FILLED;
-	  primitive_mesh.m_type = E_MESH;
+          primitive_mesh.m_render_mode = E_FILLED;
+          primitive_mesh.m_type = E_MESH;
           primitive_mesh.m_vertices_array = std::move(final_vertices);
           primitive_mesh.m_normals_array = std::move(final_normals);
           primitive_mesh.m_tangents_array = std::move(final_tangents);
           primitive_mesh.m_binormals_array = std::move(final_bitangents);
           primitive_mesh.m_tex_coords_array = std::move(final_texcoords);
-          primitive_mesh.exp_overwrite_model_matrix(global_transform);
+
+	  // TMP
+          // primitive_mesh.exp_overwrite_model_matrix(global_transform);
+          glm::vec3 translation(global_transform[3][0], global_transform[3][1],
+                                global_transform[3][2]);
+          glm::vec3 x_axis = glm::vec3(global_transform[0]);
+          glm::vec3 y_axis = glm::vec3(global_transform[1]);
+          glm::vec3 z_axis = glm::vec3(global_transform[2]);
+          float scale_x = glm::length(x_axis);
+          float scale_y = glm::length(y_axis);
+          float scale_z = glm::length(z_axis);
+
+          // im a programmer bypass
+          if (scale_x < 1e-8f)
+            scale_x = 1e-8f;
+          if (scale_y < 1e-8f)
+            scale_y = 1e-8f;
+          if (scale_z < 1e-8f)
+            scale_z = 1e-8f;
+
+          x_axis /= scale_x;
+          y_axis /= scale_y;
+          z_axis /= scale_z;
+
+          glm::mat3 rotMatrix(x_axis, y_axis, z_axis);
+          glm::quat rotation = glm::quat_cast(rotMatrix);
+          glm::vec3 eulerAngles = glm::eulerAngles(rotation);
+
+          primitive_mesh.set_position(translation.x, translation.y,
+                                      translation.z);
+          primitive_mesh.set_rotation(glm::degrees(eulerAngles.x),
+                                      glm::degrees(eulerAngles.y),
+                                      glm::degrees(eulerAngles.z));
+          primitive_mesh.m_sca_x = scale_x;
+          primitive_mesh.m_sca_y = scale_y;
+          primitive_mesh.m_sca_z = scale_z;
+           // endTMP
 
           primitive_mesh.m_material.m_material_type = E_PHONG;
 
@@ -354,8 +426,8 @@ std::vector<Mesh> Importer::load_all_meshes_from_gltf(
   return meshes;
 }
 
-
-std::vector<float> Importer::calculate_vert_normals(std::vector<float> mesh_vertices) {
+std::vector<float>
+Importer::calculate_vert_normals(std::vector<float> mesh_vertices) {
   std::vector<glm::vec3> vertexNormals; // buffer
   std::vector<float> mesh_normals;
   size_t numVertices = mesh_vertices.size() / 3;
@@ -394,9 +466,10 @@ std::vector<float> Importer::calculate_vert_normals(std::vector<float> mesh_vert
   return mesh_normals;
 }
 
-Importer::tan_bin_glob Importer::calculate_vert_tan_bin(std::vector<float> mesh_vertices,
-                                    std::vector<float> mesh_normals,
-                                    std::vector<float> texture_coordinates) {
+Importer::tan_bin_glob
+Importer::calculate_vert_tan_bin(std::vector<float> mesh_vertices,
+                                 std::vector<float> mesh_normals,
+                                 std::vector<float> texture_coordinates) {
 
   std::vector<float> vert_tangents;
   std::vector<float> vert_binormals;

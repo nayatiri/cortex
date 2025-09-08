@@ -85,7 +85,7 @@ void Shadow_Map_Pipeline::render_depth_pass() {
 
   float width = m_active_scene->m_loaded_lights[0].light_width;
   glm::mat4 light_projection_mat =
-    glm::ortho(-width, width, -width, width, 0.01f, 20.0f); // TODO make clip planes work properly
+    glm::ortho(-width, width, -width, width, 0.01f, 50.0f); // TODO make clip planes work properly
 
   shared_light_space_matrix = light_projection_mat * light_look_at;
 

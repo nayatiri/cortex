@@ -43,6 +43,7 @@ public:
   bool model_matrix_deprecated = true;
   float m_pos_x = 0, m_pos_y = 0, m_pos_z = 0;
   float m_rot_x = 0, m_rot_y = 0, m_rot_z = 0;
+  float m_sca_x = 0, m_sca_y = 0, m_sca_z = 0;
   glm::mat4 get_model_matrix();
 
   void set_position(float x ,float y, float z);
