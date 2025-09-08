@@ -70,6 +70,8 @@ void Physics_Manager::calculate_phys_boxes() {
       
       mesh.AABB_visualizer = std::make_shared<AABB_Box>( create_collision_box_mesh(bbox) );
 
+      m_active_scene->m_scene_vbos_need_refresh = true;
+      
       log_success("Calculated hitbox for mesh, and added it to Mesh!");
     }
   }

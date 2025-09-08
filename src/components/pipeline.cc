@@ -45,7 +45,7 @@ void Pipeline::upload_to_uniform(Shader bound_shader, std::string uniform_name,
   
   int loc = bound_shader.get_cached_uniform_id(uniform_name);
   if(loc < 0){
-    log_error("invalid uniform ID returned. Cant upload data!");
+    std::cout << "Invalid Uniform ID! Cant get Uniform: " << uniform_name << std::endl;
     return;
   }
   
@@ -276,50 +276,56 @@ void Shadow_Map_Pipeline::render_overlay_pass() {
   // rendering hitbox overlays //
   ///////////////////////////////
 
-  //TODO: - make hitbox shader a dedicated line shader
+  //TODO: - make hitbox shader a dedicated line shader (done?)
   //      - on the same note make AABB only the corners instead of lots of tris
   
   // render hitbox meshes
-  /*for (auto &entity : m_active_scene->m_loaded_entities) {
+  for (auto &entity : m_active_scene->m_loaded_entities) {
     if(entity.entity_type == Entity_Point)
       continue;
     for (auto &mesh : entity.m_mesh) {
       
-
-	Wireframe hitboxes always use shader wireframe.vert / wireframe.frag
+      /*
+	Hitboxes always use shader line_vert.glsl / line_frag.glsl which
+	implement line drawing using signed distance fields.
 	They have their own VAO / VBO for AABB coords as a member of the mesh.
-	Yes this can result in every mesh having infinite mesh members, since
-	every hitbox can have a hitbox too. but since we calculate AABB this
-	shouldnt be an issue.
-       
+	We upload MinBox and MaxBox of the AABB shader does the rest.
+      */
       
       // change to hitbox style (wireframe)
-      glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+
+      m_active_scene->universal_hitbox_shader.use();
+      
+      glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+      glEnable(GL_BLEND);
       
       // bind meshes vao context
       glBindVertexArray(mesh.AABB_visualizer->m_mesh_vao);
       if (glIsVertexArray(mesh.AABB_visualizer->m_mesh_vao) == GL_FALSE) {
         log_error("no valid VAO id! cant render mesh.");
       }
-      check_gl_error("after binding vao (overlay pass hitboxes)");
-
-      mesh.AABB_visualizer->hitbox_shader.use();
-      check_gl_error("after setting shader active (overlay pass hitboxes)");
 
       // set uniforms
-      upload_to_uniform(mesh.m_material.m_shader, "model",
+      upload_to_uniform(m_active_scene->universal_hitbox_shader,"camera_position", m_active_scene->m_camera->m_cameraPos);
+      upload_to_uniform(m_active_scene->universal_hitbox_shader,"box_position_min", mesh.AABB_visualizer->min_corner);
+      upload_to_uniform(m_active_scene->universal_hitbox_shader,"box_position_max", mesh.AABB_visualizer->max_corner);
+      upload_to_uniform(m_active_scene->universal_hitbox_shader,"radius", 2.0f);
+
+      upload_to_uniform(m_active_scene->universal_hitbox_shader, "model",
                         entity.get_model_matrix() * mesh.get_model_matrix());
-      upload_to_uniform(mesh.m_material.m_shader, "view",
+      upload_to_uniform(m_active_scene->universal_hitbox_shader, "view",
                         shared_camera_view_matrix);
-      upload_to_uniform(mesh.m_material.m_shader, "projection",
+      upload_to_uniform(m_active_scene->universal_hitbox_shader, "projection",
                         shared_camera_projection_matrix);
-      check_gl_error("after setting uniforms (overlay pass hitboxes)");
+
+      upload_to_uniform(m_active_scene->universal_hitbox_shader,"screen_width", (float)m_active_scene->m_scene_framebuffer_width);
+      upload_to_uniform(m_active_scene->universal_hitbox_shader,"screen_height", (float)m_active_scene->m_scene_framebuffer_height);
 
       // render call
-      glDrawArrays(GL_TRIANGLES, 0, mesh.AABB_visualizer->m_vertices_array.size() / 3);
+      glDrawArrays(GL_TRIANGLES, 0, 3);
       check_gl_error("after glDrawArrays (overlay pass hitboxes)");
     }
-  }*/
+  }
 
   //////////////////////////////////////
   // rendering point cloud visualizer //
@@ -333,7 +339,7 @@ void Shadow_Map_Pipeline::render_overlay_pass() {
       glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
       glEnable(GL_BLEND);
       
-      entity.m_mesh[0].m_material.m_shader.use();    
+      m_active_scene->universal_point_shader.use();    
       check_gl_error("after shader use (point cloud)");
       
       // bind meshes vao context
@@ -344,19 +350,19 @@ void Shadow_Map_Pipeline::render_overlay_pass() {
       check_gl_error("after vao bind (point cloud)");
 
 
-      upload_to_uniform(entity.m_mesh[0].m_material.m_shader,"camera_position", m_active_scene->m_camera->m_cameraPos);
-      upload_to_uniform(entity.m_mesh[0].m_material.m_shader,"point_position", entity.get_position());
-      upload_to_uniform(entity.m_mesh[0].m_material.m_shader,"radius", 2.0f);
+      upload_to_uniform(m_active_scene->universal_point_shader,"camera_position", m_active_scene->m_camera->m_cameraPos);
+      upload_to_uniform(m_active_scene->universal_point_shader,"point_position", entity.get_position());
+      upload_to_uniform(m_active_scene->universal_point_shader,"radius", 2.0f);
 
-      upload_to_uniform(entity.m_mesh[0].m_material.m_shader, "model",
+      upload_to_uniform(m_active_scene->universal_point_shader, "model",
                         entity.get_model_matrix() * entity.m_mesh[0].get_model_matrix());
-      upload_to_uniform(entity.m_mesh[0].m_material.m_shader, "view",
+      upload_to_uniform(m_active_scene->universal_point_shader, "view",
                         shared_camera_view_matrix);
-      upload_to_uniform(entity.m_mesh[0].m_material.m_shader, "projection",
+      upload_to_uniform(m_active_scene->universal_point_shader, "projection",
                         shared_camera_projection_matrix);
 
-      upload_to_uniform(entity.m_mesh[0].m_material.m_shader,"screen_width", (float)m_active_scene->m_scene_framebuffer_width);
-      upload_to_uniform(entity.m_mesh[0].m_material.m_shader,"screen_height", (float)m_active_scene->m_scene_framebuffer_height);
+      upload_to_uniform(m_active_scene->universal_point_shader,"screen_width", (float)m_active_scene->m_scene_framebuffer_width);
+      upload_to_uniform(m_active_scene->universal_point_shader,"screen_height", (float)m_active_scene->m_scene_framebuffer_height);
       
       
       glDrawArrays(GL_TRIANGLES, 0,3);
