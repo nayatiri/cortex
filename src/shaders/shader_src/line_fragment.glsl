@@ -52,18 +52,27 @@ void main() {
      fragPos = fragPos * 2.0 - 1.0;
      fragPos.x *= aspect_ratio;
 
+     float lowest_distance_buffer = 100000;
+     int paint_flag = 0;
+
+     for(int i = 0; i < corners.length(); i++) {
+
      //do this for all corners in array
-     float distance = distance_from_point(corners[0], aspect_ratio, fragPos); 
-     float distance_point_cam = length(corners[0] - camera_position);
+     float distance = distance_from_point(corners[i], aspect_ratio, fragPos); 
+     float distance_point_cam = length(corners[i] - camera_position);
      float radius_scaled_by_position = (1/distance_point_cam) * radius * 0.1;
 
-//todo make it run calculation for all corners. then make a distance buffer that logs the closest distance, if closest distance from all corners < adjusted radius, then pain frag
+         if(distance < radius_scaled_by_position && distance < lowest_distance_buffer) {
+             lowest_distance_buffer = distance;
+	     paint_flag = 1;
+         }
 
-     if(distance < radius_scaled_by_position) {
-     
+     }
+
+     // paint this abomination
+     if(paint_flag == 1) {
          set_fragment_depth(corners[0]);
-         FragColor = vec4(1.0, 0.0, 0.0, 1.0);
-	 
+         FragColor = vec4(1.0, 0.0, 0.0, 1.0);	 
      } else {
        	 discard;
      }

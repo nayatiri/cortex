@@ -13,7 +13,8 @@ uniform vec3 camera_position;
 uniform float screen_width;
 uniform float screen_height;	
 
-void main() {     
+void main() {
+
      // project +clip
      vec4 point_clip = projection * view * model * vec4(point_position, 1.0);
      if(point_clip.w <= 0.0) { discard; }
@@ -43,5 +44,6 @@ void main() {
      	 FragColor = vec4(0.0, 1.0, 0.0, 1.0);	
      } else {
 	 discard;
-      }
+     }
+      
 }

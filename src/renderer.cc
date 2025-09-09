@@ -265,7 +265,7 @@ void Renderer::init_scene_vbos() {
       // Clean up old buffers to prevent leaks
       cleanup_mesh_vbos(toadjust);
 
-      // Create VAO n load 0es xd
+      // Create VAO n load fullscreen tri xd
       glGenVertexArrays(1, &toadjust.m_mesh_vao);
       glBindVertexArray(toadjust.m_mesh_vao);
       std::vector<float> tmp = {-1.0f,-1.0f, -1.0f,
@@ -280,7 +280,8 @@ void Renderer::init_scene_vbos() {
 
       continue;
     }
-    
+
+    // now process mesh
     for (Mesh &mesh : entity.m_mesh) {
       
       if (!mesh.m_mesh_vbo_needs_refresh)
