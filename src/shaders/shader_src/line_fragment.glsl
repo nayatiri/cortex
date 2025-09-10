@@ -1,5 +1,7 @@
 #version 450 core
 
+// i hate this shader so much
+
 out vec4 FragColor;
 
 uniform float radius;
@@ -14,7 +16,7 @@ uniform vec3 camera_position;
 uniform float screen_width;
 uniform float screen_height;
 
-vec2 closest_point_on_line_segment(vec2 p, vec2 a, vec2 b) {
+vec2 lotfusspunkt(vec2 p, vec2 a, vec2 b) {
     vec2 ab = b - a;
     vec2 ap = p - a;
     float t = dot(ap, ab) / dot(ab, ab);
@@ -38,12 +40,12 @@ float distance_from_edge_segment(vec3 edge_start_world, vec3 edge_end_world, flo
         return 100000.0;
     }
 
-    vec2 closest_ndc = closest_point_on_line_segment(frag_pos_ndc, start_ndc, end_ndc);
+    vec2 closest_ndc = lotfusspunkt(frag_pos_ndc, start_ndc, end_ndc);
     return length(frag_pos_ndc - closest_ndc);
 }
 
 void set_fragment_depth(vec3 point_position) {
-    vec4 point_clip = projection * view * model * vec4(point_position, 1.0);
+    vec4 point_clip = projection * view * vec4(point_position, 1.0);
     float ndc_z = point_clip.z / point_clip.w;
     float window_z = ndc_z * 0.5 + 0.5;
     gl_FragDepth = window_z;
@@ -71,34 +73,50 @@ void main() {
     fragPos = fragPos * 2.0 - 1.0;
     fragPos.x *= aspect_ratio;
 
-    float lowest_distance = 100000.0;
-    vec3 closest_point_world = vec3(0.0);
-    int paint_flag = 0;
+    float best_cam_dist = 100000.0;
+    float best_screen_dist = 100000.0;
+    vec3 best_world_point = vec3(0.0);
+    bool found = false;
 
     for (int i = 0; i < 12; i++) {
         vec3 start = corners[edges[i][0]];
-        vec3 end   = corners[edges[i][1]];
+    	vec3 end   = corners[edges[i][1]];
 
-        vec3 mid = (start + end) * 0.5;
-        float dist_to_cam = length(mid - camera_position);
-        float inv_dist = 1.0 / max(dist_to_cam, 0.001);
-        float scaled_radius = inv_dist * radius * 0.1;
+    	vec2 start_ndc = project_to_screen_space(start, aspect_ratio);
+    	vec2 end_ndc   = project_to_screen_space(end, aspect_ratio);
 
-        float dist_to_edge = distance_from_edge_segment(start, end, aspect_ratio, fragPos);
+    	if (abs(start_ndc.x) > 1000.0 || abs(end_ndc.x) > 1000.0) continue;
 
-        if (dist_to_edge < scaled_radius && dist_to_edge < lowest_distance) {
-            lowest_distance = dist_to_edge;
-            closest_point_world = mid; // or you could interpolate based on closest point
-            paint_flag = 1;
-        }
-    }
+    	vec2 closest_ndc = lotfusspunkt(fragPos, start_ndc, end_ndc);
+    	float dist_to_edge = length(fragPos - closest_ndc);
 
-    if (paint_flag == 1) {
-        set_fragment_depth(closest_point_world);
-        float alpha = 1.0 - smoothstep(radius * 0.1 - 0.005, radius * 0.1 + 0.005, lowest_distance);
-        if (alpha < 0.01) discard;
-        FragColor = vec4(1.0, 0.0, 0.0, alpha);
-    } else {
-        discard;
-    }
+    	float pixel_ndc = 2.0 / screen_width;
+    	float ndc_threshold = radius * pixel_ndc;
+
+    	if (dist_to_edge >= ndc_threshold) continue;
+
+    	vec2 ab = end_ndc - start_ndc;
+    	vec2 ap = fragPos - start_ndc;
+    	float t = dot(ap, ab) / max(dot(ab, ab), 1e-8);
+    	t = clamp(t, 0.0, 1.0);
+
+    	vec3 closest_point_on_line_world = mix(start, end, t);
+    	float cam_dist = length(camera_position - closest_point_on_line_world);
+
+    	if (cam_dist < best_cam_dist) {
+           best_cam_dist = cam_dist;
+           best_screen_dist = dist_to_edge;
+           best_world_point = closest_point_on_line_world;
+           found = true;
+    	   }
+	}
+
+	if (found) {
+    	   set_fragment_depth(best_world_point);
+    	   float alpha = 1.0 - smoothstep(radius * 0.1 - 0.005, radius * 0.1 + 0.005, best_screen_dist);
+    	   if (alpha < 0.01) discard;
+    	   FragColor = vec4(1.0, 0.0, 0.0, alpha);
+	} else {
+    	  discard;
+	}
 }

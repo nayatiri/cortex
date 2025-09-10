@@ -146,6 +146,9 @@ void Physics_Manager::handle_scene_physics_diy() {
 bool Physics_Manager::check_inside_AABB(Mesh &check_mesh, glm::vec3 check_position) {
 
 
+  //glm::vec3 box_min = check_mesh.AABB_visualizer->min_corner;
+  //  glm::vec3 box_max = check_mesh.AABB_visualizer->max_corner;
+
   
   
   return false;
