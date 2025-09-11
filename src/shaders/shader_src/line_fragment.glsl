@@ -8,6 +8,7 @@ uniform float radius;
 uniform mat4 projection;
 uniform mat4 view;
 uniform mat4 model;
+uniform vec3 box_color;
 
 uniform vec3 box_position_min;
 uniform vec3 box_position_max;
@@ -115,7 +116,7 @@ void main() {
     	   set_fragment_depth(best_world_point);
     	   float alpha = 1.0 - smoothstep(radius * 0.1 - 0.005, radius * 0.1 + 0.005, best_screen_dist);
     	   if (alpha < 0.01) discard;
-    	   FragColor = vec4(1.0, 0.0, 0.0, alpha);
+    	   FragColor = vec4(box_color, alpha);
 	} else {
     	  discard;
 	}

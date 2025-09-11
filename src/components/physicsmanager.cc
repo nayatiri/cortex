@@ -96,49 +96,32 @@ void Physics_Manager::handle_scene_physics_book() {
   
 }
 
+// aka integrator
 void Physics_Manager::handle_scene_physics_diy() {
   for ( Entity &e : m_active_scene->m_loaded_entities) {
     for ( Mesh &m : e.m_mesh) {
-      /*
 
-       check if entity is stationary
-       if not, check impulse. if its not 0, turn  velocity += impulse/mass
-       impulse = 0
-       velocity += gravity * deltatime
-       preview position vector =  position + velocity * deltatime
-       create relative movement vector from  preview - position
-       check if movement vector collides with any face of the scene
-       if collission, mark entity as colliding, dont do movement, but adjust energies to calculate bounce or similar
-       if no collission, adjust position by movement vector, set impulse to 0
-       
-      */
-
-      // if its a point, and its a physics object
       if(e.entity_type == Entity_Point && m.phys_props.is_physics_object) {
 
-	// check our bozo acceleration structure (its not an acceleration structure xd)
-	for ( Entity &check_e : m_active_scene->m_loaded_entities) {
-	  for ( Mesh &check_m : check_e.m_mesh) {
-	    if(!check_inside_AABB(check_m, e.get_position()))
-	      continue;
-	    
-	    if(m.phys_props.impulse.length() == 0) {
-	      m.phys_props.stationary = true;
-	    } else {
-	      m.phys_props.stationary = false;
-	    }
-	    
-	    if(m.phys_props.stationary)
-	      continue;
-	    
-	    
-	    
-	    // m.change_position( 0 , - m.phys_props.gravity * m_active_scene->m_scene_deltatime , 0 );
-	    
-	  }
-	}	
-      } else {continue;}
+	std::cout << "evaluating point with velocity: " << m.phys_props.velocity.x << " x "<< m.phys_props.velocity.y << " y " << m.phys_props.velocity.z << " z " << std::endl;
+	std::cout << "evaluating point with force: " << m.phys_props.force.x << " x "<< m.phys_props.force.y << " y " << m.phys_props.force.z << " z " << std::endl;
+	std::cout << "evaluating point with acceleration: " << m.phys_props.acceleration.x << " x "<< m.phys_props.acceleration.y << " y " << m.phys_props.acceleration.z << " z " << std::endl;
 
+	//add gravity
+	m.phys_props.force += m.phys_props.gravity;
+	
+	// p' = p + pt + 0.5 pt ^2
+	glm::vec3 acceleration = m.phys_props.acceleration;
+	acceleration += m.phys_props.force * m.phys_props.inverse_mass;
+	
+        m.phys_props.velocity += acceleration * m_active_scene->m_scene_deltatime;
+	m.phys_props.velocity *= pow(m.phys_props.damping, m_active_scene->m_scene_deltatime);
+
+	e.change_position(m.phys_props.velocity * m_active_scene->m_scene_deltatime);
+	
+	m.phys_props.force = {0,0,0};
+	
+      }
     }
   }
 }

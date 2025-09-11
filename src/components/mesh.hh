@@ -17,19 +17,16 @@
 struct Physics_properties {
 
   bool is_physics_object = false;
-
-  float mass = 1;
-  float surface_area = 1;
-  float gravity = 0.982;
-  
-  glm::vec3 impulse = {0,0,0};
-
-  float kinetic_energy = 0;
-  float potential_energy = 0;
-
-  glm::vec3 velocity = {0,0,0};
-  
   bool stationary = true;
+
+  glm::vec3 gravity = {0,-9.81,0};
+  
+  glm::vec3 force = {0,0,0};
+  glm::vec3 velocity = {0,0,0};
+  glm::vec3 acceleration = {0,0,0};
+
+  float damping = 0.995f;
+  float inverse_mass = 1.0f;
   
 };
 

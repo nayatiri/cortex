@@ -191,12 +191,12 @@
 		{
 			"mimeType":"image/png",
 			"name":"floor",
-			"uri":"floor.png"
+			"uri":"tex/floor.png"
 		},
 		{
 			"mimeType":"image/png",
 			"name":"cube_tex",
-			"uri":"cube_tex.png"
+			"uri":"tex/cube_tex.png"
 		}
 	],
 	"accessors":[

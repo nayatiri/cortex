@@ -1,4 +1,5 @@
 #include "input.hh"
+#include "entity.hh"
 #include "logging.hh"
 #include "../glad/glad.h"
 
@@ -139,6 +140,28 @@ void Input_Manager::process_input(GLFWwindow *window, float m_application_curren
                           -m_active_scene->m_camera->m_cameraLookAt.z));
   }
 
+  // give all particles some force upwards
+  if (glfwGetKey(window, GLFW_KEY_F) == GLFW_PRESS) {
+    for(Entity &e : m_active_scene->m_loaded_entities) {
+      if(e.entity_type == Entity_Point) {
+	e.m_mesh[0].phys_props.force += glm::vec3(0,15,0);
+      }      
+    }
+  }
+
+  // move all particles to 0,5,5 (ik its dumb)
+  if (glfwGetKey(window, GLFW_KEY_V) == GLFW_PRESS) {
+    for(Entity &e : m_active_scene->m_loaded_entities) {
+      if(e.entity_type == Entity_Point) {
+	e.set_position(0,5,5);
+        e.m_mesh[0].phys_props.velocity = {0,0,0};
+	e.m_mesh[0].phys_props.force = {0,0,0};
+	e.m_mesh[0].phys_props.acceleration = {0,0,0};
+      }      
+    }
+  }
+  
+    
   if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
     m_active_scene->m_camera->m_cameraPos -=
         glm::normalize(glm::cross(m_active_scene->m_camera->m_cameraLookAt,

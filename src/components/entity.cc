@@ -1,5 +1,6 @@
 #include "entity.hh"
 #include <glm/ext/matrix_float4x4.hpp>
+#include <glm/ext/vector_float3.hpp>
 #include <glm/gtc/quaternion.hpp>
 
 glm::mat4 Entity::get_model_matrix() {
@@ -53,6 +54,14 @@ void Entity::change_position(float x, float y, float z) {
   m_pos_z += z;
   model_matrix_deprecated = true;
 }
+
+void Entity::change_position(glm::vec3 add_vec) {
+  m_pos_x += add_vec.x;
+  m_pos_y += add_vec.y;
+  m_pos_z += add_vec.z;
+  model_matrix_deprecated = true;
+}
+
 
 bool Entity::is_initialized() {
   if(m_mesh.size()>0)

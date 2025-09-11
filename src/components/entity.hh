@@ -31,7 +31,9 @@ public:
   glm::mat4 get_model_matrix();
 
   void set_position(float x ,float y, float z);
+
   void change_position(float x ,float y, float z);
+  void change_position(glm::vec3);
 
   void set_rotation (float rx ,float ry, float rz);
   void change_rotation (float rx ,float ry, float rz);

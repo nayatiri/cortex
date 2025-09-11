@@ -309,7 +309,7 @@ void Shadow_Map_Pipeline::render_overlay_pass() {
       upload_to_uniform(m_active_scene->universal_hitbox_shader,"camera_position", m_active_scene->m_camera->m_cameraPos);
       upload_to_uniform(m_active_scene->universal_hitbox_shader,"box_position_min", mesh.AABB_visualizer->min_corner);
       upload_to_uniform(m_active_scene->universal_hitbox_shader,"box_position_max", mesh.AABB_visualizer->max_corner);
-      upload_to_uniform(m_active_scene->universal_hitbox_shader,"radius", 10.0f);
+      upload_to_uniform(m_active_scene->universal_hitbox_shader,"radius", 1.0f);
 
       upload_to_uniform(m_active_scene->universal_hitbox_shader, "view",
                         shared_camera_view_matrix);
@@ -318,6 +318,9 @@ void Shadow_Map_Pipeline::render_overlay_pass() {
 
       upload_to_uniform(m_active_scene->universal_hitbox_shader,"screen_width", (float)m_active_scene->m_scene_framebuffer_width);
       upload_to_uniform(m_active_scene->universal_hitbox_shader,"screen_height", (float)m_active_scene->m_scene_framebuffer_height);
+
+      //can eval here if collision / stationary then change box color or smthn
+      upload_to_uniform(m_active_scene->universal_hitbox_shader,"box_color", glm::vec3(0.8,0.5,0.2));
 
       // render call
       glDrawArrays(GL_TRIANGLES, 0, 3);
