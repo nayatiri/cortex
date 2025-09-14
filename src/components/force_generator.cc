@@ -71,23 +71,33 @@ glm::vec3 Spring_force_generator::get_force(Point& p, float delta_time) {
 
   if (&p == from.get()) {
     
-    std::cout << "from = (" 
-	      << from->get_position().x << ", " 
-	      << from->get_position().y << ", " 
-	      << from->get_position().z << ")" 
-	      << std::endl;
-    
-    std::cout << "to = (" 
-	      << to->get_position().x << ", " 
-	      << to->get_position().y << ", " 
-	      << to->get_position().z << ")" 
-	      << std::endl;
     
     glm::vec3 from_to = from->get_position() - to->get_position();
     
     float distance = glm::length(from_to);
     
-    std::cout << distance <<std::endl;
+    glm::vec3 spring_direction_from_to = glm::normalize(from_to);
+
+    // if distance smaller than rest_length we need to extend the spring
+    if(distance < rest_length) {
+      log_debug("spring dis smaller");
+      return spring_direction_from_to * (rest_length - distance) * strength;
+    }
+
+    // if distance bigger, contract the spring
+    if(distance > rest_length) {
+      log_debug("spring dis bigger");
+      return -spring_direction_from_to * (distance - rest_length) * strength;
+    }
+
+  }
+
+  if (&p == to.get()) {
+    
+    
+    glm::vec3 from_to = to->get_position() - from->get_position();
+    
+    float distance = glm::length(from_to);
     
     glm::vec3 spring_direction_from_to = glm::normalize(from_to);
 
