@@ -328,7 +328,7 @@ void Shadow_Map_Pipeline::render_overlay_pass() {
   // rendering point cloud visualizer //
   //////////////////////////////////////
   
-  for (Point& p : m_active_scene->m_loaded_points) {
+  for (std::shared_ptr<Point> p : m_active_scene->m_loaded_points) {
 
       // back to solid + blending yippie
       glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
@@ -338,26 +338,26 @@ void Shadow_Map_Pipeline::render_overlay_pass() {
       check_gl_error("after shader use (point cloud)");
       
       // bind meshes vao context
-      glBindVertexArray(p.VAO_id);
-      if (glIsVertexArray(p.VAO_id) == GL_FALSE) {
+      glBindVertexArray(p->VAO_id);
+      if (glIsVertexArray(p->VAO_id) == GL_FALSE) {
         log_error("no valid VAO id! cant render mesh.");
       }      
       check_gl_error("after vao bind (point cloud)");
 
 
       upload_to_uniform(m_active_scene->universal_point_shader,"camera_position", m_active_scene->m_camera->m_cameraPos);
-      upload_to_uniform(m_active_scene->universal_point_shader,"point_position", p.get_position());
+      upload_to_uniform(m_active_scene->universal_point_shader,"point_position", p->get_position());
       upload_to_uniform(m_active_scene->universal_point_shader,"radius", 2.0f);
 
       upload_to_uniform(m_active_scene->universal_point_shader, "model",
-                        p.get_model_matrix());
+                        p->get_model_matrix());
       upload_to_uniform(m_active_scene->universal_point_shader, "view",
                         shared_camera_view_matrix);
       upload_to_uniform(m_active_scene->universal_point_shader, "projection",
                         shared_camera_projection_matrix);
 
       // silly gimmich to show particles experiencing a force atm
-      if(p.phys_props.force == glm::vec3(0,0,0)) {
+      if(p->phys_props.force == glm::vec3(0,0,0)) {
 	upload_to_uniform(m_active_scene->universal_point_shader,"point_color", glm::vec3(0.1,1.0,0.0));
       } else {
 	upload_to_uniform(m_active_scene->universal_point_shader,"point_color", glm::vec3(0.5,0.2,0.9));
@@ -370,7 +370,54 @@ void Shadow_Map_Pipeline::render_overlay_pass() {
       glDrawArrays(GL_TRIANGLES, 0,3);
       check_gl_error("after glDrawArrays (point cloud)");
 
+  }
+
+  //////////////////////////////////////
+  // rendering Spring visualizers     //
+  //////////////////////////////////////
+  
+  for (std::shared_ptr<Spring>& s : m_active_scene->m_loaded_springs) {
+    
+    log_success("tryna render spring");
+    
+    // back to solid + blending yippie
+    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+    glEnable(GL_BLEND);
+    
+    m_active_scene->universal_line_shader.use();
+    
+    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+    glEnable(GL_BLEND);
+    
+    // bind meshes vao context
+    glBindVertexArray(s->VAO_id);
+    if (glIsVertexArray(s->VAO_id) == GL_FALSE) {
+      log_error("no valid VAO id! cant render mesh.");
+    }
+    
+    // set uniforms
+    upload_to_uniform(m_active_scene->universal_line_shader,"line_position_min", s->link_A->get_position());
+    upload_to_uniform(m_active_scene->universal_line_shader,"line_position_max", s->link_B->get_position());
+    upload_to_uniform(m_active_scene->universal_line_shader,"radius", 2.0f);
+    
+    upload_to_uniform(m_active_scene->universal_line_shader, "view",
+		      shared_camera_view_matrix);
+    upload_to_uniform(m_active_scene->universal_line_shader, "projection",
+		      shared_camera_projection_matrix);
+    
+    upload_to_uniform(m_active_scene->universal_line_shader,"screen_width", (float)m_active_scene->m_scene_framebuffer_width);
+    upload_to_uniform(m_active_scene->universal_line_shader,"screen_height", (float)m_active_scene->m_scene_framebuffer_height);
+    
+    upload_to_uniform(m_active_scene->universal_line_shader,"box_color", glm::vec3(0.8,0.5,0.2));
+    
+    // render call
+    glDrawArrays(GL_TRIANGLES, 0, 3);
+    check_gl_error("after glDrawArrays (overlay pass hitboxes)");
+    
   }  
+  
+  log_error("render pass done");
+  
 }
 
 void Shadow_Map_Pipeline::render_frame() {

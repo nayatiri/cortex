@@ -1,9 +1,11 @@
 #pragma once
 
 #include "entity.hh"
+#include "force_generator.hh"
 #include "light.hh"
 #include "camera.hh"
 #include "point.hh"
+#include "spring.hh"
 
 #include <GLFW/glfw3.h>
 #include <glm/ext/matrix_transform.hpp>
@@ -22,13 +24,15 @@ public:
 
   void add_entity_to_scene(Entity to_add);
   void add_light_to_scene(Light to_add);
-  void add_point_to_scene(Point to_add);
+  void add_point_to_scene(std::shared_ptr<Point> to_add);
 
   Scene();
   
   std::vector<Entity> m_loaded_entities = {};
-  std::vector<Point> m_loaded_points = {};
-  std::vector<Light> m_loaded_lights = {};  
+  std::vector<Light> m_loaded_lights = {};
+  std::vector<std::shared_ptr<Spring>> m_loaded_springs = {};
+  std::vector<std::shared_ptr<Point>> m_loaded_points = {};
+  std::vector<std::shared_ptr<Force_generator>> m_loaded_force_generators = {};
 
   std::unique_ptr<Camera> m_camera;
 
@@ -41,8 +45,9 @@ public:
   int m_scene_framebuffer_width;
   int m_scene_framebuffer_height;
 
-  //universal shaders (sdf magic)
+  //universal shaders (sdf magic) :3
   Shader universal_hitbox_shader;
+  Shader universal_line_shader;
   Shader universal_point_shader;
   
 };

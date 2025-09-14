@@ -1,7 +1,7 @@
 #include "input.hh"
 #include "entity.hh"
 #include "logging.hh"
-#include "../glad/glad.h"
+
 
 void Input_Manager::process_input(GLFWwindow *window, float m_application_current_time, float m_delta_time) {
   
@@ -142,18 +142,18 @@ void Input_Manager::process_input(GLFWwindow *window, float m_application_curren
   
   // give all particles some force upwards
   if (glfwGetKey(window, GLFW_KEY_F) == GLFW_PRESS) {
-    for(Point& p : m_active_scene->m_loaded_points) 
-      p.phys_props.add_force(0,15,0);
+    for(std::shared_ptr<Point> p : m_active_scene->m_loaded_points) 
+      p->phys_props.add_force(0,15,0);
   }       
   
     
     // move all particles to 0,5,5 (ik its dumb)
     if (glfwGetKey(window, GLFW_KEY_V) == GLFW_PRESS) {
-      for(Point& p : m_active_scene->m_loaded_points) {
-        p.set_position(0,5,5);
-	p.phys_props.velocity = {0,0,0};
-	p.phys_props.force = {0,0,0};
-	p.phys_props.acceleration = {0,0,0};
+      for(std::shared_ptr<Point> p : m_active_scene->m_loaded_points) {
+        p->set_position(0,5,5);
+	p->phys_props.velocity = {0,0,0};
+	p->phys_props.force = {0,0,0};
+	p->phys_props.acceleration = {0,0,0};
       }      
     }
   

@@ -1,6 +1,8 @@
 #include "point.hh"
+#include "force_generator.hh"
 #include <glm/ext/matrix_float4x4.hpp>
 #include <glm/ext/quaternion_transform.hpp>
+#include <memory>
 
 Point::Point(float x, float y, float z) {
   m_pos_x = x;
@@ -49,5 +51,4 @@ void Point::set_position(float x, float y, float z) {
 }
 
 glm::vec3 Point::get_position() { return glm::vec3(m_pos_x, m_pos_y, m_pos_z); }
-
 

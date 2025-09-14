@@ -3,7 +3,6 @@
 #include "animation.hh"
 #include "mesh.hh"
 
-#include <GLFW/glfw3.h>
 #include <glm/glm.hpp>
 
 // stdlib

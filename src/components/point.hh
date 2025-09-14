@@ -1,12 +1,7 @@
 #pragma once
 
-
-#include "force_generator.hh"
 #include <glm/ext/matrix_float4x4.hpp>
 #include <glm/ext/vector_float3.hpp>
-#include <GLFW/glfw3.h>
-#include <memory>
-#include <vector>
 
 //TODO make this shit not be declared here :-) 
 struct Physics_properties {
@@ -19,16 +14,11 @@ struct Physics_properties {
   glm::vec3 velocity = {0,0,0};
   glm::vec3 acceleration = {0,0,0};
 
-  float damping = 0.50f;
   float inverse_mass = 1.0f;
 
   //why tf is this valid
   void add_force(glm::vec3 to_add) {force += to_add;};
   void add_force(float x, float y, float z) { force.x += x; force.y += y; force.z += z; };
-
-  glm::vec3 calculate_alembert_force();
-
-  std::vector<std::shared_ptr<Force_generator>> force_generators;
   
 };
 
@@ -55,8 +45,8 @@ public:
   
   Physics_properties phys_props;
 
-  GLuint VAO_id;
+  unsigned int VAO_id;
 
-  GLuint VBO_vertices;
+  unsigned int VBO_vertices;
 
 };

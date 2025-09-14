@@ -27,6 +27,8 @@ public:
   
   Physics_Manager(std::shared_ptr<Scene> set_scene);
 
+  void update_alembert_force(Point& p, float delta_time);
+
   void handle_scene_physics();
 
   AABB_Box create_collision_box_mesh(const AABB& box);

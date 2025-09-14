@@ -12,6 +12,7 @@ Physics_Manager::Physics_Manager(std::shared_ptr<Scene> set_scene) {
 AABB_Box Physics_Manager::create_collision_box_mesh(const AABB &box) {
 
   Shader touse = Shader("src/shaders/shader_src/point_vertex.glsl","src/shaders/shader_src/point_fragment.glsl");
+  
   AABB_Box newbox = AABB_Box(touse);
   newbox.min_corner = box.min;
   newbox.max_corner = box.max;
@@ -109,17 +110,19 @@ void Physics_Manager::handle_scene_physics() {
 void Physics_Manager::handle_scene_physics_book() {}
 
 bool Physics_Manager::initialize_force_generators() {
+  
   if(m_active_scene->m_loaded_points.size() > 0){
-    for(Point& p: m_active_scene->m_loaded_points) {
-      
-      log_error("init force gens!!!");
-      
-      p.phys_props.force_generators.push_back(std::make_shared<Constant_force_generator>(glm::vec3(0.0f,-9.81f,0.0f)));
-      p.phys_props.force_generators.push_back(std::make_shared<Conditional_force_generator>(glm::vec3(0.0f,15.0f,0.0f)));
-      
-      return true;
-      
-    }
+
+    //gravity
+    m_active_scene->m_loaded_force_generators.push_back(std::make_shared<Constant_force_generator>(glm::vec3(0.0f,-9.81f,0.0f)));
+
+    //bouncy thing
+    m_active_scene->m_loaded_force_generators.push_back(std::make_shared<Conditional_force_generator>(glm::vec3(0.0f,15.0f,0.0f)));
+
+    //drag
+    m_active_scene->m_loaded_force_generators.push_back(std::make_shared<Drag_force_generator>(0.1f,0.01f));
+
+    return true;
   }
   
   log_error("couldnt init gens!!!");
@@ -130,32 +133,36 @@ bool Physics_Manager::initialize_force_generators() {
 
 // aka integrator
 void Physics_Manager::handle_scene_physics_diy() {
-  for(Point& p : m_active_scene->m_loaded_points) {
+  
+  for(std::shared_ptr<Point> p : m_active_scene->m_loaded_points) {
 
-    std::cout << "evaluating point with velocity: " << p.phys_props.velocity.x << " x "<< p.phys_props.velocity.y << " y " << p.phys_props.velocity.z << " z " << std::endl;
-    std::cout << "evaluating point with force: " << p.phys_props.force.x << " x "<< p.phys_props.force.y << " y " << p.phys_props.force.z << " z " << std::endl;
-    std::cout << "evaluating point with acceleration: " << p.phys_props.acceleration.x << " x "<< p.phys_props.acceleration.y << " y " << p.phys_props.acceleration.z << " z " << std::endl;
+    /* TODO
+       maybe move force generators to their own vector, not inside the particles
+       then make fg hold reference to particle, so that gravity fx only exists as one generator
+       with references to all particles in the scene, allowing easy gravity change.
+
+       create update_force method that takes deltatime that sets the output force for every particle every tick
+     */
+
+    std::cout << "evaluating point with velocity: " << p->phys_props.velocity.x << " x "<< p->phys_props.velocity.y << " y " << p->phys_props.velocity.z << " z " << std::endl;
+    std::cout << "evaluating point with force: " << p->phys_props.force.x << " x "<< p->phys_props.force.y << " y " << p->phys_props.force.z << " z " << std::endl;
+    std::cout << "evaluating point with acceleration: " << p->phys_props.acceleration.x << " x "<< p->phys_props.acceleration.y << " y " << p->phys_props.acceleration.z << " z " << std::endl;
     
-    //calculate forces, by iterating force managers
-    for(auto& fg : p.phys_props.force_generators) {
-      std::cout << "gen force: " << " x " << fg->get_force(p.get_position()).x << " y " << fg->get_force(p.get_position()).y << " z " << fg->get_force(p.get_position()).z << std::endl;
-      p.phys_props.force += fg->get_force(p.get_position());
-    }
+    //get forces from force generators for this tick
+    update_alembert_force(*p, m_active_scene->m_scene_deltatime);
     
     // p' = p + pt + 0.5 pt ^2
-    glm::vec3 acceleration = p.phys_props.acceleration;
-    acceleration += p.phys_props.force * p.phys_props.inverse_mass;
+    glm::vec3 acceleration = p->phys_props.acceleration;
+    acceleration += p->phys_props.force * p->phys_props.inverse_mass;
     
-    p.phys_props.velocity += acceleration * m_active_scene->m_scene_deltatime;
-    p.phys_props.velocity *= pow(p.phys_props.damping, m_active_scene->m_scene_deltatime);
+    p->phys_props.velocity += acceleration * m_active_scene->m_scene_deltatime;
     
-    p.change_position(p.phys_props.velocity * m_active_scene->m_scene_deltatime);
+    p->change_position(p->phys_props.velocity * m_active_scene->m_scene_deltatime);
     
-    p.phys_props.force = {0,0,0};
+    p->phys_props.force = {0,0,0};
     
   }
 }
-
 
 bool Physics_Manager::check_inside_AABB(Mesh &check_mesh, glm::vec3 check_position) {
 
@@ -164,3 +171,11 @@ bool Physics_Manager::check_inside_AABB(Mesh &check_mesh, glm::vec3 check_positi
 
   return false;
 }
+
+void Physics_Manager::update_alembert_force(Point &p, float delta_time) {
+  
+  for(std::shared_ptr<Force_generator> fg : m_active_scene->m_loaded_force_generators) {
+    p.phys_props.force += fg->get_force(p,delta_time); 
+  }
+
+};

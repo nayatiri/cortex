@@ -18,7 +18,7 @@ uniform float screen_height;
 void main() {
 
      // project +clip
-     vec4 point_clip = projection * view * model * vec4(point_position, 1.0);
+     vec4 point_clip = projection * view * vec4(point_position, 1.0);
      if(point_clip.w <= 0.0) { discard; }
 
      float aspect_ratio = screen_width / screen_height;

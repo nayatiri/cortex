@@ -17,6 +17,7 @@
 
 // components
 #include "components/entity.hh"
+#include "components/force_generator.hh"
 #include "components/input.hh"
 #include "components/light.hh"
 #include "components/logging.hh"
@@ -340,7 +341,7 @@ void Renderer::init_scene_vbos() {
   ///////////////////
   // Update Point VBOs
   ///////////////////
-  for(Point& p : m_active_scene->m_loaded_points) {
+  for(std::shared_ptr<Point> p : m_active_scene->m_loaded_points) {
       //if entity is a point, we can simply init a mesh,
       //and init it with 3 0's as a vbo since we renderb
       //the dots as signed distance fields anyway and
@@ -348,13 +349,38 @@ void Renderer::init_scene_vbos() {
       log_debug_sub("Reinitializing VBOs for point (needs refresh [this shouldnt happen more than once lmao])");
 
       // Create VAO n load fullscreen tri xd
-      glGenVertexArrays(1, &p.VAO_id);
-      glBindVertexArray(p.VAO_id);
+      glGenVertexArrays(1, &p->VAO_id);
+      glBindVertexArray(p->VAO_id);
       std::vector<float> tmp = {-1.0f,-1.0f, -1.0f,
 				3.0f, -1.0f, -1.0f,
 				-1.0f, 3.0f, -1.0f};
-      glGenBuffers(1, &p.VBO_vertices);
-      glBindBuffer(GL_ARRAY_BUFFER, p.VBO_vertices);
+      glGenBuffers(1, &p->VBO_vertices);
+      glBindBuffer(GL_ARRAY_BUFFER, p->VBO_vertices);
+      glBufferData(GL_ARRAY_BUFFER,
+		   tmp.size() * sizeof(float), tmp.data() , GL_STATIC_DRAW);
+      glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+      glEnableVertexAttribArray(0);
+
+  }
+
+  ///////////////////
+  // Update Spring VBOs
+  ///////////////////
+  for(std::shared_ptr<Spring> s : m_active_scene->m_loaded_springs) {
+      //if entity is a point, we can simply init a mesh,
+      //and init it with 3 0's as a vbo since we renderb
+      //the dots as signed distance fields anyway and
+      //dont need a vbo with vertex data.      
+      log_debug_sub("Reinitializing VBOs for point (needs refresh [this shouldnt happen more than once lmao])");
+
+      // Create VAO n load fullscreen tri xd
+      glGenVertexArrays(1, &s->VAO_id);
+      glBindVertexArray(s->VAO_id);
+      std::vector<float> tmp = {-1.0f,-1.0f, -1.0f,
+				3.0f, -1.0f, -1.0f,
+				-1.0f, 3.0f, -1.0f};
+      glGenBuffers(1, &s->VBO_vertices);
+      glBindBuffer(GL_ARRAY_BUFFER, s->VBO_vertices);
       glBufferData(GL_ARRAY_BUFFER,
 		   tmp.size() * sizeof(float), tmp.data() , GL_STATIC_DRAW);
       glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
@@ -483,6 +509,16 @@ _/ ___\/  _ \_  __ \   __\/ __ \\  \/  /
 }
 
 void Renderer::add_point_to_scene(float x, float y, float z) {
-  Point to_add = Point(x,y,z);
+  std::shared_ptr<Point> to_add = std::make_shared<Point>(x,y,z);
   m_active_scene->add_point_to_scene(to_add);
 }
+
+void Renderer::create_spring_constraint(std::shared_ptr<Point> from,
+                                        std::shared_ptr<Point> to,
+                                        float strength,
+					float rest_length) {
+  
+  m_active_scene->m_loaded_springs.push_back(std::make_shared<Spring>(from,to,strength));
+  m_active_scene->m_loaded_force_generators.push_back(std::make_shared<Spring_force_generator>(from,to,strength,rest_length));
+  
+};
