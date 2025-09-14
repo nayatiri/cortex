@@ -10,7 +10,6 @@
 #include <cstring>
 #include <iostream>
 #include <memory>
-#include <stdexcept>
 #include <string>
 #include <type_traits>
 #include <vector>
@@ -21,6 +20,7 @@
 #include "components/input.hh"
 #include "components/light.hh"
 #include "components/logging.hh"
+#include "components/point.hh"
 #include "components/mesh.hh"
 #include "components/scene.hh"
 #include "components/animationmanager.hh"
@@ -239,49 +239,6 @@ void Renderer::init_scene_vbos() {
   // Update Entity Mesh VBOs //
   /////////////////////////////
   for (Entity &entity : m_active_scene->m_loaded_entities) {
-    
-    if( entity.entity_type == Entity_Point && entity.m_mesh.size() < 1) {
-      //if entity is a point, we can simply init a mesh,
-      //and init it with 3 0's as a vbo since we render
-      //the dots as signed distance fields anyway and
-      //dont need a vbo with vertex data.
-
-      Shader toload = Shader("src/shaders/shader_src/point_vertex.glsl","src/shaders/shader_src/point_fragment.glsl");
-      Material tomat = Material(E_POINT,toload);
-      Mesh newmesh = Mesh(tomat);
-      //TMP make all points phys objects
-      newmesh.phys_props.is_physics_object = true;
-      entity.m_mesh.emplace_back(newmesh);
-      
-      Mesh &toadjust = entity.m_mesh[0];
-      
-      if(!toadjust.m_mesh_vbo_needs_refresh)
-	continue;
-      
-      log_debug_sub("Reinitializing VBOs for point (needs refresh [this shouldnt happen more than once lmao])");
-
-      std::cout << "initialized hitbox mesh with n verts:" << toadjust.m_vertices_array.size() << std::endl;
-      
-      // Clean up old buffers to prevent leaks
-      cleanup_mesh_vbos(toadjust);
-
-      // Create VAO n load fullscreen tri xd
-      glGenVertexArrays(1, &toadjust.m_mesh_vao);
-      glBindVertexArray(toadjust.m_mesh_vao);
-      std::vector<float> tmp = {-1.0f,-1.0f, -1.0f,
-				3.0f, -1.0f, -1.0f,
-				-1.0f, 3.0f, -1.0f};
-      glGenBuffers(1, &toadjust.m_vertices_glid);
-      glBindBuffer(GL_ARRAY_BUFFER, toadjust.m_vertices_glid);
-      glBufferData(GL_ARRAY_BUFFER,
-		   tmp.size() * sizeof(float), tmp.data() , GL_STATIC_DRAW);
-      glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
-      glEnableVertexAttribArray(0);
-
-      continue;
-    }
-
-    // now process mesh
     for (Mesh &mesh : entity.m_mesh) {
       
       if (!mesh.m_mesh_vbo_needs_refresh)
@@ -380,6 +337,30 @@ void Renderer::init_scene_vbos() {
     }
   }
 
+  ///////////////////
+  // Update Point VBOs
+  ///////////////////
+  for(Point& p : m_active_scene->m_loaded_points) {
+      //if entity is a point, we can simply init a mesh,
+      //and init it with 3 0's as a vbo since we renderb
+      //the dots as signed distance fields anyway and
+      //dont need a vbo with vertex data.      
+      log_debug_sub("Reinitializing VBOs for point (needs refresh [this shouldnt happen more than once lmao])");
+
+      // Create VAO n load fullscreen tri xd
+      glGenVertexArrays(1, &p.VAO_id);
+      glBindVertexArray(p.VAO_id);
+      std::vector<float> tmp = {-1.0f,-1.0f, -1.0f,
+				3.0f, -1.0f, -1.0f,
+				-1.0f, 3.0f, -1.0f};
+      glGenBuffers(1, &p.VBO_vertices);
+      glBindBuffer(GL_ARRAY_BUFFER, p.VBO_vertices);
+      glBufferData(GL_ARRAY_BUFFER,
+		   tmp.size() * sizeof(float), tmp.data() , GL_STATIC_DRAW);
+      glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+      glEnableVertexAttribArray(0);
+
+  }
 
   ///////////////////////////////
   // Update Entity Hitbox VBOs //
@@ -502,13 +483,6 @@ _/ ___\/  _ \_  __ \   __\/ __ \\  \/  /
 }
 
 void Renderer::add_point_to_scene(float x, float y, float z) {
-
-  Entity to_add = Entity();
-
-  to_add.entity_type = Entity_Point;
-
-  to_add.set_position(x,y,z);
-  
-  m_active_scene->add_entity_to_scene(to_add);
-  
+  Point to_add = Point(x,y,z);
+  m_active_scene->add_point_to_scene(to_add);
 }

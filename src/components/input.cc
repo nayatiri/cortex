@@ -139,27 +139,24 @@ void Input_Manager::process_input(GLFWwindow *window, float m_application_curren
                           -m_active_scene->m_camera->m_cameraLookAt.x, 0.0f,
                           -m_active_scene->m_camera->m_cameraLookAt.z));
   }
-
+  
   // give all particles some force upwards
   if (glfwGetKey(window, GLFW_KEY_F) == GLFW_PRESS) {
-    for(Entity &e : m_active_scene->m_loaded_entities) {
-      if(e.entity_type == Entity_Point) {
-	e.m_mesh[0].phys_props.force += glm::vec3(0,15,0);
+    for(Point& p : m_active_scene->m_loaded_points) 
+      p.phys_props.add_force(0,15,0);
+  }       
+  
+    
+    // move all particles to 0,5,5 (ik its dumb)
+    if (glfwGetKey(window, GLFW_KEY_V) == GLFW_PRESS) {
+      for(Point& p : m_active_scene->m_loaded_points) {
+        p.set_position(0,5,5);
+	p.phys_props.velocity = {0,0,0};
+	p.phys_props.force = {0,0,0};
+	p.phys_props.acceleration = {0,0,0};
       }      
     }
-  }
-
-  // move all particles to 0,5,5 (ik its dumb)
-  if (glfwGetKey(window, GLFW_KEY_V) == GLFW_PRESS) {
-    for(Entity &e : m_active_scene->m_loaded_entities) {
-      if(e.entity_type == Entity_Point) {
-	e.set_position(0,5,5);
-        e.m_mesh[0].phys_props.velocity = {0,0,0};
-	e.m_mesh[0].phys_props.force = {0,0,0};
-	e.m_mesh[0].phys_props.acceleration = {0,0,0};
-      }      
-    }
-  }
+  
   
     
   if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)

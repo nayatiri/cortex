@@ -12,7 +12,6 @@
 enum Entity_types {
 
   Entity_3D,
-  Entity_Point
   
 };
 

@@ -1,6 +1,7 @@
 #include "physicsmanager.hh"
 #include "AABB.hh"
 #include "entity.hh"
+#include "force_generator.hh"
 #include "logging.hh"
 #include <memory>
 
@@ -50,11 +51,13 @@ void Physics_Manager::calculate_phys_boxes() {
             << m_active_scene->m_loaded_entities.size() << std::endl;
 
   for (Entity &entity : m_active_scene->m_loaded_entities) {
+    
     glm::mat4 entity_transform = entity.get_model_matrix();
     std::cout << "Entity contains meshes: " << entity.m_mesh.size()
               << std::endl;
 
     for (Mesh &mesh : entity.m_mesh) {
+      
       if (mesh.m_type != E_MESH) {
         log_error("Mesh does'nt seem to be a Mesh lol. skipping.");
         continue;
@@ -87,52 +90,77 @@ void Physics_Manager::handle_scene_physics() {
     m_phys_boxes_initialized = true;
   }
 
+  if(!m_force_generators_initialized) {
+
+    bool success = initialize_force_generators();
+    
+    if (success)
+      m_force_generators_initialized = true;
+    else
+      m_force_generators_initialized = false;
+    
+  }
+
   //gravity?
   handle_scene_physics_diy();
 
 }
 
-void Physics_Manager::handle_scene_physics_book() {
+void Physics_Manager::handle_scene_physics_book() {}
+
+bool Physics_Manager::initialize_force_generators() {
+  if(m_active_scene->m_loaded_points.size() > 0){
+    for(Point& p: m_active_scene->m_loaded_points) {
+      
+      log_error("init force gens!!!");
+      
+      p.phys_props.force_generators.push_back(std::make_shared<Constant_force_generator>(glm::vec3(0.0f,-9.81f,0.0f)));
+      p.phys_props.force_generators.push_back(std::make_shared<Conditional_force_generator>(glm::vec3(0.0f,15.0f,0.0f)));
+      
+      return true;
+      
+    }
+  }
+  
+  log_error("couldnt init gens!!!");
+  
+  return false;
   
 }
 
 // aka integrator
 void Physics_Manager::handle_scene_physics_diy() {
-  for ( Entity &e : m_active_scene->m_loaded_entities) {
-    for ( Mesh &m : e.m_mesh) {
+  for(Point& p : m_active_scene->m_loaded_points) {
 
-      if(e.entity_type == Entity_Point && m.phys_props.is_physics_object) {
-
-	std::cout << "evaluating point with velocity: " << m.phys_props.velocity.x << " x "<< m.phys_props.velocity.y << " y " << m.phys_props.velocity.z << " z " << std::endl;
-	std::cout << "evaluating point with force: " << m.phys_props.force.x << " x "<< m.phys_props.force.y << " y " << m.phys_props.force.z << " z " << std::endl;
-	std::cout << "evaluating point with acceleration: " << m.phys_props.acceleration.x << " x "<< m.phys_props.acceleration.y << " y " << m.phys_props.acceleration.z << " z " << std::endl;
-
-	//add gravity
-	m.phys_props.force += m.phys_props.gravity;
-	
-	// p' = p + pt + 0.5 pt ^2
-	glm::vec3 acceleration = m.phys_props.acceleration;
-	acceleration += m.phys_props.force * m.phys_props.inverse_mass;
-	
-        m.phys_props.velocity += acceleration * m_active_scene->m_scene_deltatime;
-	m.phys_props.velocity *= pow(m.phys_props.damping, m_active_scene->m_scene_deltatime);
-
-	e.change_position(m.phys_props.velocity * m_active_scene->m_scene_deltatime);
-	
-	m.phys_props.force = {0,0,0};
-	
-      }
+    std::cout << "evaluating point with velocity: " << p.phys_props.velocity.x << " x "<< p.phys_props.velocity.y << " y " << p.phys_props.velocity.z << " z " << std::endl;
+    std::cout << "evaluating point with force: " << p.phys_props.force.x << " x "<< p.phys_props.force.y << " y " << p.phys_props.force.z << " z " << std::endl;
+    std::cout << "evaluating point with acceleration: " << p.phys_props.acceleration.x << " x "<< p.phys_props.acceleration.y << " y " << p.phys_props.acceleration.z << " z " << std::endl;
+    
+    //calculate forces, by iterating force managers
+    for(auto& fg : p.phys_props.force_generators) {
+      std::cout << "gen force: " << " x " << fg->get_force(p.get_position()).x << " y " << fg->get_force(p.get_position()).y << " z " << fg->get_force(p.get_position()).z << std::endl;
+      p.phys_props.force += fg->get_force(p.get_position());
     }
+    
+    // p' = p + pt + 0.5 pt ^2
+    glm::vec3 acceleration = p.phys_props.acceleration;
+    acceleration += p.phys_props.force * p.phys_props.inverse_mass;
+    
+    p.phys_props.velocity += acceleration * m_active_scene->m_scene_deltatime;
+    p.phys_props.velocity *= pow(p.phys_props.damping, m_active_scene->m_scene_deltatime);
+    
+    p.change_position(p.phys_props.velocity * m_active_scene->m_scene_deltatime);
+    
+    p.phys_props.force = {0,0,0};
+    
   }
 }
 
+
 bool Physics_Manager::check_inside_AABB(Mesh &check_mesh, glm::vec3 check_position) {
 
-
   //glm::vec3 box_min = check_mesh.AABB_visualizer->min_corner;
-  //  glm::vec3 box_max = check_mesh.AABB_visualizer->max_corner;
+  //glm::vec3 box_max = check_mesh.AABB_visualizer->max_corner;
 
-  
-  
   return false;
 }

@@ -7,6 +7,8 @@ uniform mat4 projection;
 uniform mat4 view;
 uniform mat4 model;
 
+uniform vec3 point_color;
+
 uniform vec3 point_position;
 uniform vec3 camera_position;
 
@@ -41,7 +43,7 @@ void main() {
 
      //write color
      if(distance < radius_adjusted) {
-     	 FragColor = vec4(0.0, 1.0, 0.0, 1.0);	
+     	 FragColor = vec4(point_color, 1.0);	
      } else {
 	 discard;
      }

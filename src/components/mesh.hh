@@ -13,22 +13,6 @@
 #include "../components/material.hh"
 #include "AABB.hh"
 
-//TODO make this shit not be declared here :-) 
-struct Physics_properties {
-
-  bool is_physics_object = false;
-  bool stationary = true;
-
-  glm::vec3 gravity = {0,-9.81,0};
-  
-  glm::vec3 force = {0,0,0};
-  glm::vec3 velocity = {0,0,0};
-  glm::vec3 acceleration = {0,0,0};
-
-  float damping = 0.995f;
-  float inverse_mass = 1.0f;
-  
-};
 
 class Mesh {
 private:
@@ -50,8 +34,6 @@ public:
   void change_rotation (float rx ,float ry, float rz);
 
   void exp_overwrite_model_matrix(glm::mat4 new_mat);
-  
-  Physics_properties phys_props;
 
   Mesh(Material use_material);
 

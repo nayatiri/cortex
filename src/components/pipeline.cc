@@ -154,8 +154,6 @@ void Shadow_Map_Pipeline::render_color_pass() {
 
   // render meshes
   for (auto &entity : m_active_scene->m_loaded_entities) {
-    if(entity.entity_type == Entity_Point)
-      continue;
     for (auto &mesh : entity.m_mesh) {
 
       // change hitbox or flat style
@@ -281,8 +279,6 @@ void Shadow_Map_Pipeline::render_overlay_pass() {
   
   // render hitbox meshes
   for (auto &entity : m_active_scene->m_loaded_entities) {
-    if(entity.entity_type == Entity_Point)
-      continue;
     for (auto &mesh : entity.m_mesh) {
       
       /*
@@ -332,9 +328,7 @@ void Shadow_Map_Pipeline::render_overlay_pass() {
   // rendering point cloud visualizer //
   //////////////////////////////////////
   
-  for (auto &entity : m_active_scene->m_loaded_entities) {
-
-    if(entity.entity_type==Entity_Point) {
+  for (Point& p : m_active_scene->m_loaded_points) {
 
       // back to solid + blending yippie
       glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
@@ -344,23 +338,30 @@ void Shadow_Map_Pipeline::render_overlay_pass() {
       check_gl_error("after shader use (point cloud)");
       
       // bind meshes vao context
-      glBindVertexArray(entity.m_mesh[0].m_mesh_vao);
-      if (glIsVertexArray(entity.m_mesh[0].m_mesh_vao) == GL_FALSE) {
+      glBindVertexArray(p.VAO_id);
+      if (glIsVertexArray(p.VAO_id) == GL_FALSE) {
         log_error("no valid VAO id! cant render mesh.");
       }      
       check_gl_error("after vao bind (point cloud)");
 
 
       upload_to_uniform(m_active_scene->universal_point_shader,"camera_position", m_active_scene->m_camera->m_cameraPos);
-      upload_to_uniform(m_active_scene->universal_point_shader,"point_position", entity.get_position());
+      upload_to_uniform(m_active_scene->universal_point_shader,"point_position", p.get_position());
       upload_to_uniform(m_active_scene->universal_point_shader,"radius", 2.0f);
 
       upload_to_uniform(m_active_scene->universal_point_shader, "model",
-                        entity.get_model_matrix() * entity.m_mesh[0].get_model_matrix());
+                        p.get_model_matrix());
       upload_to_uniform(m_active_scene->universal_point_shader, "view",
                         shared_camera_view_matrix);
       upload_to_uniform(m_active_scene->universal_point_shader, "projection",
                         shared_camera_projection_matrix);
+
+      // silly gimmich to show particles experiencing a force atm
+      if(p.phys_props.force == glm::vec3(0,0,0)) {
+	upload_to_uniform(m_active_scene->universal_point_shader,"point_color", glm::vec3(0.1,1.0,0.0));
+      } else {
+	upload_to_uniform(m_active_scene->universal_point_shader,"point_color", glm::vec3(0.5,0.2,0.9));
+      }
 
       upload_to_uniform(m_active_scene->universal_point_shader,"screen_width", (float)m_active_scene->m_scene_framebuffer_width);
       upload_to_uniform(m_active_scene->universal_point_shader,"screen_height", (float)m_active_scene->m_scene_framebuffer_height);
@@ -369,8 +370,7 @@ void Shadow_Map_Pipeline::render_overlay_pass() {
       glDrawArrays(GL_TRIANGLES, 0,3);
       check_gl_error("after glDrawArrays (point cloud)");
 
-    }
-  }
+  }  
 }
 
 void Shadow_Map_Pipeline::render_frame() {

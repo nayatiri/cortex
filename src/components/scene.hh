@@ -3,6 +3,7 @@
 #include "entity.hh"
 #include "light.hh"
 #include "camera.hh"
+#include "point.hh"
 
 #include <GLFW/glfw3.h>
 #include <glm/ext/matrix_transform.hpp>
@@ -21,11 +22,13 @@ public:
 
   void add_entity_to_scene(Entity to_add);
   void add_light_to_scene(Light to_add);
+  void add_point_to_scene(Point to_add);
 
   Scene();
   
-  std::vector<Entity> m_loaded_entities; 
-  std::vector<Light> m_loaded_lights;
+  std::vector<Entity> m_loaded_entities = {};
+  std::vector<Point> m_loaded_points = {};
+  std::vector<Light> m_loaded_lights = {};  
 
   std::unique_ptr<Camera> m_camera;
 
