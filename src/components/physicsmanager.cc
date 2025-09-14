@@ -137,16 +137,10 @@ void Physics_Manager::handle_scene_physics_diy() {
   for(std::shared_ptr<Point> p : m_active_scene->m_loaded_points) {
 
     /* TODO
-       maybe move force generators to their own vector, not inside the particles
-       then make fg hold reference to particle, so that gravity fx only exists as one generator
-       with references to all particles in the scene, allowing easy gravity change.
-
+       actually finished a todo for once xd
+       
        create update_force method that takes deltatime that sets the output force for every particle every tick
      */
-
-    std::cout << "evaluating point with velocity: " << p->phys_props.velocity.x << " x "<< p->phys_props.velocity.y << " y " << p->phys_props.velocity.z << " z " << std::endl;
-    std::cout << "evaluating point with force: " << p->phys_props.force.x << " x "<< p->phys_props.force.y << " y " << p->phys_props.force.z << " z " << std::endl;
-    std::cout << "evaluating point with acceleration: " << p->phys_props.acceleration.x << " x "<< p->phys_props.acceleration.y << " y " << p->phys_props.acceleration.z << " z " << std::endl;
     
     //get forces from force generators for this tick
     update_alembert_force(*p, m_active_scene->m_scene_deltatime);
@@ -173,7 +167,7 @@ bool Physics_Manager::check_inside_AABB(Mesh &check_mesh, glm::vec3 check_positi
 }
 
 void Physics_Manager::update_alembert_force(Point &p, float delta_time) {
-  
+
   for(std::shared_ptr<Force_generator> fg : m_active_scene->m_loaded_force_generators) {
     p.phys_props.force += fg->get_force(p,delta_time); 
   }

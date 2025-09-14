@@ -142,8 +142,8 @@ void Input_Manager::process_input(GLFWwindow *window, float m_application_curren
   
   // give all particles some force upwards
   if (glfwGetKey(window, GLFW_KEY_F) == GLFW_PRESS) {
-    for(std::shared_ptr<Point> p : m_active_scene->m_loaded_points) 
-      p->phys_props.add_force(0,15,0);
+    std::shared_ptr<Point> p = m_active_scene->m_loaded_points[0]; 
+    p->phys_props.add_force(0,15,0);
   }       
   
     

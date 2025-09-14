@@ -349,8 +349,6 @@ void Shadow_Map_Pipeline::render_overlay_pass() {
       upload_to_uniform(m_active_scene->universal_point_shader,"point_position", p->get_position());
       upload_to_uniform(m_active_scene->universal_point_shader,"radius", 2.0f);
 
-      upload_to_uniform(m_active_scene->universal_point_shader, "model",
-                        p->get_model_matrix());
       upload_to_uniform(m_active_scene->universal_point_shader, "view",
                         shared_camera_view_matrix);
       upload_to_uniform(m_active_scene->universal_point_shader, "projection",
@@ -378,8 +376,6 @@ void Shadow_Map_Pipeline::render_overlay_pass() {
   
   for (std::shared_ptr<Spring>& s : m_active_scene->m_loaded_springs) {
     
-    log_success("tryna render spring");
-    
     // back to solid + blending yippie
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
     glEnable(GL_BLEND);
@@ -398,7 +394,7 @@ void Shadow_Map_Pipeline::render_overlay_pass() {
     // set uniforms
     upload_to_uniform(m_active_scene->universal_line_shader,"line_position_min", s->link_A->get_position());
     upload_to_uniform(m_active_scene->universal_line_shader,"line_position_max", s->link_B->get_position());
-    upload_to_uniform(m_active_scene->universal_line_shader,"radius", 2.0f);
+    upload_to_uniform(m_active_scene->universal_line_shader,"radius", 4.0f);
     
     upload_to_uniform(m_active_scene->universal_line_shader, "view",
 		      shared_camera_view_matrix);
@@ -407,16 +403,14 @@ void Shadow_Map_Pipeline::render_overlay_pass() {
     
     upload_to_uniform(m_active_scene->universal_line_shader,"screen_width", (float)m_active_scene->m_scene_framebuffer_width);
     upload_to_uniform(m_active_scene->universal_line_shader,"screen_height", (float)m_active_scene->m_scene_framebuffer_height);
-    
-    upload_to_uniform(m_active_scene->universal_line_shader,"box_color", glm::vec3(0.8,0.5,0.2));
+     
+    upload_to_uniform(m_active_scene->universal_line_shader,"box_color", glm::vec3(0.2,0.2,0.2));
     
     // render call
     glDrawArrays(GL_TRIANGLES, 0, 3);
     check_gl_error("after glDrawArrays (overlay pass hitboxes)");
     
   }  
-  
-  log_error("render pass done");
   
 }
 

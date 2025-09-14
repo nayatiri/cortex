@@ -40,6 +40,6 @@ private:
   float strength;
   float rest_length;
 public:
-  Spring_force_generator(std::shared_ptr<Point> from, std::shared_ptr<Point> to, float strength, float rest_length);
+  Spring_force_generator(std::shared_ptr<Point> to, std::shared_ptr<Point> from, float strength, float rest_length);
   glm::vec3 get_force(Point& p, float delta_time);
 };

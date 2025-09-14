@@ -4,6 +4,7 @@
 #include <cstdlib>
 #include <glm/ext/quaternion_geometric.hpp>
 #include <glm/ext/vector_float3.hpp>
+#include <iostream>
 
 //glm::vec3 Force_generator::get_force() {};
 //glm::vec3 Force_generator::get_force_in_time_interval( float time ) {};
@@ -36,7 +37,7 @@ glm::vec3 Conditional_force_generator::get_force(Point& p, float delta_time) {
 
   //TMP not corrent impl
 
-  if(p.get_position().y < 0) {
+  if(p.get_position().y < 6) {
 
     float distance = std::abs(p.get_position().y);
     
@@ -66,5 +67,44 @@ glm::vec3 Drag_force_generator::get_force(Point& p, float delta_time) {
 };
 
 glm::vec3 Spring_force_generator::get_force(Point& p, float delta_time) {
+
+
+  if (&p == from.get()) {
+    
+    std::cout << "from = (" 
+	      << from->get_position().x << ", " 
+	      << from->get_position().y << ", " 
+	      << from->get_position().z << ")" 
+	      << std::endl;
+    
+    std::cout << "to = (" 
+	      << to->get_position().x << ", " 
+	      << to->get_position().y << ", " 
+	      << to->get_position().z << ")" 
+	      << std::endl;
+    
+    glm::vec3 from_to = from->get_position() - to->get_position();
+    
+    float distance = glm::length(from_to);
+    
+    std::cout << distance <<std::endl;
+    
+    glm::vec3 spring_direction_from_to = glm::normalize(from_to);
+
+    // if distance smaller than rest_length we need to extend the spring
+    if(distance < rest_length) {
+      log_debug("spring dis smaller");
+      return spring_direction_from_to * (rest_length - distance) * strength;
+    }
+
+    // if distance bigger, contract the spring
+    if(distance > rest_length) {
+      log_debug("spring dis bigger");
+      return -spring_direction_from_to * (distance - rest_length) * strength;
+    }
+
+  }
+
   return glm::vec3(0.0f,0.0f,0.0f);
+  
 };
