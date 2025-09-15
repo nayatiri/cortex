@@ -152,8 +152,9 @@ void Shadow_Map_Pipeline::render_color_pass() {
                   m_active_scene->m_camera->m_cameraUp);
 
   shared_camera_projection_matrix = glm::perspective(
-      glm::radians(90.0f), (float)m_viewport_width / (float)m_viewport_height,
-      0.001f, 1000.0f);
+						     glm::radians(m_active_scene->m_camera->fov),
+						     (float)m_viewport_width / (float)m_viewport_height,
+						     0.001f, 1000.0f);
   
   ///////////////////
   // render meshes //
@@ -435,14 +436,15 @@ void Shadow_Map_Pipeline::render_frame() {
   
   if (m_active_scene == nullptr)
     return;
-
-  //TODO move this from here to input
-  if(m_active_scene->m_selectionstate->launch_picker)
-    handle_pick();
   
   if(pipeline_is_setup) {
     render_depth_pass();
     render_color_pass();
+    
+    //TODO move this from here to input need this here atm for updated cam view mat n scene pointer access
+    if(m_active_scene->m_selectionstate->launch_picker)
+      handle_pick();
+    
     render_overlay_pass();
   } else {
     init_pipeline();
@@ -496,9 +498,26 @@ void Shadow_Map_Pipeline::init_color_pass() {
 
 void Shadow_Map_Pipeline::handle_pick() {
 
+  float mouse_ndc_x = (2.0f * m_active_scene->m_selectionstate->mouse_pos_x) / m_viewport_width - 1.0f;
+  float mouse_ndc_y = 1.0f - (2.0f * m_active_scene->m_selectionstate->mouse_pos_y) / m_viewport_height;
+
+  float aspect_ratio = (float)m_viewport_width / (float)m_viewport_height;
+  float fov_rads = glm::radians(m_active_scene->m_camera->fov);
+  float half_fov = tan(fov_rads / 2.0f);
+
+  glm::vec3 ray_camera_space(
+		      mouse_ndc_x * half_fov * aspect_ratio,
+		      mouse_ndc_y * half_fov,
+		      -1.0f
+		      );
+
+  glm::mat4 inv_view_mat = glm::inverse(shared_camera_view_matrix);
+  glm::vec4 dir4 = inv_view_mat * glm::vec4(ray_camera_space, 0.0f);
+  glm::vec3 ray_world_space = glm::normalize(glm::vec3(dir4));
+  
   glm::vec3 current_pos_b = m_active_scene->m_camera->m_cameraPos;
 
-  glm::vec3 look_at_c = m_active_scene->m_camera->m_cameraLookAt + current_pos_b;
+  glm::vec3 look_at_c = ray_world_space + current_pos_b;
 
   float lowest_distance = 100000.0f;
   

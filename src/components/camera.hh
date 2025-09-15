@@ -21,6 +21,8 @@ public:
   glm::vec3 m_cameraLookAt = glm::vec3(0.0f, 0.0f, -1.0f);
   glm::vec3 m_cameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
   glm::vec3 m_direction = {0.0f, 0.0f, 0.0f};
+
+  float fov = 90.0f;
   
   bool m_view_mat_initialized = false;
   glm::mat4 m_view_matrix;
