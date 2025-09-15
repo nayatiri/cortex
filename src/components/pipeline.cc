@@ -85,7 +85,7 @@ void Shadow_Map_Pipeline::render_depth_pass() {
 
   float width = m_active_scene->m_loaded_lights[0].light_width;
   glm::mat4 light_projection_mat =
-    glm::ortho(-width, width, -width, width, 0.01f, 50.0f); // TODO make clip planes work properly
+    glm::ortho(-width, width, -width, width, 0.01f, 50.0f); 
 
   shared_light_space_matrix = light_projection_mat * light_look_at;
 
@@ -98,7 +98,10 @@ void Shadow_Map_Pipeline::render_depth_pass() {
 
   check_gl_error("after setting viewport stuff up (depth)");
 
-  // render scene from light pov
+  /////////////////////////////////
+  // render scene from light pov //
+  /////////////////////////////////
+ 
   for (auto &entity : m_active_scene->m_loaded_entities) {
     for (auto &mesh : entity.m_mesh) {
 
@@ -151,8 +154,11 @@ void Shadow_Map_Pipeline::render_color_pass() {
   shared_camera_projection_matrix = glm::perspective(
       glm::radians(90.0f), (float)m_viewport_width / (float)m_viewport_height,
       0.001f, 1000.0f);
-
-  // render meshes
+  
+  ///////////////////
+  // render meshes //
+  ///////////////////
+  
   for (auto &entity : m_active_scene->m_loaded_entities) {
     for (auto &mesh : entity.m_mesh) {
 
@@ -225,6 +231,15 @@ void Shadow_Map_Pipeline::render_color_pass() {
 
 void Shadow_Map_Pipeline::render_overlay_pass() {
 
+  /* TODO rendering:
+
+     - make UBO for springs, points and use a single more convoluted line / point shader
+     to prevent multiple draw calls.
+
+     - create SDF depth shader for points + springs to shadow map them
+     
+   */
+
   /////////////////////////////////
   // rendering light visualizers //
   /////////////////////////////////
@@ -273,23 +288,18 @@ void Shadow_Map_Pipeline::render_overlay_pass() {
   ///////////////////////////////
   // rendering hitbox overlays //
   ///////////////////////////////
-
-  //TODO: - make hitbox shader a dedicated line shader (done?)
-  //      - on the same note make AABB only the corners instead of lots of tris
   
-  // render hitbox meshes
   for (auto &entity : m_active_scene->m_loaded_entities) {
     for (auto &mesh : entity.m_mesh) {
       
       /*
-	Hitboxes always use shader line_vert.glsl / line_frag.glsl which
+	Hitboxes always use shader hitbox_vertex.glsl / hitbox_fragment.glsl which
 	implement line drawing using signed distance fields.
 	They have their own VAO / VBO for AABB coords as a member of the mesh.
 	We upload MinBox and MaxBox of the AABB shader does the rest.
       */
       
       // change to hitbox style (wireframe)
-
       m_active_scene->universal_hitbox_shader.use();
       
       glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
@@ -327,7 +337,7 @@ void Shadow_Map_Pipeline::render_overlay_pass() {
   //////////////////////////////////////
   // rendering point cloud visualizer //
   //////////////////////////////////////
-  
+
   for (std::shared_ptr<Point> p : m_active_scene->m_loaded_points) {
 
       // back to solid + blending yippie
@@ -362,6 +372,9 @@ void Shadow_Map_Pipeline::render_overlay_pass() {
       
       if(p->phys_props.fixed)
 	color = glm::vec3(0.0,0.0,0.9);
+
+      if(p == m_active_scene->m_selectionstate->selected_point)
+	color = glm::vec3(1.0,1.0,1.0);
       
       upload_to_uniform(m_active_scene->universal_point_shader,"point_color", color);
 
@@ -422,6 +435,10 @@ void Shadow_Map_Pipeline::render_frame() {
   
   if (m_active_scene == nullptr)
     return;
+
+  //TODO move this from here to input
+  if(m_active_scene->m_selectionstate->launch_picker)
+    handle_pick();
   
   if(pipeline_is_setup) {
     render_depth_pass();
@@ -475,7 +492,34 @@ void Shadow_Map_Pipeline::init_depth_pass() {
 
 void Shadow_Map_Pipeline::init_color_pass() {
 
+}
 
+void Shadow_Map_Pipeline::handle_pick() {
+
+  glm::vec3 current_pos_b = m_active_scene->m_camera->m_cameraPos;
+
+  glm::vec3 look_at_c = m_active_scene->m_camera->m_cameraLookAt + current_pos_b;
+
+  float lowest_distance = 100000.0f;
+  
+  for(std::shared_ptr<Point> p_a : m_active_scene->m_loaded_points) {
+
+    glm::vec3 d = (look_at_c - current_pos_b) / glm::distance(look_at_c, current_pos_b);
+    glm::vec3 v = p_a->get_position() - current_pos_b;
+    float t = glm::dot(v,d);
+    glm::vec3 P = current_pos_b + t * d;
+    
+    float distance = glm::distance(P,p_a->get_position());
+
+    std::cout << "checking distance... " << distance << std::endl;
+    
+    if( distance < lowest_distance ){
+      m_active_scene->m_selectionstate->selected_point = p_a;
+      lowest_distance = distance;
+    }
+  }
+
+  m_active_scene->m_selectionstate->launch_picker = false;
   
 }
 

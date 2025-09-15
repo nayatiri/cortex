@@ -135,12 +135,6 @@ bool Physics_Manager::initialize_force_generators() {
 void Physics_Manager::handle_scene_physics_diy() {
   
   for(std::shared_ptr<Point> p : m_active_scene->m_loaded_points) {
-
-    /* TODO
-       actually finished a todo for once xd
-       
-       create update_force method that takes deltatime that sets the output force for every particle every tick
-     */
     
     //get forces from force generators for this tick (if point isnt fixed)
     if(!p->phys_props.fixed)
@@ -157,6 +151,7 @@ void Physics_Manager::handle_scene_physics_diy() {
     p->phys_props.force = {0,0,0};
     
   }
+  
 }
 
 bool Physics_Manager::check_inside_AABB(Mesh &check_mesh, glm::vec3 check_position) {

@@ -503,6 +503,13 @@ _/ ___\/  _ \_  __ \   __\/ __ \\  \/  /
     }
   });
 
+  glfwSetMouseButtonCallback(associated_window, [](GLFWwindow *w, int button, int action, int mods) {
+    Input_Manager *imanager = static_cast<Input_Manager *>(glfwGetWindowUserPointer(w));
+    if (imanager) {
+      imanager->mouse_button_callback(w, button, action, mods);
+    }
+  });
+  
   glfwSetInputMode(associated_window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
   return;
   

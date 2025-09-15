@@ -11,7 +11,6 @@
 // stdlib
 #include <vector>
 
-//TODO make this shit not be here 2.0
 enum e_mesh_type {
 
   E_MESH,
@@ -26,7 +25,6 @@ enum e_mesh_render_mode {
   E_FILLED
   
 };
-
 
 class AABB_Box {
 private:

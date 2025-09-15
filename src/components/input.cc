@@ -1,10 +1,16 @@
 #include "input.hh"
-#include "entity.hh"
 #include "logging.hh"
 
+/*TODO
 
-void Input_Manager::process_input(GLFWwindow *window, float m_application_current_time, float m_delta_time) {
-  
+  move to smaller functions / recode input system to have a bitmask for all keys, then be able to check(key) to get its keystate
+
+ */
+
+void Input_Manager::process_input(GLFWwindow *window,
+                                  float m_application_current_time,
+                                  float m_delta_time) {
+
   if (m_active_scene == nullptr || m_active_scene->m_camera == nullptr) {
     log_error("active scene is fucked. cant process inputs");
     return;
@@ -21,7 +27,7 @@ void Input_Manager::process_input(GLFWwindow *window, float m_application_curren
 
   float cameraSpeed =
       m_active_scene->m_camera->m_camera_base_speed * 10.0f * m_delta_time;
-  
+
   if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS) {
     if (!m_last_wireframe_state) {
       m_render_mode_wireframe = !m_render_mode_wireframe;
@@ -139,26 +145,23 @@ void Input_Manager::process_input(GLFWwindow *window, float m_application_curren
                           -m_active_scene->m_camera->m_cameraLookAt.x, 0.0f,
                           -m_active_scene->m_camera->m_cameraLookAt.z));
   }
-  
+
   // give all particles some force upwards
   if (glfwGetKey(window, GLFW_KEY_F) == GLFW_PRESS) {
-    std::shared_ptr<Point> p = m_active_scene->m_loaded_points[0]; 
-    p->phys_props.add_force(0,15,0);
-  }       
-  
-    
-    // move all particles to 0,5,5 (ik its dumb)
-    if (glfwGetKey(window, GLFW_KEY_V) == GLFW_PRESS) {
-      for(std::shared_ptr<Point> p : m_active_scene->m_loaded_points) {
-        p->set_position(0,5,5);
-	p->phys_props.velocity = {0,0,0};
-	p->phys_props.force = {0,0,0};
-	p->phys_props.acceleration = {0,0,0};
-      }      
+    std::shared_ptr<Point> p = m_active_scene->m_loaded_points[0];
+    p->phys_props.add_force(0, 15, 0);
+  }
+
+  // move all particles to 0,5,5 (ik its dumb)
+  if (glfwGetKey(window, GLFW_KEY_V) == GLFW_PRESS) {
+    for (std::shared_ptr<Point> p : m_active_scene->m_loaded_points) {
+      p->set_position(0, 5, 5);
+      p->phys_props.velocity = {0, 0, 0};
+      p->phys_props.force = {0, 0, 0};
+      p->phys_props.acceleration = {0, 0, 0};
     }
-  
-  
-    
+  }
+
   if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
     m_active_scene->m_camera->m_cameraPos -=
         glm::normalize(glm::cross(m_active_scene->m_camera->m_cameraLookAt,
@@ -200,6 +203,9 @@ void Input_Manager::process_input(GLFWwindow *window, float m_application_curren
     m_last_mouse_state = false;
   }
 
+  if(m_active_scene->m_selectionstate->launch_picker)
+    handle_mouse_pick();
+
   return;
 }
 
@@ -207,12 +213,11 @@ Input_Manager::Input_Manager(std::shared_ptr<Scene> m_scene_ptr) {
 
   log_success("input manger online");
 
-  m_active_scene =  m_scene_ptr;
-  
+  m_active_scene = m_scene_ptr;
 }
 
-/*bool Input_Manager::save_frame_to_png(const char *filename, int width, int height) {
-  std::vector<unsigned char> pixels(width * height * 3);
+/*bool Input_Manager::save_frame_to_png(const char *filename, int width, int
+  height) { std::vector<unsigned char> pixels(width * height * 3);
 
   glPixelStorei(GL_PACK_ALIGNMENT, 1);
   glReadBuffer(GL_FRONT);
@@ -235,28 +240,48 @@ Input_Manager::Input_Manager(std::shared_ptr<Scene> m_scene_ptr) {
   return true;
   }*/
 
-void Input_Manager::scroll_callback(GLFWwindow *window, double xoffset, double yoffset) {
-    Input_Manager* im = static_cast<Input_Manager*>(glfwGetWindowUserPointer(window));
-    
-    if (!im) {
-        std::cerr << "Input_Manager is null in scroll callback!" << std::endl;
-        return;
-    }
+void Input_Manager::scroll_callback(GLFWwindow *window, double xoffset,
+                                    double yoffset) {
+  Input_Manager *im =
+      static_cast<Input_Manager *>(glfwGetWindowUserPointer(window));
 
-    if (!im->m_active_scene || !im->m_active_scene->m_camera) {
-        return;
-    }
+  if (!im) {
+    std::cerr << "Input_Manager is null in scroll callback!" << std::endl;
+    return;
+  }
 
-    im->m_active_scene->m_camera->m_camera_base_speed += static_cast<float>(yoffset) * 0.1f;
+  if (!im->m_active_scene || !im->m_active_scene->m_camera) {
+    return;
+  }
 
-    if (im->m_active_scene->m_camera->m_camera_base_speed < 0.1f) {
-        im->m_active_scene->m_camera->m_camera_base_speed = 0.1f;
-    }
+  im->m_active_scene->m_camera->m_camera_base_speed +=
+      static_cast<float>(yoffset) * 0.1f;
 
-    std::cout << "Camera speed: " << im->m_active_scene->m_camera->m_camera_base_speed << std::endl;
+  if (im->m_active_scene->m_camera->m_camera_base_speed < 0.1f) {
+    im->m_active_scene->m_camera->m_camera_base_speed = 0.1f;
+  }
+
+  std::cout << "Camera speed: "
+            << im->m_active_scene->m_camera->m_camera_base_speed << std::endl;
 }
 
-void Input_Manager::mouse_callback(GLFWwindow *window, double xpos, double ypos) {
+void Input_Manager::mouse_button_callback(GLFWwindow *window, int button,
+                                          int action, int mods) {
+  if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS && m_is_mouse_grabbed == false) {
+    
+    double xpos, ypos;
+    glfwGetCursorPos(window, &xpos, &ypos);
+    std::cout << "Cursor Position at ( " << xpos << " : " << ypos << " )" << std::endl;
+    
+    m_active_scene->m_selectionstate->mouse_pos_x = xpos;
+    m_active_scene->m_selectionstate->mouse_pos_y = ypos;
+    m_active_scene->m_selectionstate->launch_picker = true;
+    
+  }
+}
+
+void Input_Manager::mouse_callback(GLFWwindow *window, double xpos,
+                                   double ypos) {
 
   if (!m_is_mouse_grabbed) {
     return;
@@ -303,4 +328,8 @@ void Input_Manager::mouse_callback(GLFWwindow *window, double xpos, double ypos)
   m_direction.y = sin(glm::radians(m_pitch));
   m_direction.z = sin(glm::radians(m_yaw)) * cos(glm::radians(m_pitch));
   m_active_scene->m_camera->m_cameraLookAt = glm::normalize(m_direction);
+}
+
+void Input_Manager::handle_mouse_pick() {
+  
 }

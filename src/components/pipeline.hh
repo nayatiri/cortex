@@ -52,6 +52,9 @@ public:
   void init_pipeline();
   void update_scene(std::shared_ptr<Scene> new_scene);
   void update_time(float new_time);
+
+  // TODO move this from here into input.
+  void handle_pick();
 };
 
 

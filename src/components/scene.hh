@@ -5,6 +5,7 @@
 #include "light.hh"
 #include "camera.hh"
 #include "point.hh"
+#include "selectionstate.hh"
 #include "spring.hh"
 
 #include <GLFW/glfw3.h>
@@ -27,14 +28,19 @@ public:
   void add_point_to_scene(std::shared_ptr<Point> to_add);
 
   Scene();
-  
+
+  // containers of things in the scene
   std::vector<Entity> m_loaded_entities = {};
   std::vector<Light> m_loaded_lights = {};
+
+  // physics containers
   std::vector<std::shared_ptr<Spring>> m_loaded_springs = {};
   std::vector<std::shared_ptr<Point>> m_loaded_points = {};
   std::vector<std::shared_ptr<Force_generator>> m_loaded_force_generators = {};
 
-  std::unique_ptr<Camera> m_camera;
+  //interaction
+  std::shared_ptr<Selectionstate> m_selectionstate = nullptr;
+  std::unique_ptr<Camera> m_camera = nullptr;
 
   bool m_scene_vbos_need_refresh = false;
 
@@ -45,7 +51,7 @@ public:
   int m_scene_framebuffer_width;
   int m_scene_framebuffer_height;
 
-  //universal shaders (sdf magic) :3
+  //universal shaders (sdf magic) :)
   Shader universal_hitbox_shader;
   Shader universal_line_shader;
   Shader universal_point_shader;

@@ -33,9 +33,13 @@ public:
 
   void scroll_callback(GLFWwindow *window, double xoffset, double yoffset);
 
+  void mouse_button_callback(GLFWwindow* window, int button, int action, int mods);
+
   void mouse_callback(GLFWwindow *window, double xpos, double ypos);
 
   void process_input(GLFWwindow *window, float m_application_current_time, float m_delta_time);
 
   bool save_frame_to_png(const char *filename, int width, int height);
+
+  void handle_mouse_pick();
 };

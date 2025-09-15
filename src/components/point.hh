@@ -3,7 +3,6 @@
 #include <glm/ext/matrix_float4x4.hpp>
 #include <glm/ext/vector_float3.hpp>
 
-//TODO make this shit not be declared here :-) 
 struct Physics_properties {
 
   bool is_physics_object = false;
