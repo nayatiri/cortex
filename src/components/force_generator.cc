@@ -5,6 +5,7 @@
 #include <glm/ext/quaternion_geometric.hpp>
 #include <glm/ext/vector_float3.hpp>
 #include <iostream>
+#include <random>
 
 //glm::vec3 Force_generator::get_force() {};
 //glm::vec3 Force_generator::get_force_in_time_interval( float time ) {};
@@ -68,25 +69,30 @@ glm::vec3 Drag_force_generator::get_force(Point& p, float delta_time) {
 
 glm::vec3 Spring_force_generator::get_force(Point& p, float delta_time) {
 
-
+  //TODO make this mess not have 0(p*n2) xd
+  
   if (&p == from.get()) {
-    
     
     glm::vec3 from_to = from->get_position() - to->get_position();
     
     float distance = glm::length(from_to);
+
+    if (distance == 0.0f) {
+      static std::mt19937 rng{std::random_device{}()};
+      static std::uniform_real_distribution<float> dist(-1.0f, 1.0f); 
+      glm::vec3 random_force = glm::vec3(dist(rng), dist(rng), dist(rng));
+      return random_force;
+    }
     
     glm::vec3 spring_direction_from_to = glm::normalize(from_to);
 
     // if distance smaller than rest_length we need to extend the spring
     if(distance < rest_length) {
-      log_debug("spring dis smaller");
       return spring_direction_from_to * (rest_length - distance) * strength;
     }
 
     // if distance bigger, contract the spring
     if(distance > rest_length) {
-      log_debug("spring dis bigger");
       return -spring_direction_from_to * (distance - rest_length) * strength;
     }
 
@@ -94,22 +100,26 @@ glm::vec3 Spring_force_generator::get_force(Point& p, float delta_time) {
 
   if (&p == to.get()) {
     
-    
     glm::vec3 from_to = to->get_position() - from->get_position();
     
     float distance = glm::length(from_to);
-    
+
+    if (distance == 0.0f) {
+      static std::mt19937 rng{std::random_device{}()};
+      static std::uniform_real_distribution<float> dist(-1.0f, 1.0f); 
+      glm::vec3 random_force = glm::vec3(dist(rng), dist(rng), dist(rng));
+      return random_force;
+    }
+
     glm::vec3 spring_direction_from_to = glm::normalize(from_to);
 
     // if distance smaller than rest_length we need to extend the spring
     if(distance < rest_length) {
-      log_debug("spring dis smaller");
       return spring_direction_from_to * (rest_length - distance) * strength;
     }
 
     // if distance bigger, contract the spring
     if(distance > rest_length) {
-      log_debug("spring dis bigger");
       return -spring_direction_from_to * (distance - rest_length) * strength;
     }
 

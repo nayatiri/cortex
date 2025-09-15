@@ -522,3 +522,7 @@ void Renderer::create_spring_constraint(std::shared_ptr<Point> from,
   m_active_scene->m_loaded_force_generators.push_back(std::make_shared<Spring_force_generator>(from,to,strength,rest_length));
   
 };
+
+void Renderer::create_fixed_constraint(std::shared_ptr<Point> p, bool fixed) {
+  p->phys_props.fixed = fixed;
+}

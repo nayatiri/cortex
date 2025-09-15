@@ -8,6 +8,7 @@ struct Physics_properties {
 
   bool is_physics_object = false;
   bool stationary = true;
+  bool fixed = false;
 
   // accumulated force, current velocity, current acceleration
   glm::vec3 force = {0,0,0};

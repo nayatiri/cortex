@@ -119,8 +119,8 @@ bool Physics_Manager::initialize_force_generators() {
     //bouncy thing
     m_active_scene->m_loaded_force_generators.push_back(std::make_shared<Conditional_force_generator>(glm::vec3(0.0f,15.0f,0.0f)));
 
-    //drag
-    m_active_scene->m_loaded_force_generators.push_back(std::make_shared<Drag_force_generator>(0.1f,0.01f));
+    //drag (linear and expo components)
+    m_active_scene->m_loaded_force_generators.push_back(std::make_shared<Drag_force_generator>(0.1f,0.08f));
 
     return true;
   }
@@ -142,8 +142,9 @@ void Physics_Manager::handle_scene_physics_diy() {
        create update_force method that takes deltatime that sets the output force for every particle every tick
      */
     
-    //get forces from force generators for this tick
-    update_alembert_force(*p, m_active_scene->m_scene_deltatime);
+    //get forces from force generators for this tick (if point isnt fixed)
+    if(!p->phys_props.fixed)
+      update_alembert_force(*p, m_active_scene->m_scene_deltatime);
     
     // p' = p + pt + 0.5 pt ^2
     glm::vec3 acceleration = p->phys_props.acceleration;

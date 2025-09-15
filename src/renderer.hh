@@ -75,6 +75,7 @@ public:
   void init_scene(const char* scene_fp);
   void add_point_to_scene(float x,float y,float z);
   void create_spring_constraint(std::shared_ptr<Point> from, std::shared_ptr<Point> to, float strength, float rest_length);
+  void create_fixed_constraint(std::shared_ptr<Point> p , bool fixed);
   void setup_render_properties();
 
   /////////////////////

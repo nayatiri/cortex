@@ -355,11 +355,15 @@ void Shadow_Map_Pipeline::render_overlay_pass() {
                         shared_camera_projection_matrix);
 
       // silly gimmich to show particles experiencing a force atm
-      if(p->phys_props.force == glm::vec3(0,0,0)) {
-	upload_to_uniform(m_active_scene->universal_point_shader,"point_color", glm::vec3(0.1,1.0,0.0));
-      } else {
-	upload_to_uniform(m_active_scene->universal_point_shader,"point_color", glm::vec3(0.5,0.2,0.9));
-      }
+      glm::vec3 color = {0.5,0.2,0.9};
+      
+      if(p->phys_props.force == glm::vec3(0,0,0))
+	color = glm::vec3(0.8,0.0,0.4);
+      
+      if(p->phys_props.fixed)
+	color = glm::vec3(0.0,0.0,0.9);
+      
+      upload_to_uniform(m_active_scene->universal_point_shader,"point_color", color);
 
       upload_to_uniform(m_active_scene->universal_point_shader,"screen_width", (float)m_active_scene->m_scene_framebuffer_width);
       upload_to_uniform(m_active_scene->universal_point_shader,"screen_height", (float)m_active_scene->m_scene_framebuffer_height);
