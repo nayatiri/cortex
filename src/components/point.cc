@@ -52,3 +52,8 @@ void Point::set_position(float x, float y, float z) {
 
 glm::vec3 Point::get_position() { return glm::vec3(m_pos_x, m_pos_y, m_pos_z); }
 
+float Physics_properties::get_volume() {
+
+  return 0.75 * 3.451 * pow(radius,3);
+  
+}

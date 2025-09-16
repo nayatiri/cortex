@@ -116,11 +116,14 @@ bool Physics_Manager::initialize_force_generators() {
     //gravity
     m_active_scene->m_loaded_force_generators.push_back(std::make_shared<Constant_force_generator>(glm::vec3(0.0f,-9.81f,0.0f)));
 
+    //bouyancy for water at 0 height
+    m_active_scene->m_loaded_force_generators.push_back(std::make_shared<Bouyancy_force_generator>(glm::vec3(0.0f,15.0f,0.0f), 0.0f, 1.0f));
+    
     //bouncy thing
-    m_active_scene->m_loaded_force_generators.push_back(std::make_shared<Conditional_force_generator>(glm::vec3(0.0f,15.0f,0.0f)));
+    //m_active_scene->m_loaded_force_generators.push_back(std::make_shared<Conditional_force_generator>(glm::vec3(0.0f,15.0f,0.0f)));
 
     //drag (linear and expo components)
-    m_active_scene->m_loaded_force_generators.push_back(std::make_shared<Drag_force_generator>(0.1f,0.08f));
+    m_active_scene->m_loaded_force_generators.push_back(std::make_shared<Drag_force_generator>(0.1f,0.05f));
 
     return true;
   }
@@ -138,7 +141,9 @@ void Physics_Manager::handle_scene_physics_diy() {
     
     //get forces from force generators for this tick (if point isnt fixed)
     if(!p->phys_props.fixed)
-      update_alembert_force(*p, m_active_scene->m_scene_deltatime);
+      update_alembert_force(*p, m_active_scene->m_scene_deltatime); // calculate physics
+    else 
+      continue; // lock in place
     
     // p' = p + pt + 0.5 pt ^2
     glm::vec3 acceleration = p->phys_props.acceleration;

@@ -358,7 +358,7 @@ void Shadow_Map_Pipeline::render_overlay_pass() {
 
       upload_to_uniform(m_active_scene->universal_point_shader,"camera_position", m_active_scene->m_camera->m_cameraPos);
       upload_to_uniform(m_active_scene->universal_point_shader,"point_position", p->get_position());
-      upload_to_uniform(m_active_scene->universal_point_shader,"radius", 2.0f);
+      upload_to_uniform(m_active_scene->universal_point_shader,"radius", p->phys_props.radius);
 
       upload_to_uniform(m_active_scene->universal_point_shader, "view",
                         shared_camera_view_matrix);

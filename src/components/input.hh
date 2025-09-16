@@ -28,6 +28,9 @@ public:
   double m_yaw = 0;
   double m_pitch = 0;
 
+  //shitty lock buffer TODO make this not be here and write proper input class
+  bool m_was_x_pressed = false;
+
   
   Input_Manager(std::shared_ptr<Scene> m_scene_ptr);
 

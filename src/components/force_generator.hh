@@ -43,3 +43,14 @@ public:
   Spring_force_generator(std::shared_ptr<Point> to, std::shared_ptr<Point> from, float strength, float rest_length);
   glm::vec3 get_force(Point& p, float delta_time);
 };
+
+class Bouyancy_force_generator : public Force_generator {
+private:
+  float medium_height;
+  float medium_density;
+  
+public:
+
+  Bouyancy_force_generator(glm::vec3 force, float height, float density);
+  glm::vec3 get_force(Point& p, float delta_time);
+};

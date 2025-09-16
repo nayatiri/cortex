@@ -146,12 +146,6 @@ void Input_Manager::process_input(GLFWwindow *window,
                           -m_active_scene->m_camera->m_cameraLookAt.z));
   }
 
-  // give all particles some force upwards
-  if (glfwGetKey(window, GLFW_KEY_F) == GLFW_PRESS) {
-    std::shared_ptr<Point> p = m_active_scene->m_loaded_points[0];
-    p->phys_props.add_force(0, 15, 0);
-  }
-
   // move all particles to 0,5,5 (ik its dumb)
   if (glfwGetKey(window, GLFW_KEY_V) == GLFW_PRESS) {
     for (std::shared_ptr<Point> p : m_active_scene->m_loaded_points) {
@@ -162,28 +156,31 @@ void Input_Manager::process_input(GLFWwindow *window,
     }
   }
 
+  // move left
   if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
     m_active_scene->m_camera->m_cameraPos -=
         glm::normalize(glm::cross(m_active_scene->m_camera->m_cameraLookAt,
                                   m_active_scene->m_camera->m_cameraUp)) *
         cameraSpeed;
 
+  //move right
   if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
     m_active_scene->m_camera->m_cameraPos +=
         glm::normalize(glm::cross(m_active_scene->m_camera->m_cameraLookAt,
                                   m_active_scene->m_camera->m_cameraUp)) *
         cameraSpeed;
 
+  //move down
   if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
     m_active_scene->m_camera->m_cameraPos +=
         glm::normalize(glm::vec3(0.0f, -1.0f, 0.0f)) * cameraSpeed;
 
+  //move up
   if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS)
     m_active_scene->m_camera->m_cameraPos +=
         glm::normalize(glm::vec3(0.0f, 1.0f, 0.0f)) * cameraSpeed;
 
-  // tj camera
-
+  // toggle cursor 
   if (glfwGetKey(window, GLFW_KEY_G) == GLFW_PRESS) {
     if (m_last_mouse_state == false) {
       m_is_mouse_grabbed = !m_is_mouse_grabbed;
@@ -199,10 +196,24 @@ void Input_Manager::process_input(GLFWwindow *window,
   }
 
   if (glfwGetKey(window, GLFW_KEY_G) != GLFW_PRESS) {
-
     m_last_mouse_state = false;
   }
 
+  // toggle fixed state  
+  bool is_x_pressed = glfwGetKey(window, GLFW_KEY_X) == GLFW_PRESS;
+  if (is_x_pressed && !m_was_x_pressed && m_active_scene->m_selectionstate != nullptr) {
+    m_active_scene->m_selectionstate->selected_point->phys_props.fixed =
+      !m_active_scene->m_selectionstate->selected_point->phys_props.fixed;
+  }
+  m_was_x_pressed = is_x_pressed;
+
+  // throw selected particle upwards
+  if (glfwGetKey(window, GLFW_KEY_Z) == GLFW_PRESS) {
+    std::shared_ptr<Point> p = m_active_scene->m_selectionstate->selected_point;
+    p->phys_props.add_force(0, 50, 0);
+  }
+  
+  // handle picker
   if(m_active_scene->m_selectionstate->launch_picker)
     handle_mouse_pick();
 

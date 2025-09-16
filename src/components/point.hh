@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cmath>
 #include <glm/ext/matrix_float4x4.hpp>
 #include <glm/ext/vector_float3.hpp>
 
@@ -16,9 +17,13 @@ struct Physics_properties {
 
   float inverse_mass = 1.0f;
 
+  float radius = 2.0f;
+  
   //why tf is this valid
   void add_force(glm::vec3 to_add) {force += to_add;};
   void add_force(float x, float y, float z) { force.x += x; force.y += y; force.z += z; };
+
+  float get_volume();
   
 };
 
