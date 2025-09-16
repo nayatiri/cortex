@@ -15,16 +15,23 @@ struct Physics_properties {
   glm::vec3 velocity = {0,0,0};
   glm::vec3 acceleration = {0,0,0};
 
-  float inverse_mass = 1.0f;
+  float inverse_mass = 2.0f;
 
-  float radius = 2.0f;
+  //TMP grav here. ForceGenerator ass to access from other force generator
+  float gravity = -9.81f;
+
+  float radius = 0.2f;
   
   //why tf is this valid
   void add_force(glm::vec3 to_add) {force += to_add;};
   void add_force(float x, float y, float z) { force.x += x; force.y += y; force.z += z; };
 
   float get_volume();
-  
+
+  void set_mass(float new_mass);
+
+  void set_infinite_mass();
+
 };
 
 class Point {

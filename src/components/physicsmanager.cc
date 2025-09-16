@@ -86,23 +86,22 @@ void Physics_Manager::calculate_phys_boxes() {
 
 void Physics_Manager::handle_scene_physics() {
 
+  // create AABB boxes for our scene, if they havent been already created
   if (!m_phys_boxes_initialized) {
     calculate_phys_boxes();
     m_phys_boxes_initialized = true;
   }
 
+  // if the scene doesnt have any force generators, setup force generators
   if(!m_force_generators_initialized) {
-
     bool success = initialize_force_generators();
-    
     if (success)
       m_force_generators_initialized = true;
     else
       m_force_generators_initialized = false;
-    
   }
 
-  //gravity?
+  //process physics if everything is setup
   handle_scene_physics_diy();
 
 }
@@ -114,16 +113,16 @@ bool Physics_Manager::initialize_force_generators() {
   if(m_active_scene->m_loaded_points.size() > 0){
 
     //gravity
-    m_active_scene->m_loaded_force_generators.push_back(std::make_shared<Constant_force_generator>(glm::vec3(0.0f,-9.81f,0.0f)));
+    //m_active_scene->m_loaded_force_generators.push_back(std::make_shared<Constant_force_generator>(glm::vec3(0.0f,-9.81f,0.0f)));
 
     //bouyancy for water at 0 height
-    m_active_scene->m_loaded_force_generators.push_back(std::make_shared<Bouyancy_force_generator>(glm::vec3(0.0f,15.0f,0.0f), 0.0f, 1.0f));
-    
-    //bouncy thing
-    //m_active_scene->m_loaded_force_generators.push_back(std::make_shared<Conditional_force_generator>(glm::vec3(0.0f,15.0f,0.0f)));
+    //m_active_scene->m_loaded_force_generators.push_back(std::make_shared<Bouyancy_force_generator>(glm::vec3(0.0f,15.0f,0.0f), 0.0f, 1000.0f));
 
     //drag (linear and expo components)
     m_active_scene->m_loaded_force_generators.push_back(std::make_shared<Drag_force_generator>(0.1f,0.05f));
+    
+    //bouncy thing
+    //m_active_scene->m_loaded_force_generators.push_back(std::make_shared<Conditional_force_generator>(glm::vec3(0.0f,15.0f,0.0f)));
 
     return true;
   }
@@ -138,25 +137,40 @@ bool Physics_Manager::initialize_force_generators() {
 void Physics_Manager::handle_scene_physics_diy() {
   
   for(std::shared_ptr<Point> p : m_active_scene->m_loaded_points) {
+
+    //if point is fixed, lock it in place
+    if(p->phys_props.fixed)
+      continue;
     
-    //get forces from force generators for this tick (if point isnt fixed)
-    if(!p->phys_props.fixed)
-      update_alembert_force(*p, m_active_scene->m_scene_deltatime); // calculate physics
-    else 
-      continue; // lock in place
+    // sumn up all forces on point
+    update_alembert_force(*p, m_active_scene->m_scene_deltatime); 
+
+    //TMP
+    /*
+    float mass = 1.0f / p->phys_props.inverse_mass;
+    glm::vec3 accel_computed = p->phys_props.force * p->phys_props.inverse_mass;
     
-    // p' = p + pt + 0.5 pt ^2
-    glm::vec3 acceleration = p->phys_props.acceleration;
-    acceleration += p->phys_props.force * p->phys_props.inverse_mass;
+    std::cout << "Point - mass: " << mass
+	      << " | force: (" << p->phys_props.force.x << ", " << p->phys_props.force.y << ", " << p->phys_props.force.z << ")"
+	      << " | inv_m: " << p->phys_props.inverse_mass
+	      << " | accel: (" << accel_computed.x << ", " << accel_computed.y << ", " << accel_computed.z << ")"
+	      << " | velocity: (" << p->phys_props.velocity.x << ", " << p->phys_props.velocity.y << ", " << p->phys_props.velocity.z << ")"
+	      << std::endl;
+    */
     
-    p->phys_props.velocity += acceleration * m_active_scene->m_scene_deltatime;
-    
+    // now take the summed forces and apply em to the points in the scene
+    // TODO do we need to carry acceleration from last frame? maybe add phys_props.acceleration back += force * inv mass.
+    // for now i just recompute acceleration each frame.
+    glm::vec3 acceleration = p->phys_props.force * p->phys_props.inverse_mass;
+    p->phys_props.velocity += acceleration * m_active_scene->m_scene_deltatime;    
     p->change_position(p->phys_props.velocity * m_active_scene->m_scene_deltatime);
+
+    // check for collission here?
     
+    //reset force after applying it successfully
     p->phys_props.force = {0,0,0};
     
   }
-  
 }
 
 bool Physics_Manager::check_inside_AABB(Mesh &check_mesh, glm::vec3 check_position) {
@@ -168,9 +182,9 @@ bool Physics_Manager::check_inside_AABB(Mesh &check_mesh, glm::vec3 check_positi
 }
 
 void Physics_Manager::update_alembert_force(Point &p, float delta_time) {
-
+  
   for(std::shared_ptr<Force_generator> fg : m_active_scene->m_loaded_force_generators) {
     p.phys_props.force += fg->get_force(p,delta_time); 
   }
-
+  
 };

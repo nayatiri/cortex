@@ -52,8 +52,10 @@ void Point::set_position(float x, float y, float z) {
 
 glm::vec3 Point::get_position() { return glm::vec3(m_pos_x, m_pos_y, m_pos_z); }
 
-float Physics_properties::get_volume() {
+float Physics_properties::get_volume() { return 0.75 * 3.141 * pow(radius, 3); }
 
-  return 0.75 * 3.451 * pow(radius,3);
-  
+void Physics_properties::set_mass(float new_mass) {
+  inverse_mass = 1 / new_mass;
 }
+
+void Physics_properties::set_infinite_mass() { inverse_mass = 0.0f; }

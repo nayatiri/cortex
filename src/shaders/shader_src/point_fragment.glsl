@@ -34,7 +34,7 @@ void main() {
 
      float distance = length(fragPos - point_screen_position);
      float distance_point_cam = length(point_position - camera_position);
-     float radius_adjusted = (1/distance_point_cam) * radius * 0.1; // 0.1 magic number hellyear
+     float radius_adjusted = (1/distance_point_cam) * radius; // 0.1 magic number hellyear
 
      //adjust depth buffer, this shit lowkey magic nojoke
      float ndc_z = point_clip.z / point_clip.w;  

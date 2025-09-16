@@ -38,9 +38,18 @@ Bouyancy_force_generator::Bouyancy_force_generator(glm::vec3 force,
   medium_density = density;
 }
 
+Stiff_Spring_force_generator::Stiff_Spring_force_generator(std::shared_ptr<Point> from,
+							   std::shared_ptr<Point> to,
+							   float strength,
+							   float rest_length)
+  : from(from), to(to), strength(strength), rest_length(rest_length) {}
+
 // get force
 glm::vec3 Constant_force_generator::get_force(Point &p, float delta_time) {
-  return force_to_generate;
+  if(p.phys_props.inverse_mass == 0.0f)
+    return {0.0f,0.0f,0.0f};
+  float mass = 1.0f/p.phys_props.inverse_mass;
+  return force_to_generate * mass;
 };
 
 glm::vec3 Conditional_force_generator::get_force(Point &p, float delta_time) {
@@ -78,62 +87,33 @@ glm::vec3 Drag_force_generator::get_force(Point &p, float delta_time) {
 
 glm::vec3 Spring_force_generator::get_force(Point &p, float delta_time) {
 
-  // TODO make this mess not have 0(p*n2) xd
+    if (&p != from.get() && &p != to.get()) {
+        return glm::vec3(0.0f);
+    }
 
-  if (&p == from.get()) {
+    glm::vec3 from_pos = from->get_position();
+    glm::vec3 to_pos = to->get_position();
+    glm::vec3 displacement = from_pos - to_pos;  
 
-    glm::vec3 from_to = from->get_position() - to->get_position();
-
-    float distance = glm::length(from_to);
+    float distance = glm::length(displacement);
 
     if (distance == 0.0f) {
-      static std::mt19937 rng{std::random_device{}()};
-      static std::uniform_real_distribution<float> dist(-1.0f, 1.0f);
-      glm::vec3 random_force = glm::vec3(dist(rng), dist(rng), dist(rng));
-      return random_force;
+        static std::mt19937 rng{std::random_device{}()};
+        static std::uniform_real_distribution<float> dist(-1.0f, 1.0f);
+        glm::vec3 random_force = glm::vec3(dist(rng), dist(rng), dist(rng));
+        return (&p == from.get()) ? random_force : -random_force;
     }
 
-    glm::vec3 spring_direction_from_to = glm::normalize(from_to);
+    glm::vec3 direction_to = glm::normalize(displacement);
 
-    // if distance smaller than rest_length we need to extend the spring
-    if (distance < rest_length) {
-      return spring_direction_from_to * (rest_length - distance) * strength;
-    }
+    float delta = distance - rest_length;
+    float force_magnitude = -strength * delta;  
 
-    // if distance bigger, contract the spring
-    if (distance > rest_length) {
-      return -spring_direction_from_to * (distance - rest_length) * strength;
-    }
-  }
+    glm::vec3 force_on_from = direction_to * force_magnitude;
+    glm::vec3 force_on_to   = -force_on_from;
 
-  if (&p == to.get()) {
-
-    glm::vec3 from_to = to->get_position() - from->get_position();
-
-    float distance = glm::length(from_to);
-
-    if (distance == 0.0f) {
-      static std::mt19937 rng{std::random_device{}()};
-      static std::uniform_real_distribution<float> dist(-1.0f, 1.0f);
-      glm::vec3 random_force = glm::vec3(dist(rng), dist(rng), dist(rng));
-      return random_force;
-    }
-
-    glm::vec3 spring_direction_from_to = glm::normalize(from_to);
-
-    // if distance smaller than rest_length we need to extend the spring
-    if (distance < rest_length) {
-      return spring_direction_from_to * (rest_length - distance) * strength;
-    }
-
-    // if distance bigger, contract the spring
-    if (distance > rest_length) {
-      return -spring_direction_from_to * (distance - rest_length) * strength;
-    }
-  }
-
-  return glm::vec3(0.0f, 0.0f, 0.0f);
-};
+    return (&p == from.get()) ? force_on_from : force_on_to;
+}
 
 glm::vec3 Bouyancy_force_generator::get_force(Point &p, float delta_time) {
 
@@ -141,21 +121,45 @@ glm::vec3 Bouyancy_force_generator::get_force(Point &p, float delta_time) {
 
   float depth = p.get_position().y;
 
-  float max_submersible_depth = p.phys_props.radius * 2;
+  //float max_submersible_depth = p.phys_props.radius * 2;
 
-  // are we inside the medium?
-  if (depth >= medium_height - max_submersible_depth)
+  // are we outside the medium?
+  if (depth - p.phys_props.radius >= medium_height)
     return force;
 
   // are we fully submerged?
-  if (depth <= medium_height - max_submersible_depth) {
-    force.y = medium_density * p.phys_props.get_volume();
+  if (depth + p.phys_props.radius <= medium_height) {
+    force.y = medium_density * p.phys_props.get_volume() * -p.phys_props.gravity;
     return force;
   }
 
-  // not outside, not fully submerged -> have to be partially submerged:
-  force.y = medium_density * p.phys_props.get_volume() *
-            (depth - max_submersible_depth - medium_height) / 2 *
-            max_submersible_depth;
+  // Partially submerged case:
+  float radius = p.phys_props.radius;
+  float bottom_y = depth - radius; 
+  float h = medium_height - bottom_y;
+  
+  // Clamp h between 0 and 2*radius
+  h = glm::clamp(h, 0.0f, 2.0f * radius);
+  
+  // Spherical cap volume
+  float submerged_vol = M_PI * h * h * (3.0f * radius - h) / 3.0f;
+  
+  force.y = medium_density * submerged_vol * (-p.phys_props.gravity);
+  
   return force;
+};
+
+glm::vec3 Stiff_Spring_force_generator::get_force(Point &p, float delta_time) {
+
+  //TODO shit calculation, cant find resource for stable calculation for 2 loose points all lit just does fucking 1 anchor 1 loose type shi
+  
+  // check for inf mass
+  if(p.phys_props.inverse_mass == 0)
+    return {0,0,0};
+
+  //  glm::vec3 position = p.get_position();
+
+  
+  return {0,0,0};
+
 };

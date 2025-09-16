@@ -11,12 +11,14 @@ public:
   
 };
 
+// constant forces of any kind, gravity, wind, etc.
 class Constant_force_generator : public Force_generator {
 public:
   Constant_force_generator(glm::vec3 force);
   glm::vec3 get_force(Point& p, float delta_time);
 };
 
+// conditional forces, that can have a hardcoded trigger
 class Conditional_force_generator : public Force_generator {
 public:
 
@@ -24,6 +26,7 @@ public:
   glm::vec3 get_force(Point& p, float delta_time);
 };
 
+// drag simulation using linear and exponential components - 0.1 exp, 0.05 lin reccommended 
 class Drag_force_generator : public Force_generator {
 private:
   float drag_coefficient_1 = 0.1f;
@@ -33,6 +36,7 @@ public:
   glm::vec3 get_force(Point& p, float delta_time);
 };
 
+// weak springs (stiffness 0e-6 - 100)
 class Spring_force_generator : public Force_generator {
 private:
   std::shared_ptr<Point> from = nullptr;
@@ -44,13 +48,24 @@ public:
   glm::vec3 get_force(Point& p, float delta_time);
 };
 
+// bouyancy simulation for liquid, gravity affected mediae
 class Bouyancy_force_generator : public Force_generator {
 private:
   float medium_height;
   float medium_density;
-  
 public:
-
   Bouyancy_force_generator(glm::vec3 force, float height, float density);
+  glm::vec3 get_force(Point& p, float delta_time);
+};
+
+// stiff springs (stiffness 100 - inf)
+class Stiff_Spring_force_generator : public Force_generator {
+private:
+  std::shared_ptr<Point> from = nullptr;
+  std::shared_ptr<Point> to = nullptr;
+  float strength;
+  float rest_length;
+public:
+  Stiff_Spring_force_generator(std::shared_ptr<Point> to, std::shared_ptr<Point> from, float strength, float rest_length);
   glm::vec3 get_force(Point& p, float delta_time);
 };
