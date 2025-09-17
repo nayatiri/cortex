@@ -1,19 +1,44 @@
 CXX = g++
 CXXFLAGS = -std=c++20 -O0 -g -Wall -Werror
 LDFLAGS = -lglfw -ldl -lpthread -lX11 -lXxf86vm -lXrandr -lXi -lGL
-SRC = src/main.cpp src/components/logging.hh src/renderer.cc src/components/*.cc src/glad/glad.c 
+
+# Source files
+SRC = src/main.cpp src/renderer.cc src/glad/glad.c $(wildcard src/components/*.cc)
+
+# Object files
+OBJ = $(SRC:.cpp=.o)
+OBJ := $(OBJ:.cc=.o)
+OBJ := $(OBJ:.c=.o)
+
+# Target
 TARGET = build/cortex
 
-.PHONY: test clean
+.PHONY: all test clean
 
-# Rule to build the target
-$(TARGET): $(SRC)
+all: $(TARGET)
+
+# Link step
+$(TARGET): $(OBJ) | build
 	$(CXX) $(CXXFLAGS) -o $@ $^ $(LDFLAGS)
 
-# Rule to run tests
+# Compile step for .cpp and .cc
+%.o: %.cpp
+	$(CXX) $(CXXFLAGS) -c $< -o $@
+
+%.o: %.cc
+	$(CXX) $(CXXFLAGS) -c $< -o $@
+
+%.o: %.c
+	$(CXX) $(CXXFLAGS) -c $< -o $@
+
+# Make sure build dir exists
+build:
+	mkdir -p build
+
+# Run program
 test: $(TARGET)
 	./$(TARGET)
 
-# Rule to clean up build artifacts
+# Clean build artifacts
 clean:
-	rm -f $(TARGET)
+	rm -rf $(OBJ) $(TARGET)

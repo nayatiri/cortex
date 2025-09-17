@@ -40,6 +40,8 @@ class Point {
 
   glm::mat4 m_model_matrix_buffer;
 
+  glm::vec3 integration_position_buffer;
+  
   float m_pos_x = 0, m_pos_y = 0, m_pos_z = 0;
   
 public:
@@ -47,6 +49,9 @@ public:
   glm::mat4 get_model_matrix();
   
   void set_position(float x ,float y, float z);
+
+  void buffer_integration_delta(glm::vec3 new_pos);
+  void swap_integration_buffer();
   
   void change_position(float x ,float y, float z);
   void change_position(glm::vec3);

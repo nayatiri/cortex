@@ -42,7 +42,7 @@ void spawn_single_link(Renderer& main_renderer) {
   main_renderer.add_point_to_scene(0,5,0);
   
   //bottom triangle constraints
-  main_renderer.create_spring_constraint(main_renderer.m_active_scene->m_loaded_points[0],main_renderer.m_active_scene->m_loaded_points[1], 10.0f, 4.0f);
+  main_renderer.create_spring_constraint(main_renderer.m_active_scene->m_loaded_points[0],main_renderer.m_active_scene->m_loaded_points[1], 50.0f, 4.0f);
 
   main_renderer.create_fixed_constraint(main_renderer.m_active_scene->m_loaded_points[0], true);
   

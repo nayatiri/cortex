@@ -102,7 +102,7 @@ void Physics_Manager::handle_scene_physics() {
   }
 
   //process physics if everything is setup
-  handle_scene_physics_diy();
+  run_integrator();
 
 }
 
@@ -134,7 +134,7 @@ bool Physics_Manager::initialize_force_generators() {
 }
 
 // aka integrator
-void Physics_Manager::handle_scene_physics_diy() {
+void Physics_Manager::run_integrator() {
   
   for(std::shared_ptr<Point> p : m_active_scene->m_loaded_points) {
 
@@ -146,7 +146,7 @@ void Physics_Manager::handle_scene_physics_diy() {
     update_alembert_force(*p, m_active_scene->m_scene_deltatime); 
 
     //TMP
-    /*
+
     float mass = 1.0f / p->phys_props.inverse_mass;
     glm::vec3 accel_computed = p->phys_props.force * p->phys_props.inverse_mass;
     
@@ -156,14 +156,17 @@ void Physics_Manager::handle_scene_physics_diy() {
 	      << " | accel: (" << accel_computed.x << ", " << accel_computed.y << ", " << accel_computed.z << ")"
 	      << " | velocity: (" << p->phys_props.velocity.x << ", " << p->phys_props.velocity.y << ", " << p->phys_props.velocity.z << ")"
 	      << std::endl;
-    */
+
     
     // now take the summed forces and apply em to the points in the scene
     // TODO do we need to carry acceleration from last frame? maybe add phys_props.acceleration back += force * inv mass.
     // for now i just recompute acceleration each frame.
     glm::vec3 acceleration = p->phys_props.force * p->phys_props.inverse_mass;
-    p->phys_props.velocity += acceleration * m_active_scene->m_scene_deltatime;    
-    p->change_position(p->phys_props.velocity * m_active_scene->m_scene_deltatime);
+    p->phys_props.velocity += acceleration * m_active_scene->m_scene_deltatime;
+
+    // firstly write forces to buffer
+    p->buffer_integration_delta(p->phys_props.velocity * m_active_scene->m_scene_deltatime);
+    //p->change_position(p->phys_props.velocity * m_active_scene->m_scene_deltatime);
 
     // check for collission here?
     
@@ -171,6 +174,12 @@ void Physics_Manager::handle_scene_physics_diy() {
     p->phys_props.force = {0,0,0};
     
   }
+
+  // after resolving all positions, write to active point position.
+  for(std::shared_ptr<Point> p : m_active_scene->m_loaded_points) {
+    p->swap_integration_buffer();
+  }
+  
 }
 
 bool Physics_Manager::check_inside_AABB(Mesh &check_mesh, glm::vec3 check_position) {

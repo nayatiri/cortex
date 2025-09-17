@@ -59,3 +59,15 @@ void Physics_properties::set_mass(float new_mass) {
 }
 
 void Physics_properties::set_infinite_mass() { inverse_mass = 0.0f; }
+
+void Point::buffer_integration_delta(glm::vec3 new_pos) {
+  integration_position_buffer = new_pos;
+};
+
+void Point::swap_integration_buffer() {
+
+  m_pos_x += integration_position_buffer.x;
+  m_pos_y += integration_position_buffer.y;
+  m_pos_z += integration_position_buffer.z;
+  
+}

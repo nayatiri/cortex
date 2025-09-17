@@ -107,6 +107,7 @@ glm::vec3 Spring_force_generator::get_force(Point &p, float delta_time) {
     glm::vec3 direction_to = glm::normalize(displacement);
 
     float delta = distance - rest_length;
+    
     float force_magnitude = -strength * delta;  
 
     glm::vec3 force_on_from = direction_to * force_magnitude;

@@ -13,7 +13,7 @@ struct AABB {
 class Physics_Manager {
 
 private:
-  void handle_scene_physics_diy();
+  void run_integrator();
   bool initialize_force_generators();
   void handle_scene_physics_book();
   bool check_inside_AABB(Mesh &mesh, glm::vec3 check_position);
