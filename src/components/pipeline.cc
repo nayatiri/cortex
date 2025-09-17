@@ -410,9 +410,10 @@ void Shadow_Map_Pipeline::render_overlay_pass() {
     }
     
     // set uniforms
+    upload_to_uniform(m_active_scene->universal_line_shader,"camera_position", m_active_scene->m_camera->m_cameraPos);
     upload_to_uniform(m_active_scene->universal_line_shader,"line_position_min", s->link_A->get_position());
     upload_to_uniform(m_active_scene->universal_line_shader,"line_position_max", s->link_B->get_position());
-    upload_to_uniform(m_active_scene->universal_line_shader,"radius", 4.0f);
+    upload_to_uniform(m_active_scene->universal_line_shader,"radius", 10.0f);
     
     upload_to_uniform(m_active_scene->universal_line_shader, "view",
 		      shared_camera_view_matrix);

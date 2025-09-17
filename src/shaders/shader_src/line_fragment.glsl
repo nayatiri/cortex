@@ -53,9 +53,12 @@ void main() {
     float pixel_size_ndc_x = 2.0 / screen_width;
     float pixel_size_ndc_y = 2.0 / screen_height;
     float avg_pixel_size_ndc = (pixel_size_ndc_x + pixel_size_ndc_y) * 0.5;
-    float ndc_radius = radius * avg_pixel_size_ndc;
+    
+    vec3 midpoint = vec3(line_position_min + line_position_max) * 0.5;
+    float distance_point_cam = length(midpoint - camera_position);
+    float radius_adjusted = (1/distance_point_cam) * radius * avg_pixel_size_ndc;
 
-    if (dist_to_line_ndc > ndc_radius) {
+    if (dist_to_line_ndc > radius_adjusted) {
         discard;
     }
 
@@ -66,7 +69,7 @@ void main() {
 
     set_fragment_depth(closest_world_point);
 
-    float alpha = 1.0 - smoothstep(ndc_radius * 0.1, ndc_radius * 0.9, dist_to_line_ndc);
+    float alpha = 1.0 - smoothstep(radius_adjusted * 0.1, radius_adjusted * 0.9, dist_to_line_ndc);
     if (alpha < 0.01) discard;
 
     FragColor = vec4(box_color, alpha);

@@ -152,8 +152,12 @@ void Physics_Manager::run_integrator() {
   for(std::shared_ptr<Point> p : m_active_scene->m_loaded_points) {
 
     //if point is fixed, lock it in place
-    if(p->phys_props.fixed)
+    if(p->phys_props.fixed) {
+      p->phys_props.velocity = {0,0,0};
+      p->phys_props.force = {0,0,0};
+      p->phys_props.acceleration = {0,0,0};
       continue;
+    }
     
     // sumn up all forces on point
     update_alembert_force(*p, m_active_scene->m_scene_deltatime); 
@@ -174,9 +178,10 @@ void Physics_Manager::run_integrator() {
     
   }
   
-  // after resolving all positions, write to active point position.
+  // after resolving all positions, write to active point position. (if point isnt fixed)
   for(std::shared_ptr<Point> p : m_active_scene->m_loaded_points) {
-    p->swap_integration_buffer();
+    if(!p->phys_props.fixed)
+      p->swap_integration_buffer();
   }
   
 }

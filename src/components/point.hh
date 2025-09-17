@@ -40,7 +40,7 @@ class Point {
 
   glm::mat4 m_model_matrix_buffer;
 
-  glm::vec3 integration_position_buffer;
+  glm::vec3 integration_position_buffer = {0,0,0};
   
   float m_pos_x = 0, m_pos_y = 0, m_pos_z = 0;
   
