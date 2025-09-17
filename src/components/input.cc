@@ -11,7 +11,7 @@ void Input_Manager::process_input(GLFWwindow *window,
                                   float m_application_current_time,
                                   float m_delta_time) {
 
-  if (m_active_scene == nullptr || m_active_scene->m_camera == nullptr) {
+  if (m_active_scene == nullptr || m_active_scene->m_local_player->m_player_camera == nullptr) {
     log_error("active scene is fucked. cant process inputs");
     return;
   }
@@ -26,7 +26,7 @@ void Input_Manager::process_input(GLFWwindow *window,
   }
 
   float cameraSpeed =
-      m_active_scene->m_camera->m_camera_base_speed * 10.0f * m_delta_time;
+      m_active_scene->m_local_player->m_player_camera->m_camera_base_speed * 10.0f * m_delta_time;
 
   if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS) {
     if (!m_last_wireframe_state) {
@@ -39,49 +39,49 @@ void Input_Manager::process_input(GLFWwindow *window,
   }
 
   if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
-    m_active_scene->m_camera->m_cameraPos +=
+    m_active_scene->m_local_player->m_player_camera->m_cameraPos +=
         cameraSpeed * glm::normalize(glm::vec3(
-                          m_active_scene->m_camera->m_cameraLookAt.x, 0.0f,
-                          m_active_scene->m_camera->m_cameraLookAt.z));
+                          m_active_scene->m_local_player->m_player_camera->m_cameraLookAt.x, 0.0f,
+                          m_active_scene->m_local_player->m_player_camera->m_cameraLookAt.z));
   }
 
   if (glfwGetKey(window, GLFW_KEY_T) == GLFW_PRESS) {
-    if (m_active_scene->m_camera->m_animation_table == nullptr) {
-      m_active_scene->m_camera->m_animation_table =
+    if (m_active_scene->m_local_player->m_player_camera->m_animation_table == nullptr) {
+      m_active_scene->m_local_player->m_player_camera->m_animation_table =
           new std::vector<animation *>();
-      m_active_scene->m_camera->m_animation_table->clear();
-      m_active_scene->m_camera->m_animation_table->reserve(1);
-      m_active_scene->m_camera->m_animation_table->push_back(new animation);
-      m_active_scene->m_camera->m_animation_table->at(0)->m_checkpoints =
+      m_active_scene->m_local_player->m_player_camera->m_animation_table->clear();
+      m_active_scene->m_local_player->m_player_camera->m_animation_table->reserve(1);
+      m_active_scene->m_local_player->m_player_camera->m_animation_table->push_back(new animation);
+      m_active_scene->m_local_player->m_player_camera->m_animation_table->at(0)->m_checkpoints =
           new std::vector<glm::vec3>();
-      m_active_scene->m_camera->m_animation_table->at(0)
+      m_active_scene->m_local_player->m_player_camera->m_animation_table->at(0)
           ->m_checkpoints->clear();
-      m_active_scene->m_camera->m_animation_table->at(0)->m_checkpoints_rot =
+      m_active_scene->m_local_player->m_player_camera->m_animation_table->at(0)->m_checkpoints_rot =
           new std::vector<glm::vec3>();
-      m_active_scene->m_camera->m_animation_table->at(0)
+      m_active_scene->m_local_player->m_player_camera->m_animation_table->at(0)
           ->m_checkpoints_rot->clear();
     } else {
-      printf("%d ", (int)m_active_scene->m_camera->m_animation_table->at(0)
+      printf("%d ", (int)m_active_scene->m_local_player->m_player_camera->m_animation_table->at(0)
                         ->m_checkpoints->size());
-      m_active_scene->m_camera->m_animation_table->at(0)
-          ->m_checkpoints->push_back(m_active_scene->m_camera->m_cameraPos);
-      m_active_scene->m_camera->m_animation_table->at(0)
+      m_active_scene->m_local_player->m_player_camera->m_animation_table->at(0)
+	->m_checkpoints->push_back(m_active_scene->m_local_player->get_position());
+      m_active_scene->m_local_player->m_player_camera->m_animation_table->at(0)
           ->m_checkpoints_rot->push_back(
-              m_active_scene->m_camera->m_cameraLookAt);
+              m_active_scene->m_local_player->m_player_camera->m_cameraLookAt);
       log_debug("saved animation point");
       //      std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
   }
 
   if (glfwGetKey(window, GLFW_KEY_B) == GLFW_PRESS) {
-    if (m_active_scene->m_camera->m_animation_table &&
-        m_active_scene->m_camera->m_animation_table->at(0)->m_checkpoints) {
-      m_active_scene->m_camera->m_animation_table->at(0)
+    if (m_active_scene->m_local_player->m_player_camera->m_animation_table &&
+        m_active_scene->m_local_player->m_player_camera->m_animation_table->at(0)->m_checkpoints) {
+      m_active_scene->m_local_player->m_player_camera->m_animation_table->at(0)
           ->m_checkpoints->clear();
-      m_active_scene->m_camera->m_animation_table->at(0)
+      m_active_scene->m_local_player->m_player_camera->m_animation_table->at(0)
           ->m_checkpoints_rot->clear();
-      m_active_scene->m_camera->m_animation_table->at(0)->m_start_time = 0;
-      m_active_scene->m_camera->m_animation_table->at(0)->m_has_been_smoothed =
+      m_active_scene->m_local_player->m_player_camera->m_animation_table->at(0)->m_start_time = 0;
+      m_active_scene->m_local_player->m_player_camera->m_animation_table->at(0)->m_has_been_smoothed =
           false;
     }
   }
@@ -89,47 +89,47 @@ void Input_Manager::process_input(GLFWwindow *window,
   if (glfwGetKey(window, GLFW_KEY_R) == GLFW_PRESS) {
 
     // does an animation exist? start animation
-    if (m_active_scene->m_camera->m_animation_table) {
-      if (m_active_scene->m_camera->m_animation_table->at(0)
+    if (m_active_scene->m_local_player->m_player_camera->m_animation_table) {
+      if (m_active_scene->m_local_player->m_player_camera->m_animation_table->at(0)
                   ->m_checkpoints->size() > 1 &&
-          m_active_scene->m_camera->m_animation_table->at(0)->m_start_time ==
+          m_active_scene->m_local_player->m_player_camera->m_animation_table->at(0)->m_start_time ==
               0) {
-        m_active_scene->m_camera->m_animation_table->at(0)
+        m_active_scene->m_local_player->m_player_camera->m_animation_table->at(0)
             ->m_trigger_animation = true;
         log_success("queuing animation");
       }
     }
 
-    if (m_active_scene->m_camera->m_animation_table->at(0)
+    if (m_active_scene->m_local_player->m_player_camera->m_animation_table->at(0)
             ->m_has_been_smoothed == false) {
 
       for (int i = 0;
-           i < ((int)m_active_scene->m_camera->m_animation_table->at(0)
+           i < ((int)m_active_scene->m_local_player->m_player_camera->m_animation_table->at(0)
                     ->m_checkpoints->size()) -
                    20;
            i++) {
         glm::vec3 step_nosmooth =
-            m_active_scene->m_camera->m_animation_table->at(0)
+            m_active_scene->m_local_player->m_player_camera->m_animation_table->at(0)
                 ->m_checkpoints->at(i);
         glm::vec3 step_next_nosmooth =
-            m_active_scene->m_camera->m_animation_table->at(0)
+            m_active_scene->m_local_player->m_player_camera->m_animation_table->at(0)
                 ->m_checkpoints->at(i + 1);
         glm::vec3 step_smoothed = (step_nosmooth + step_next_nosmooth);
         step_smoothed /= 2;
-        m_active_scene->m_camera->m_animation_table->at(0)->m_checkpoints->at(
+        m_active_scene->m_local_player->m_player_camera->m_animation_table->at(0)->m_checkpoints->at(
             i) = step_smoothed;
         log_error("smooting in progress");
       }
-      m_active_scene->m_camera->m_animation_table->at(0)->m_has_been_smoothed =
+      m_active_scene->m_local_player->m_player_camera->m_animation_table->at(0)->m_has_been_smoothed =
           true;
     }
 
     // has an animation been set to start? initialize it + set vars
-    if (m_active_scene->m_camera->m_animation_table->at(0)
+    if (m_active_scene->m_local_player->m_player_camera->m_animation_table->at(0)
             ->m_trigger_animation == true) {
-      m_active_scene->m_camera->m_animation_table->at(0)->m_start_time =
+      m_active_scene->m_local_player->m_player_camera->m_animation_table->at(0)->m_start_time =
           m_application_current_time;
-      m_active_scene->m_camera->m_animation_table->at(0)->m_last_checkpoint = 0;
+      m_active_scene->m_local_player->m_player_camera->m_animation_table->at(0)->m_last_checkpoint = 0;
       log_success("initizlizing animation");
     }
   }
@@ -140,10 +140,10 @@ void Input_Manager::process_input(GLFWwindow *window,
   }
 
   if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) {
-    m_active_scene->m_camera->m_cameraPos +=
+    m_active_scene->m_local_player->m_player_camera->m_cameraPos +=
         cameraSpeed * glm::normalize(glm::vec3(
-                          -m_active_scene->m_camera->m_cameraLookAt.x, 0.0f,
-                          -m_active_scene->m_camera->m_cameraLookAt.z));
+                          -m_active_scene->m_local_player->m_player_camera->m_cameraLookAt.x, 0.0f,
+                          -m_active_scene->m_local_player->m_player_camera->m_cameraLookAt.z));
   }
 
   // move all particles to 0,5,5 (ik its dumb)
@@ -158,26 +158,26 @@ void Input_Manager::process_input(GLFWwindow *window,
 
   // move left
   if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-    m_active_scene->m_camera->m_cameraPos -=
-        glm::normalize(glm::cross(m_active_scene->m_camera->m_cameraLookAt,
-                                  m_active_scene->m_camera->m_cameraUp)) *
+    m_active_scene->m_local_player->m_player_camera->m_cameraPos -=
+        glm::normalize(glm::cross(m_active_scene->m_local_player->m_player_camera->m_cameraLookAt,
+                                  m_active_scene->m_local_player->m_player_camera->m_cameraUp)) *
         cameraSpeed;
 
   //move right
   if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-    m_active_scene->m_camera->m_cameraPos +=
-        glm::normalize(glm::cross(m_active_scene->m_camera->m_cameraLookAt,
-                                  m_active_scene->m_camera->m_cameraUp)) *
+    m_active_scene->m_local_player->m_player_camera->m_cameraPos +=
+        glm::normalize(glm::cross(m_active_scene->m_local_player->m_player_camera->m_cameraLookAt,
+                                  m_active_scene->m_local_player->m_player_camera->m_cameraUp)) *
         cameraSpeed;
 
   //move down
   if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
-    m_active_scene->m_camera->m_cameraPos +=
+    m_active_scene->m_local_player->m_player_camera->m_cameraPos +=
         glm::normalize(glm::vec3(0.0f, -1.0f, 0.0f)) * cameraSpeed;
 
   //move up
   if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS)
-    m_active_scene->m_camera->m_cameraPos +=
+    m_active_scene->m_local_player->m_player_camera->m_cameraPos +=
         glm::normalize(glm::vec3(0.0f, 1.0f, 0.0f)) * cameraSpeed;
 
   // toggle cursor 
@@ -201,22 +201,18 @@ void Input_Manager::process_input(GLFWwindow *window,
 
   // toggle fixed state  
   bool is_x_pressed = glfwGetKey(window, GLFW_KEY_X) == GLFW_PRESS;
-  if (is_x_pressed && !m_was_x_pressed && m_active_scene->m_selectionstate != nullptr) {
+  if (is_x_pressed && !m_was_x_pressed && m_active_scene->m_selectionstate->selected_point != nullptr) {
     m_active_scene->m_selectionstate->selected_point->phys_props.fixed =
       !m_active_scene->m_selectionstate->selected_point->phys_props.fixed;
   }
   m_was_x_pressed = is_x_pressed;
 
   // throw selected particle upwards
-  if (glfwGetKey(window, GLFW_KEY_Z) == GLFW_PRESS) {
+  if (glfwGetKey(window, GLFW_KEY_Z) == GLFW_PRESS && m_active_scene->m_selectionstate->selected_point != nullptr) {
     std::shared_ptr<Point> p = m_active_scene->m_selectionstate->selected_point;
     p->phys_props.add_force(0, 50, 0);
   }
   
-  // handle picker
-  if(m_active_scene->m_selectionstate->launch_picker)
-    handle_mouse_pick();
-
   return;
 }
 
@@ -261,19 +257,19 @@ void Input_Manager::scroll_callback(GLFWwindow *window, double xoffset,
     return;
   }
 
-  if (!im->m_active_scene || !im->m_active_scene->m_camera) {
+  if (!im->m_active_scene || !im->m_active_scene->m_local_player->m_player_camera) {
     return;
   }
 
-  im->m_active_scene->m_camera->m_camera_base_speed +=
+  im->m_active_scene->m_local_player->m_player_camera->m_camera_base_speed +=
       static_cast<float>(yoffset) * 0.1f;
 
-  if (im->m_active_scene->m_camera->m_camera_base_speed < 0.1f) {
-    im->m_active_scene->m_camera->m_camera_base_speed = 0.1f;
+  if (im->m_active_scene->m_local_player->m_player_camera->m_camera_base_speed < 0.1f) {
+    im->m_active_scene->m_local_player->m_player_camera->m_camera_base_speed = 0.1f;
   }
 
   std::cout << "Camera speed: "
-            << im->m_active_scene->m_camera->m_camera_base_speed << std::endl;
+            << im->m_active_scene->m_local_player->m_player_camera->m_camera_base_speed << std::endl;
 }
 
 void Input_Manager::mouse_button_callback(GLFWwindow *window, int button,
@@ -282,7 +278,7 @@ void Input_Manager::mouse_button_callback(GLFWwindow *window, int button,
     
     double xpos, ypos;
     glfwGetCursorPos(window, &xpos, &ypos);
-    std::cout << "Cursor Position at ( " << xpos << " : " << ypos << " )" << std::endl;
+    //std::cout << "Cursor Position at ( " << xpos << " : " << ypos << " )" << std::endl;
     
     m_active_scene->m_selectionstate->mouse_pos_x = xpos;
     m_active_scene->m_selectionstate->mouse_pos_y = ypos;
@@ -338,9 +334,5 @@ void Input_Manager::mouse_callback(GLFWwindow *window, double xpos,
   m_direction.x = cos(glm::radians(m_yaw)) * cos(glm::radians(m_pitch));
   m_direction.y = sin(glm::radians(m_pitch));
   m_direction.z = sin(glm::radians(m_yaw)) * cos(glm::radians(m_pitch));
-  m_active_scene->m_camera->m_cameraLookAt = glm::normalize(m_direction);
-}
-
-void Input_Manager::handle_mouse_pick() {
-  
+  m_active_scene->m_local_player->m_player_camera->m_cameraLookAt = glm::normalize(m_direction);
 }

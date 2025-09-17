@@ -47,11 +47,7 @@ public:
 
   void exp_overwrite_model_matrix(glm::mat4 new_mat);
   
-  AABB_Box(Shader new_hitbox_shader);
-
-  Shader hitbox_shader;
-  
-  void deserialize(char* file_path);
+  AABB_Box(glm::vec3 min, glm::vec3 max);
   
   std::vector<float> m_vertices_array;
 

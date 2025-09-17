@@ -63,8 +63,8 @@ void Renderer::abstract_render() {
 
 void Renderer::render_frame() {
   
-  if (!m_active_scene->m_camera) {
-    log_error("no camera in scene! stopping render!");
+  if (!m_active_scene->m_local_player) {
+    log_error("no local player with camera in scene! stopping render!");
     return;
   }
   if (m_active_scene->m_loaded_lights.size() < 1) {
@@ -109,6 +109,16 @@ void Renderer::render_frame() {
   glfwPollEvents();
 }
 
+void Renderer::add_model_to_scene(const char* filepath) {
+
+  Entity load_entity;
+  load_entity.m_mesh = std::move(
+				 Importer::load_all_meshes_from_gltf(filepath, num_loaded_textures, m_texture_map));
+  m_active_scene->add_entity_to_scene(load_entity);
+
+  init_scene_vbos();
+}
+
 void Renderer::init_scene(const char *scene_fp) {
 
   m_pipeline = std::make_unique<Shadow_Map_Pipeline>();
@@ -119,18 +129,18 @@ void Renderer::init_scene(const char *scene_fp) {
 
   //  glDisable(GL_CULL_FACE);
 
+  //initialize scene + components
   m_active_scene = std::make_shared<Scene>();
   m_input_manager->m_active_scene = m_active_scene;
   m_animation_manager->m_active_scene = m_active_scene;
   m_physics_manager->m_active_scene = m_active_scene;
-
-  //TMP unclean ig
   m_pipeline->m_active_scene = m_active_scene;
-  
-  log_success("set Scene ptr to IM, AM and PM");
-  
-  m_active_scene->m_camera = std::make_unique<Camera>();
 
+  log_success("set Scene ptr to IM, AM and PM");
+
+  //make player (localplayer) their camera
+  add_player_to_scene(true);
+  
   Light main_light(std::move(Importer::load_all_meshes_from_gltf(
       "models/light/scene.gltf", num_loaded_textures, m_texture_map))[0]);
   main_light.m_light_type = E_POINT_LIGHT;
@@ -533,3 +543,14 @@ void Renderer::create_spring_constraint(std::shared_ptr<Point> from,
 void Renderer::create_fixed_constraint(std::shared_ptr<Point> p, bool fixed) {
   p->phys_props.fixed = fixed;
 }
+
+void Renderer::add_player_to_scene(bool make_local_player) {
+
+  m_active_scene->m_player_list.push_back(std::make_shared<Player>());
+  
+  if(make_local_player) {
+    int index = m_active_scene->m_player_list.size();
+    m_active_scene->m_local_player = m_active_scene->m_player_list[index - 1];
+  }
+  
+};

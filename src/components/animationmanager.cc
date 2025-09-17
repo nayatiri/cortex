@@ -11,21 +11,21 @@ void Animation_Manager::handle_scene_animations(float m_application_current_time
     return;
   
   // is an animation already running? animate it
-  if (m_active_scene->m_camera->m_animation_table &&
-      m_active_scene->m_camera->m_animation_table->at(0)->m_trigger_animation) {
+  if (m_active_scene->m_local_player->m_player_camera->m_animation_table &&
+      m_active_scene->m_local_player->m_player_camera->m_animation_table->at(0)->m_trigger_animation) {
 
     log_error("animation has been marked to triggered -> trying to animate it rn!");
 
-    if (m_active_scene->m_camera->m_animation_table->at(0)->m_start_time <
+    if (m_active_scene->m_local_player->m_player_camera->m_animation_table->at(0)->m_start_time <
             m_application_current_time &&
-        m_active_scene->m_camera->m_animation_table->at(0)->m_start_time != 0) {
+        m_active_scene->m_local_player->m_player_camera->m_animation_table->at(0)->m_start_time != 0) {
 
-      float num_checkpoints = m_active_scene->m_camera->m_animation_table->at(0)
+      float num_checkpoints = m_active_scene->m_local_player->m_player_camera->m_animation_table->at(0)
                                   ->m_checkpoints->size();
       float anim_speed =
-          m_active_scene->m_camera->m_animation_table->at(0)->m_animation_speed;
+          m_active_scene->m_local_player->m_player_camera->m_animation_table->at(0)->m_animation_speed;
       float delta =
-          (m_active_scene->m_camera->m_animation_table->at(0)->m_start_time *
+          (m_active_scene->m_local_player->m_player_camera->m_animation_table->at(0)->m_start_time *
                anim_speed +
            num_checkpoints) -
           m_application_current_time * anim_speed;
@@ -37,9 +37,9 @@ void Animation_Manager::handle_scene_animations(float m_application_current_time
         // done animating? reset.
         tomove_check = num_checkpoints - 1;
         log_error("end of anim reached?");
-        m_active_scene->m_camera->m_animation_table->at(0)
+        m_active_scene->m_local_player->m_player_camera->m_animation_table->at(0)
             ->m_trigger_animation = false;
-        m_active_scene->m_camera->m_animation_table->at(0)->m_start_time = 0;
+        m_active_scene->m_local_player->m_player_camera->m_animation_table->at(0)->m_start_time = 0;
         log_success("animation done!");
       }
 
@@ -48,16 +48,16 @@ void Animation_Manager::handle_scene_animations(float m_application_current_time
         tomove_next = num_checkpoints - 1;
 
       glm::vec3 old_campos_anim =
-          m_active_scene->m_camera->m_animation_table->at(0)->m_checkpoints->at(
+          m_active_scene->m_local_player->m_player_camera->m_animation_table->at(0)->m_checkpoints->at(
               tomove_check);
       glm::vec3 next_campos_anim =
-          m_active_scene->m_camera->m_animation_table->at(0)->m_checkpoints->at(
+          m_active_scene->m_local_player->m_player_camera->m_animation_table->at(0)->m_checkpoints->at(
               tomove_next);
       glm::vec3 old_campos_anim_rot =
-          m_active_scene->m_camera->m_animation_table->at(0)
+          m_active_scene->m_local_player->m_player_camera->m_animation_table->at(0)
               ->m_checkpoints_rot->at(tomove_check);
       glm::vec3 next_campos_anim_rot =
-          m_active_scene->m_camera->m_animation_table->at(0)
+          m_active_scene->m_local_player->m_player_camera->m_animation_table->at(0)
               ->m_checkpoints_rot->at(tomove_next);
 
       glm::vec3 interpolated_camera_pos =
@@ -66,14 +66,14 @@ void Animation_Manager::handle_scene_animations(float m_application_current_time
           (remainder * old_campos_anim_rot) +
           ((1 - remainder) * next_campos_anim_rot);
 
-      m_active_scene->m_camera->m_cameraPos = interpolated_camera_pos;
-      m_active_scene->m_camera->m_cameraLookAt = interpolated_camera_rot;
+      m_active_scene->m_local_player->m_player_camera->m_cameraPos = interpolated_camera_pos;
+      m_active_scene->m_local_player->m_player_camera->m_cameraLookAt = interpolated_camera_rot;
 
       log_success("anim step done!");
 
     } else {
       log_error("no animation running");
-      std::cout << "times are - st - ct : " << m_active_scene->m_camera->m_animation_table->at(0)->m_start_time << " " << m_application_current_time << std::endl;
+      std::cout << "times are - st - ct : " << m_active_scene->m_local_player->m_player_camera->m_animation_table->at(0)->m_start_time << " " << m_application_current_time << std::endl;
       }
   }
 }

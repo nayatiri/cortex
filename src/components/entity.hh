@@ -11,6 +11,8 @@
 enum Entity_types {
 
   Entity_3D,
+  Entity_Playermodel,
+  Entity_Playerhand
   
 };
 
@@ -19,6 +21,11 @@ private:
   glm::mat4 m_model_matrix_buffer;
   
 public:
+
+  Entity() = default;
+
+  Entity(Entity_types new_type);
+  
   bool is_initialized();
 
   Entity_types entity_type = Entity_3D;

@@ -48,6 +48,7 @@ void spawn_single_link(Renderer& main_renderer) {
   
 };
 
+//shoutout ai xd
 void spawn_box(Renderer& main_renderer) {
 
   // Define 8 corners of a unit box (you can scale/translate as needed)
@@ -64,7 +65,7 @@ void spawn_box(Renderer& main_renderer) {
 
   auto& points = main_renderer.m_active_scene->m_loaded_points;
 
-  float stiffness = 50.0f;
+  float stiffness = 80.0f;
   float edge_length = 5.0f;
   float diag_face_length = edge_length * sqrtf(2.0f);     // e.g., across square face
   float diag_space_length = edge_length * sqrtf(3.0f);   // optional: space diagonals for extra rigidity

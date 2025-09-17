@@ -146,13 +146,13 @@ void Shadow_Map_Pipeline::render_color_pass() {
 
   // adjust camera view / projection matrices
   shared_camera_view_matrix =
-      glm::lookAt(m_active_scene->m_camera->m_cameraPos,
-                  m_active_scene->m_camera->m_cameraLookAt +
-                      m_active_scene->m_camera->m_cameraPos,
-                  m_active_scene->m_camera->m_cameraUp);
-
+    glm::lookAt(m_active_scene->m_local_player->get_position(),
+		m_active_scene->m_local_player->m_player_camera->m_cameraLookAt +
+		m_active_scene->m_local_player->get_position(),
+		m_active_scene->m_local_player->m_player_camera->m_cameraUp);
+  
   shared_camera_projection_matrix = glm::perspective(
-						     glm::radians(m_active_scene->m_camera->fov),
+						     glm::radians(m_active_scene->m_local_player->m_player_camera->fov),
 						     (float)m_viewport_width / (float)m_viewport_height,
 						     0.001f, 1000.0f);
   
@@ -211,7 +211,7 @@ void Shadow_Map_Pipeline::render_color_pass() {
 	upload_to_uniform(mesh.m_material.m_shader, "lightPosition",
 			  m_active_scene->m_loaded_lights[0].get_light_position());
 	upload_to_uniform(mesh.m_material.m_shader, "viewPos",
-			  m_active_scene->m_camera->m_cameraPos);	
+			  m_active_scene->m_local_player->m_player_camera->m_cameraPos);	
       }
 
       upload_to_uniform(mesh.m_material.m_shader, "model",
@@ -272,7 +272,7 @@ void Shadow_Map_Pipeline::render_overlay_pass() {
     upload_to_uniform(light_source.m_light_visualizer_mesh.m_material.m_shader,
                       "lightPosition", glm::vec3(0.0f));
     upload_to_uniform(light_source.m_light_visualizer_mesh.m_material.m_shader,
-                      "viewPos", m_active_scene->m_camera->m_cameraPos);
+                      "viewPos", m_active_scene->m_local_player->get_position());
 
 
     check_gl_error("after setting uniforms (overlay pass light)");
@@ -313,7 +313,7 @@ void Shadow_Map_Pipeline::render_overlay_pass() {
       }
 
       // set uniforms
-      upload_to_uniform(m_active_scene->universal_hitbox_shader,"camera_position", m_active_scene->m_camera->m_cameraPos);
+      upload_to_uniform(m_active_scene->universal_hitbox_shader,"camera_position", m_active_scene->m_local_player->get_position());
       upload_to_uniform(m_active_scene->universal_hitbox_shader,"box_position_min", mesh.AABB_visualizer->min_corner);
       upload_to_uniform(m_active_scene->universal_hitbox_shader,"box_position_max", mesh.AABB_visualizer->max_corner);
       upload_to_uniform(m_active_scene->universal_hitbox_shader,"radius", 1.0f);
@@ -356,7 +356,7 @@ void Shadow_Map_Pipeline::render_overlay_pass() {
       check_gl_error("after vao bind (point cloud)");
 
 
-      upload_to_uniform(m_active_scene->universal_point_shader,"camera_position", m_active_scene->m_camera->m_cameraPos);
+      upload_to_uniform(m_active_scene->universal_point_shader,"camera_position", m_active_scene->m_local_player->get_position());
       upload_to_uniform(m_active_scene->universal_point_shader,"point_position", p->get_position());
       upload_to_uniform(m_active_scene->universal_point_shader,"radius", p->phys_props.radius);
 
@@ -410,7 +410,7 @@ void Shadow_Map_Pipeline::render_overlay_pass() {
     }
     
     // set uniforms
-    upload_to_uniform(m_active_scene->universal_line_shader,"camera_position", m_active_scene->m_camera->m_cameraPos);
+    upload_to_uniform(m_active_scene->universal_line_shader,"camera_position", m_active_scene->m_local_player->get_position());
     upload_to_uniform(m_active_scene->universal_line_shader,"line_position_min", s->link_A->get_position());
     upload_to_uniform(m_active_scene->universal_line_shader,"line_position_max", s->link_B->get_position());
     upload_to_uniform(m_active_scene->universal_line_shader,"radius", 10.0f);
@@ -503,24 +503,26 @@ void Shadow_Map_Pipeline::handle_pick() {
   float mouse_ndc_y = 1.0f - (2.0f * m_active_scene->m_selectionstate->mouse_pos_y) / m_viewport_height;
 
   float aspect_ratio = (float)m_viewport_width / (float)m_viewport_height;
-  float fov_rads = glm::radians(m_active_scene->m_camera->fov);
+  float fov_rads = glm::radians(m_active_scene->m_local_player->m_player_camera->fov);
   float half_fov = tan(fov_rads / 2.0f);
 
+  //raycast
   glm::vec3 ray_camera_space(
 		      mouse_ndc_x * half_fov * aspect_ratio,
 		      mouse_ndc_y * half_fov,
 		      -1.0f
 		      );
-
   glm::mat4 inv_view_mat = glm::inverse(shared_camera_view_matrix);
   glm::vec4 dir4 = inv_view_mat * glm::vec4(ray_camera_space, 0.0f);
   glm::vec3 ray_world_space = glm::normalize(glm::vec3(dir4));
   
-  glm::vec3 current_pos_b = m_active_scene->m_camera->m_cameraPos;
-
+  glm::vec3 current_pos_b = m_active_scene->m_local_player->get_position();
   glm::vec3 look_at_c = ray_world_space + current_pos_b;
 
+  //carry floats
   float lowest_distance = 100000.0f;
+  float max_radius = 2.0f;
+  bool new_selection_found = false;
   
   for(std::shared_ptr<Point> p_a : m_active_scene->m_loaded_points) {
 
@@ -530,14 +532,17 @@ void Shadow_Map_Pipeline::handle_pick() {
     glm::vec3 P = current_pos_b + t * d;
     
     float distance = glm::distance(P,p_a->get_position());
-
-    std::cout << "checking distance... " << distance << std::endl;
+    float scaled_radius = max_radius / ((p_a->get_position() - current_pos_b).length());
     
-    if( distance < lowest_distance ){
+    if( distance < lowest_distance && distance < scaled_radius) {
       m_active_scene->m_selectionstate->selected_point = p_a;
       lowest_distance = distance;
+      new_selection_found = true;
     }
   }
+  
+  if(!new_selection_found)
+    m_active_scene->m_selectionstate->selected_point = nullptr;
 
   m_active_scene->m_selectionstate->launch_picker = false;
   

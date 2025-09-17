@@ -32,8 +32,6 @@ public:
 
   void handle_scene_physics();
 
-  AABB_Box create_collision_box_mesh(const AABB& box);
-
   AABB compute_world_space_aabb(Mesh& mesh, const glm::mat4& transform);
 
   void calculate_phys_boxes();

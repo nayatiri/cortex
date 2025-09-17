@@ -3,36 +3,29 @@
 #include "entity.hh"
 #include "force_generator.hh"
 #include "logging.hh"
+#include <glm/geometric.hpp>
 #include <memory>
 
 Physics_Manager::Physics_Manager(std::shared_ptr<Scene> set_scene) {
   m_active_scene = set_scene;
 };
 
-AABB_Box Physics_Manager::create_collision_box_mesh(const AABB &box) {
-
-  Shader touse = Shader("src/shaders/shader_src/point_vertex.glsl","src/shaders/shader_src/point_fragment.glsl");
-  
-  AABB_Box newbox = AABB_Box(touse);
-  newbox.min_corner = box.min;
-  newbox.max_corner = box.max;
-  
-  return newbox;
-  
-}
-
+// TODO make entity matrix not ignored. So far we only really import gltf meshes without
+// delta transforms, so its not rly needed but might be in the future
 AABB Physics_Manager::compute_world_space_aabb(Mesh &mesh,
                                                const glm::mat4 &transform) {
   
   AABB bbox{{10000.0f, 10000.0f, 10000.0f}, {-10000.0f, -10000.0f, -10000.0f}};
 
-  const glm::mat4 mesh_transform = transform * mesh.get_model_matrix();
+  const glm::mat4 mesh_transform = /*transform * */ mesh.get_model_matrix();
 
+  std::cout << "building bbox with n vertices: " << mesh.m_vertices_array.size()/3 << std::endl;
+  
   for (size_t i = 0; i + 2 < mesh.m_vertices_array.size(); i += 3) {
     glm::vec4 vertex{mesh.m_vertices_array[i], mesh.m_vertices_array[i + 1],
                      mesh.m_vertices_array[i + 2], 1.0f};
 
-    vertex = mesh_transform * vertex;
+    vertex = mesh_transform *  vertex;
 
     bbox.min.x = std::min(bbox.min.x, vertex.x);
     bbox.min.y = std::min(bbox.min.y, vertex.y);
@@ -51,13 +44,13 @@ void Physics_Manager::calculate_phys_boxes() {
   std::cout << "Scene contains entities: "
             << m_active_scene->m_loaded_entities.size() << std::endl;
 
-  for (Entity &entity : m_active_scene->m_loaded_entities) {
+  for (Entity& entity : m_active_scene->m_loaded_entities) {
     
     glm::mat4 entity_transform = entity.get_model_matrix();
     std::cout << "Entity contains meshes: " << entity.m_mesh.size()
               << std::endl;
 
-    for (Mesh &mesh : entity.m_mesh) {
+    for (Mesh& mesh : entity.m_mesh) {
       
       if (mesh.m_type != E_MESH) {
         log_error("Mesh does'nt seem to be a Mesh lol. skipping.");
@@ -72,7 +65,7 @@ void Physics_Manager::calculate_phys_boxes() {
 
       AABB bbox = compute_world_space_aabb(mesh, entity_transform);
       
-      mesh.AABB_visualizer = std::make_shared<AABB_Box>( create_collision_box_mesh(bbox) );
+      mesh.AABB_visualizer = std::make_shared<AABB_Box>(bbox.min,bbox.max);
 
       m_active_scene->m_scene_vbos_need_refresh = true;
       
@@ -170,23 +163,27 @@ void Physics_Manager::run_integrator() {
     glm::vec3 acceleration = p->phys_props.force * p->phys_props.inverse_mass;
     p->phys_props.velocity += acceleration * m_active_scene->m_scene_deltatime;
 
+    //prevent velocity explosion by capping it
+    if(glm::length(p->phys_props.velocity) > 200.0f)
+      p->phys_props.velocity = (glm::normalize(p->phys_props.velocity) * 100.0f);
+
     // firstly write forces to buffer
     p->buffer_integration_delta(p->phys_props.velocity * m_active_scene->m_scene_deltatime);
-    
-    // check for collission here?
     
     // reset force after applying it successfully
     p->phys_props.force = {0,0,0};
     // reset mass if point was fixed
     if(should_override_mass)
       p->phys_props.inverse_mass = old_mass;
-    
   }
   
   // after resolving all positions, write to active point position. (if point isnt fixed)
   for(std::shared_ptr<Point> p : m_active_scene->m_loaded_points) {
     if(!p->phys_props.fixed)
       p->swap_integration_buffer();
+    
+    // check for collission here?
+    
   }
   
 }

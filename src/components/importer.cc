@@ -15,7 +15,7 @@
 GLuint Importer::bind_texture_to_slot(
     std::string to_load, unsigned int slot,
     std::vector<std::tuple<std::string, unsigned int, GLuint>> &texture_map) {
-  printf("trying to load texture into slot: %d\n", slot);
+  std::cout << "trying to load texture into slot: " << slot << " with FP: " << to_load << std::endl;
   int width, height, nrChannels;
 
   for (int i = 0; i < (int)texture_map.size(); i++) {

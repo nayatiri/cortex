@@ -5,6 +5,8 @@
 #include <memory>
 
 struct Collission {
+
+  virtual void resolve_collission() = 0;
   
 };
 
@@ -18,5 +20,16 @@ struct Point_Point_Collission : public Collission {
   float restitution_coefficient = 1.0f; // how much energy is lost on contact, for now 1 aka no energy lost, 0 is perfectly sticky
 
   Point_Point_Collission();
+
+  void resolve_collission();
+};
+
+struct Point_Plane_Collission : public Collission {
+
+  float restitution_coefficient = 1.0f; // how much energy is lost on contact, for now 1 aka no energy lost, 0 is perfectly sticky
+  
+  Point_Plane_Collission();
+
+  void resolve_collission();
   
 };

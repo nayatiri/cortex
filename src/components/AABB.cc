@@ -1,11 +1,11 @@
 #include "AABB.hh"
 
-void AABB_Box::deserialize(char* file_path) {
+AABB_Box::AABB_Box(glm::vec3 min, glm::vec3 max) {
 
-  return;
+  min_corner = min;
+  max_corner = max;
+  
 }
-
-AABB_Box::AABB_Box(Shader new_hitbox_shader) : hitbox_shader(new_hitbox_shader) {}
 
 glm::mat4 AABB_Box::get_model_matrix() {
 

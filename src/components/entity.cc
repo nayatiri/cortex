@@ -75,3 +75,9 @@ glm::vec3 Entity::get_position() {
   return glm::vec3(m_pos_x,m_pos_y,m_pos_z);
   
 }
+
+Entity::Entity(Entity_types new_type) {
+
+  entity_type = new_type;
+  
+}

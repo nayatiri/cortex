@@ -3,7 +3,7 @@
 #include "entity.hh"
 #include "force_generator.hh"
 #include "light.hh"
-#include "camera.hh"
+#include "player.hh"
 #include "point.hh"
 #include "selectionstate.hh"
 #include "spring.hh"
@@ -29,6 +29,11 @@ public:
 
   Scene();
 
+  //TODO maybe doesnt belong here? should move to renderer
+  // players in the scene
+  std::vector<std::shared_ptr<Player>> m_player_list = {};
+  std::shared_ptr<Player> m_local_player = nullptr;
+
   // containers of things in the scene
   std::vector<Entity> m_loaded_entities = {};
   std::vector<Light> m_loaded_lights = {};
@@ -40,7 +45,7 @@ public:
 
   //interaction
   std::shared_ptr<Selectionstate> m_selectionstate = nullptr;
-  std::unique_ptr<Camera> m_camera = nullptr;
+  //  std::unique_ptr<Camera> m_camera = nullptr;
 
   bool m_scene_vbos_need_refresh = false;
 
