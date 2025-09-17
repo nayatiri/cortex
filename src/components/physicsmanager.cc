@@ -151,12 +151,14 @@ void Physics_Manager::run_integrator() {
   
   for(std::shared_ptr<Point> p : m_active_scene->m_loaded_points) {
 
-    //if point is fixed, lock it in place
+    bool should_override_mass = false;
+    float old_mass = 0.0f;
+    
+    //if point is fixed, lock it in place with inverted mass
     if(p->phys_props.fixed) {
-      p->phys_props.velocity = {0,0,0};
-      p->phys_props.force = {0,0,0};
-      p->phys_props.acceleration = {0,0,0};
-      continue;
+      old_mass = p->phys_props.inverse_mass;
+      p->phys_props.inverse_mass = 0.0f;
+      should_override_mass = true;
     }
     
     // sumn up all forces on point
@@ -173,8 +175,11 @@ void Physics_Manager::run_integrator() {
     
     // check for collission here?
     
-    //reset force after applying it successfully
+    // reset force after applying it successfully
     p->phys_props.force = {0,0,0};
+    // reset mass if point was fixed
+    if(should_override_mass)
+      p->phys_props.inverse_mass = old_mass;
     
   }
   
