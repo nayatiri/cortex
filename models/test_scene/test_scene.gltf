@@ -22,7 +22,12 @@
 		},
 		{
 			"mesh":1,
-			"name":"Cube"
+			"name":"Cube",
+			"translation":[
+				0,
+				0,
+				4.926149845123291
+			]
 		},
 		{
 			"mesh":2,
@@ -39,9 +44,9 @@
 				0.6809981465339661
 			],
 			"translation":[
-				0,
+				-0.223761647939682,
 				1.9912028312683105,
-				-0.3108733296394348
+				4.915987968444824
 			]
 		},
 		{
@@ -191,12 +196,12 @@
 		{
 			"mimeType":"image/png",
 			"name":"floor",
-			"uri":"tex/floor.png"
+			"uri":"floor.png"
 		},
 		{
 			"mimeType":"image/png",
 			"name":"cube_tex",
-			"uri":"tex/cube_tex.png"
+			"uri":"cube_tex.png"
 		}
 	],
 	"accessors":[
