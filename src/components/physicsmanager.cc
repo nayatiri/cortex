@@ -113,10 +113,10 @@ bool Physics_Manager::initialize_force_generators() {
   if(m_active_scene->m_loaded_points.size() > 0){
 
     //gravity
-    //m_active_scene->m_loaded_force_generators.push_back(std::make_shared<Constant_force_generator>(glm::vec3(0.0f,-9.81f,0.0f)));
+    m_active_scene->m_loaded_force_generators.push_back(std::make_shared<Constant_force_generator>(glm::vec3(0.0f,-9.81f,0.0f)));
 
     //bouyancy for water at 0 height
-    //m_active_scene->m_loaded_force_generators.push_back(std::make_shared<Bouyancy_force_generator>(glm::vec3(0.0f,15.0f,0.0f), 0.0f, 1000.0f));
+    m_active_scene->m_loaded_force_generators.push_back(std::make_shared<Bouyancy_force_generator>(glm::vec3(0.0f,15.0f,0.0f), 0.0f, 1000.0f));
 
     //drag (linear and expo components)
     m_active_scene->m_loaded_force_generators.push_back(std::make_shared<Drag_force_generator>(0.1f,0.05f));
@@ -133,6 +133,19 @@ bool Physics_Manager::initialize_force_generators() {
   
 }
 
+void debug_particle_movement(std::shared_ptr<Point> p) {
+
+    float mass = 1.0f / p->phys_props.inverse_mass;
+    glm::vec3 accel_computed = p->phys_props.force * p->phys_props.inverse_mass;
+    
+    std::cout << "Point - mass: " << mass
+	      << " | force: (" << p->phys_props.force.x << ", " << p->phys_props.force.y << ", " << p->phys_props.force.z << ")"
+	      << " | inv_m: " << p->phys_props.inverse_mass
+	      << " | accel: (" << accel_computed.x << ", " << accel_computed.y << ", " << accel_computed.z << ")"
+	      << " | velocity: (" << p->phys_props.velocity.x << ", " << p->phys_props.velocity.y << ", " << p->phys_props.velocity.z << ")"
+	      << std::endl;
+}
+
 // aka integrator
 void Physics_Manager::run_integrator() {
   
@@ -145,36 +158,22 @@ void Physics_Manager::run_integrator() {
     // sumn up all forces on point
     update_alembert_force(*p, m_active_scene->m_scene_deltatime); 
 
-    //TMP
-
-    float mass = 1.0f / p->phys_props.inverse_mass;
-    glm::vec3 accel_computed = p->phys_props.force * p->phys_props.inverse_mass;
-    
-    std::cout << "Point - mass: " << mass
-	      << " | force: (" << p->phys_props.force.x << ", " << p->phys_props.force.y << ", " << p->phys_props.force.z << ")"
-	      << " | inv_m: " << p->phys_props.inverse_mass
-	      << " | accel: (" << accel_computed.x << ", " << accel_computed.y << ", " << accel_computed.z << ")"
-	      << " | velocity: (" << p->phys_props.velocity.x << ", " << p->phys_props.velocity.y << ", " << p->phys_props.velocity.z << ")"
-	      << std::endl;
-
+    //debug_particle_movement(p);
     
     // now take the summed forces and apply em to the points in the scene
-    // TODO do we need to carry acceleration from last frame? maybe add phys_props.acceleration back += force * inv mass.
-    // for now i just recompute acceleration each frame.
     glm::vec3 acceleration = p->phys_props.force * p->phys_props.inverse_mass;
     p->phys_props.velocity += acceleration * m_active_scene->m_scene_deltatime;
 
     // firstly write forces to buffer
     p->buffer_integration_delta(p->phys_props.velocity * m_active_scene->m_scene_deltatime);
-    //p->change_position(p->phys_props.velocity * m_active_scene->m_scene_deltatime);
-
+    
     // check for collission here?
     
     //reset force after applying it successfully
     p->phys_props.force = {0,0,0};
     
   }
-
+  
   // after resolving all positions, write to active point position.
   for(std::shared_ptr<Point> p : m_active_scene->m_loaded_points) {
     p->swap_integration_buffer();

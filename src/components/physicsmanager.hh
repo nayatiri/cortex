@@ -17,6 +17,7 @@ private:
   bool initialize_force_generators();
   void handle_scene_physics_book();
   bool check_inside_AABB(Mesh &mesh, glm::vec3 check_position);
+  void debug_particle_movement(std::shared_ptr<Point> p);
   
 public:
   

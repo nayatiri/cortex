@@ -1,6 +1,7 @@
 # cortex engine
 
 ![Showcase](github_files/github_showcase.gif)
+![PhysicsShowcase](github_files/physics_showcase.gif)
 
 A powerful and lightweight 3D renderer built in C++ and OpenGL, supporting a wide range of features listed down below.
 
