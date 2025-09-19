@@ -116,8 +116,20 @@ void Renderer::add_model_to_scene(const char* filepath) {
 				 Importer::load_all_meshes_from_gltf(filepath, num_loaded_textures, m_texture_map));
   m_active_scene->add_entity_to_scene(load_entity);
 
-  init_scene_vbos();
+  m_active_scene->m_scene_vbos_need_refresh = true;
 }
+
+void Renderer::add_model_to_player_hand(const char* filepath) {
+
+  Entity load_entity;
+  load_entity.m_mesh = std::move(
+				 Importer::load_all_meshes_from_gltf(filepath, num_loaded_textures, m_texture_map));
+  load_entity.is_held_by_localplayer = true;
+  m_active_scene->add_entity_to_scene(load_entity);
+
+  m_active_scene->m_scene_vbos_need_refresh = true;
+}
+
 
 void Renderer::init_scene(const char *scene_fp) {
 
@@ -189,6 +201,9 @@ void Renderer::cleanup_mesh_vbos(Mesh& mesh) {
   delete_buffer(mesh.m_tangents_glid);
   delete_buffer(mesh.m_binormals_glid);
 }
+
+// TOOD: make one shared VBO / VAO for fullscreen triangle to render all SDFs
+// too. wowza so vram light omg im creaming
 
 void Renderer::init_scene_vbos() {
   if (m_active_scene->m_loaded_entities.empty() ||
@@ -358,6 +373,15 @@ void Renderer::init_scene_vbos() {
       //dont need a vbo with vertex data.      
       log_debug_sub("Reinitializing VBOs for point (needs refresh [this shouldnt happen more than once lmao])");
 
+      if (p->VAO_id != 0) {
+	glDeleteVertexArrays(1, &p->VAO_id);
+	p->VAO_id = 0;
+      }
+      if (p->VBO_vertices != 0) {
+	glDeleteBuffers(1, &p->VBO_vertices);
+	p->VBO_vertices = 0;
+      }
+      
       // Create VAO n load fullscreen tri xd
       glGenVertexArrays(1, &p->VAO_id);
       glBindVertexArray(p->VAO_id);
@@ -383,6 +407,15 @@ void Renderer::init_scene_vbos() {
       //dont need a vbo with vertex data.      
       log_debug_sub("Reinitializing VBOs for point (needs refresh [this shouldnt happen more than once lmao])");
 
+      if (s->VAO_id != 0) {
+	glDeleteVertexArrays(1, &s->VAO_id);
+	s->VAO_id = 0;
+      }
+      if (s->VBO_vertices != 0) {
+	glDeleteBuffers(1, &s->VBO_vertices);
+	s->VBO_vertices = 0;
+      }
+      
       // Create VAO n load fullscreen tri xd
       glGenVertexArrays(1, &s->VAO_id);
       glBindVertexArray(s->VAO_id);
@@ -411,14 +444,22 @@ void Renderer::init_scene_vbos() {
 
       AABB_Box* toadjust = mesh.AABB_visualizer.get();
       
-      auto delete_buffer = [](GLuint& buffer_id) {
-	if (buffer_id != 0) {
-	  glDeleteBuffers(1, &buffer_id);
-	  buffer_id = 0;
+      auto delete_vao = [](GLuint& vao_id) {
+	if (vao_id != 0) {
+	  glDeleteVertexArrays(1, &vao_id);
+	  vao_id = 0;
 	}
-      };// end
+      };
       
-      delete_buffer(toadjust->m_mesh_vao);
+      auto delete_vbo = [](GLuint& vbo_id) {
+	if (vbo_id != 0) {
+	  glDeleteBuffers(1, &vbo_id);
+	  vbo_id = 0;
+	}
+      };
+      
+      delete_vao(toadjust->m_mesh_vao);
+      delete_vbo(toadjust->m_vertices_glid);
       
       // Create VAO n load 0es xd
       glGenVertexArrays(1, &toadjust->m_mesh_vao);

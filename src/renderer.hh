@@ -74,6 +74,7 @@ public:
   /////////////////////
   void init_scene(const char* scene_fp);
   void add_model_to_scene( const char* filepath);
+  void add_model_to_player_hand( const char* filepath);
   void add_point_to_scene(float x,float y,float z);
   void add_player_to_scene(bool make_local_player);
   void create_spring_constraint(std::shared_ptr<Point> from, std::shared_ptr<Point> to, float strength, float rest_length);

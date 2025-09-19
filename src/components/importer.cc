@@ -3,6 +3,7 @@
 #include <atomic>
 #include <tuple>
 
+#include "logging.hh"
 #include "mesh.hh"
 
 #define TINYGLTF_IMPLEMENTATION
@@ -11,6 +12,39 @@
 #define TINYGLTF_NOEXCEPTION
 #define JSON_NOEXCEPTION
 #include "../libs/tiny_gltf.h"
+
+void dbgModel(tinygltf::Model &model) {
+  for (auto &mesh : model.meshes) {
+    std::cout << "mesh : " << mesh.name << std::endl;
+    for (auto &primitive : mesh.primitives) {
+      const tinygltf::Accessor &indexAccessor =
+          model.accessors[primitive.indices];
+
+      std::cout << "indexaccessor: count " << indexAccessor.count << ", type "
+                << indexAccessor.componentType << std::endl;
+
+      tinygltf::Material &mat = model.materials[primitive.material];
+      for (auto &mats : mat.values) {
+        std::cout << "mat : " << mats.first.c_str() << std::endl;
+      }
+
+      for (auto &image : model.images) {
+        std::cout << "image name : " << image.uri << std::endl;
+        std::cout << "  size : " << image.image.size() << std::endl;
+        std::cout << "  w/h : " << image.width << "/" << image.height
+                  << std::endl;
+      }
+
+      std::cout << "indices : " << primitive.indices << std::endl;
+      std::cout << "mode     : "
+                << "(" << primitive.mode << ")" << std::endl;
+
+      for (auto &attrib : primitive.attributes) {
+        std::cout << "attribute : " << attrib.first.c_str() << std::endl;
+      }
+    }
+  }
+}
 
 GLuint Importer::bind_texture_to_slot(
     std::string to_load, unsigned int slot,
@@ -80,8 +114,8 @@ std::vector<Mesh> Importer::load_all_meshes_from_gltf(
   std::string err, warn;
 
   log_success("importing a gltf file... loading ascii file...");
+  
   bool ret = loader.LoadASCIIFromFile(&model, &err, &warn, file_path);
-
   if (!ret)
     log_error("couldnt load ASCII gltf file!!!");
   if (!warn.empty())
@@ -89,7 +123,9 @@ std::vector<Mesh> Importer::load_all_meshes_from_gltf(
   if (!err.empty())
     printf("Err: %s\n", err.c_str());
 
-  //  check_pbr_textures_present(model);
+  //  dbgModel(model);
+  
+  // check_pbr_textures_present(model);
 
   std::vector<Mesh> meshes;
   auto get_index = [&](const tinygltf::Primitive &primitive,
@@ -206,10 +242,26 @@ std::vector<Mesh> Importer::load_all_meshes_from_gltf(
             std::cout << "Texture path: " << image.uri << std::endl;
             texture_path_of_model = image.uri;
             shader_type_carry = 2; // flat shading is possible
+	    log_success("albedo texture present!");
+	    
           } else {
             // use fallback if no color tex is in mesh.
             log_error(
                 "no materials in mesh! using phong shaders as a fallback.");
+
+	    //TMP
+	    int material_index = primitive.material;
+	    if(material_index < 0)
+	      log_error("FUCK");
+
+
+	    const std::vector<double>& baseColor =   
+	      model.materials[material_index].pbrMetallicRoughness.baseColorFactor;  
+
+	    std::cout << "basecolor:" << baseColor[0] << ","<< baseColor[1] << ","<< baseColor[2] << "," << baseColor[3] << std::endl;
+	    
+	    //ENDTMP
+	    
             shader_type_carry = 1;
           }
 
@@ -219,8 +271,6 @@ std::vector<Mesh> Importer::load_all_meshes_from_gltf(
           // also need to use fallback if there is 0 materials in mesh
           shader_type_carry = 1;
         }
-
-        // END TMP
 
         std::vector<float> final_vertices, final_normals, final_tangents,
             final_bitangents, final_texcoords;

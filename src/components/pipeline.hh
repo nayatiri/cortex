@@ -37,8 +37,6 @@ private:
   void render_overlay_pass();
 
   void render_color_point_cloud();
-
-  
   
   void init_depth_pass();
   void init_color_pass();

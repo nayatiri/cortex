@@ -116,8 +116,22 @@ void Shadow_Map_Pipeline::render_depth_pass() {
       }
       check_gl_error("after settin VAO (depth)");
 
-      upload_to_uniform(*depth_shader, "model",
-                        entity.get_model_matrix() * mesh.get_model_matrix());
+
+      //TMP
+      if(!entity.is_held_by_localplayer){
+	upload_to_uniform(*depth_shader, "model",
+			  entity.get_model_matrix() * mesh.get_model_matrix());
+      } else {
+	glm::mat3 rotation = glm::mat3(shared_camera_view_matrix);
+	glm::mat4 inv_rotation = glm::mat4(glm::transpose(glm::mat3(rotation)));
+	inv_rotation[3] = glm::vec4(m_active_scene->m_local_player->get_position(),1.0f);
+        
+	//held by player
+	upload_to_uniform(*depth_shader, "model",
+			  inv_rotation * entity.get_model_matrix() * mesh.get_model_matrix());
+      }
+
+      //ENDTMP
       upload_to_uniform(*depth_shader, "light_space_matrix",
                         shared_light_space_matrix);
       check_gl_error("after setting uniforms (depth)");
@@ -163,6 +177,10 @@ void Shadow_Map_Pipeline::render_color_pass() {
   for (auto &entity : m_active_scene->m_loaded_entities) {
     for (auto &mesh : entity.m_mesh) {
 
+      // use shader of mesh
+      mesh.m_material.m_shader.use();
+      check_gl_error("after setting shader active");
+      
       // change hitbox or flat style
       if (mesh.m_render_mode == E_WIREFRAME)
         glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
@@ -175,10 +193,6 @@ void Shadow_Map_Pipeline::render_color_pass() {
         log_error("no valid VAO id! cant render mesh.");
       }
       check_gl_error("after binding vao");
-
-      // use shader of mesh
-      mesh.m_material.m_shader.use();
-      check_gl_error("after setting shader active");
 
       if (mesh.m_material.m_material_type == E_PBR_TEX) {
 	
@@ -214,13 +228,27 @@ void Shadow_Map_Pipeline::render_color_pass() {
 			  m_active_scene->m_local_player->m_player_camera->m_cameraPos);	
       }
 
-      upload_to_uniform(mesh.m_material.m_shader, "model",
-                        entity.get_model_matrix() * mesh.get_model_matrix());
-      upload_to_uniform(mesh.m_material.m_shader, "view",
-                        shared_camera_view_matrix);
-      upload_to_uniform(mesh.m_material.m_shader, "projection",
-                        shared_camera_projection_matrix);
-
+      if(!entity.is_held_by_localplayer){
+	upload_to_uniform(mesh.m_material.m_shader, "model",
+			  entity.get_model_matrix() * mesh.get_model_matrix());
+	upload_to_uniform(mesh.m_material.m_shader, "view",
+			  shared_camera_view_matrix);
+	upload_to_uniform(mesh.m_material.m_shader, "projection",
+			  shared_camera_projection_matrix);
+      } else {
+	
+	glm::mat4 trans_mat = glm::translate(glm::mat4(1.0f), m_active_scene->m_local_player->get_position());
+	
+	glm::mat4 model = trans_mat * entity.get_model_matrix() * mesh.get_model_matrix();
+	
+	upload_to_uniform(mesh.m_material.m_shader, "model", model);
+	
+	upload_to_uniform(mesh.m_material.m_shader, "view",
+			  shared_camera_view_matrix);
+	upload_to_uniform(mesh.m_material.m_shader, "projection",
+			  shared_camera_projection_matrix);      
+      }
+      
       check_gl_error("after setting uniforms (shadow map color pass)");
 
       // we renderin
@@ -545,7 +573,6 @@ void Shadow_Map_Pipeline::handle_pick() {
     m_active_scene->m_selectionstate->selected_point = nullptr;
 
   m_active_scene->m_selectionstate->launch_picker = false;
-  
 }
 
 void Shadow_Map_Pipeline::update_scene(std::shared_ptr<Scene> new_scene) { m_active_scene = new_scene; }

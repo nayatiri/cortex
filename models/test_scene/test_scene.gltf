@@ -11,7 +11,8 @@
 				0,
 				1,
 				2,
-				3
+				3,
+				4
 			]
 		}
 	],
@@ -68,6 +69,26 @@
 				-0.03660527616739273,
 				-5.8323283195495605
 			]
+		},
+		{
+			"mesh":4,
+			"name":"Cube.003",
+			"rotation":[
+				0,
+				-0.6391553282737732,
+				0,
+				0.7690776586532593
+			],
+			"scale":[
+				0.639916181564331,
+				0.639916181564331,
+				0.639916181564331
+			],
+			"translation":[
+				4.52816104888916,
+				-0.03660527616739273,
+				-3.7519612312316895
+			]
 		}
 	],
 	"materials":[
@@ -111,6 +132,20 @@
 				"baseColorTexture":{
 					"index":3
 				},
+				"metallicFactor":0,
+				"roughnessFactor":0.5
+			}
+		},
+		{
+			"doubleSided":true,
+			"name":"Material",
+			"pbrMetallicRoughness":{
+				"baseColorFactor":[
+					0.496221661567688,
+					0.01008419506251812,
+					0,
+					1
+				],
 				"metallicFactor":0,
 				"roughnessFactor":0.5
 			}
@@ -170,6 +205,20 @@
 					},
 					"indices":7,
 					"material":3
+				}
+			]
+		},
+		{
+			"name":"Cube.001",
+			"primitives":[
+				{
+					"attributes":{
+						"POSITION":14,
+						"NORMAL":15,
+						"TEXCOORD_0":16
+					},
+					"indices":7,
+					"material":4
 				}
 			]
 		}
@@ -328,6 +377,34 @@
 			"componentType":5126,
 			"count":24,
 			"type":"VEC2"
+		},
+		{
+			"bufferView":14,
+			"componentType":5126,
+			"count":24,
+			"max":[
+				1.4044444561004639,
+				2.106459379196167,
+				1.4044444561004639
+			],
+			"min":[
+				-1.4044444561004639,
+				0.10645937919616699,
+				-1.4044444561004639
+			],
+			"type":"VEC3"
+		},
+		{
+			"bufferView":15,
+			"componentType":5126,
+			"count":24,
+			"type":"VEC3"
+		},
+		{
+			"bufferView":16,
+			"componentType":5126,
+			"count":24,
+			"type":"VEC2"
 		}
 	],
 	"bufferViews":[
@@ -414,6 +491,24 @@
 			"byteLength":192,
 			"byteOffset":2324,
 			"target":34962
+		},
+		{
+			"buffer":0,
+			"byteLength":288,
+			"byteOffset":2516,
+			"target":34962
+		},
+		{
+			"buffer":0,
+			"byteLength":288,
+			"byteOffset":2804,
+			"target":34962
+		},
+		{
+			"buffer":0,
+			"byteLength":192,
+			"byteOffset":3092,
+			"target":34962
 		}
 	],
 	"samplers":[
@@ -424,7 +519,7 @@
 	],
 	"buffers":[
 		{
-			"byteLength":2516,
+			"byteLength":3284,
 			"uri":"test_scene.bin"
 		}
 	]

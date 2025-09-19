@@ -28,6 +28,8 @@ public:
   
   bool is_initialized();
 
+  bool is_held_by_localplayer = false;
+  
   Entity_types entity_type = Entity_3D;
   
   bool model_matrix_deprecated = true;
