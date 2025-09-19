@@ -3,7 +3,7 @@
 class Player {
 public:
 
-  std::shared_ptr<Camera> m_player_camera;
+  std::shared_ptr<Camera> m_player_camera = nullptr;
 
   Player();
   

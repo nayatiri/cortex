@@ -18,7 +18,7 @@ enum Entity_types {
 
 class Entity {
 private:
-  glm::mat4 m_model_matrix_buffer;
+  glm::mat4 m_model_matrix_buffer = glm::mat4(1.0f);
   
 public:
 
@@ -51,6 +51,6 @@ public:
   
   std::vector<Mesh> m_mesh = {};
 
-  std::vector<animation>* m_animation_table;
+  std::vector<animation>* m_animation_table = nullptr;
   
 };

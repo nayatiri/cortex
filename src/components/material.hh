@@ -6,6 +6,7 @@
 // stdlib
 #include <cmath>
 #include <cstring>
+#include <glm/ext/vector_float4.hpp>
 #include <iostream>
 #include <string>
 #include <thread>
@@ -29,7 +30,7 @@ class Material {
 public:
   //horrible impl, but like impossible to do with polymorphism if i want a material to be a member var in the mesh
 
-  e_mat_type m_material_type;
+  e_mat_type m_material_type = E_PHONG;
 
   Material(e_mat_type material_type, Shader use_shader);
 
@@ -37,31 +38,31 @@ public:
   int bound_texture_id = -1;
   
   //pbr with textures
-  const char* m_material_pbr_tex_albedo_path;
+  const char* m_material_pbr_tex_albedo_path = "";
   GLuint m_material_pbr_tex_albedo_glid = 0;
-  const char* m_material_pbr_tex_metallic_path;
+  const char* m_material_pbr_tex_metallic_path = "";
   GLuint m_material_pbr_tex_metallic_glid = 0;
-  const char* m_material_pbr_tex_roughness_path;
+  const char* m_material_pbr_tex_roughness_path = "";
   GLuint m_material_pbr_tex_roughness_glid = 0;
-  const char* m_material_pbr_tex_normal_path;
+  const char* m_material_pbr_tex_normal_path = "";
   GLuint m_material_pbr_tex_normal_glid = 0;
-  const char* m_material_pbr_tex_displacement_path;
+  const char* m_material_pbr_tex_displacement_path = "";
   GLuint m_material_pbr_tex_displacement_glid = 0;
   
   void material_pbr_tex_initialize();
 
   //phong with textures
-  const char* m_material_phong_tex_path;
-  float m_material_phong_tex_diffuse_pow;
-  float m_material_phong_tex_specular_pow;
+  const char* m_material_phong_tex_path = "";
+  float m_material_phong_tex_diffuse_pow = 1.0f;
+  float m_material_phong_tex_specular_pow = 1.0f;
 
   //phong without textures
-  unsigned int m_material_phong_base_color;
-  float m_material_phong_diffuse_pow;
-  float m_material_phong_specular_pow;
+  glm::vec4 m_material_phong_base_color = glm::vec4(1.0f,0.0f,0.0f,1.0f);
+  float m_material_phong_diffuse_pow = 1.0f;
+  float m_material_phong_specular_pow = 0.0f;
 
   //flat shading
 
-  unsigned int m_material_flat_base_color;
+  unsigned int m_material_flat_base_color = 0xFFFFFF;
   
 };

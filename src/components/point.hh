@@ -38,7 +38,7 @@ class Point {
 
   bool model_matrix_deprecated = true;
 
-  glm::mat4 m_model_matrix_buffer;
+  glm::mat4 m_model_matrix_buffer = glm::mat4(1.0f);
 
   glm::vec3 integration_position_buffer = {0,0,0};
   
@@ -62,8 +62,8 @@ public:
   
   Physics_properties phys_props;
 
-  unsigned int VAO_id;
+  unsigned int VAO_id = 0;
 
-  unsigned int VBO_vertices;
+  unsigned int VBO_vertices = 0;
 
 };

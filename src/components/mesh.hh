@@ -16,7 +16,7 @@
 
 class Mesh {
 private:
-  glm::mat4 m_model_matrix_buffer;
+  glm::mat4 m_model_matrix_buffer = glm::mat4(1.0f);
 
 public:
   std::shared_ptr<AABB_Box> AABB_visualizer = nullptr;
@@ -39,22 +39,20 @@ public:
 
   bool m_mesh_vbo_needs_refresh = true;
   
-  void deserialize(char* file_path);
-  
   std::vector<float> m_vertices_array;
   std::vector<float> m_tex_coords_array;
   std::vector<float> m_normals_array;
   std::vector<float> m_tangents_array;
   std::vector<float> m_binormals_array;
 
-  GLuint m_mesh_vao;
+  GLuint m_mesh_vao = 0;
   Material m_material;
 
-  GLuint m_vertices_glid;
-  GLuint m_tex_coords_glid;
-  GLuint m_normals_glid;
-  GLuint m_tangents_glid;
-  GLuint m_binormals_glid;
+  GLuint m_vertices_glid = 0;
+  GLuint m_tex_coords_glid = 0;
+  GLuint m_normals_glid = 0;
+  GLuint m_tangents_glid = 0;
+  GLuint m_binormals_glid = 0;
 
   e_mesh_type m_type = E_MESH;
   e_mesh_render_mode m_render_mode = E_FILLED;

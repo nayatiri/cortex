@@ -12,10 +12,10 @@
 class Overlay {
 public:
 
-  std::shared_ptr<std::vector<textbox>> text_elements;
-  std::shared_ptr<std::vector<blankbox>> structure_elements;
+  std::shared_ptr<std::vector<textbox>> text_elements = nullptr;
+  std::shared_ptr<std::vector<blankbox>> structure_elements = nullptr;
 
-  std::unique_ptr<GLuint> text_vbo;
-  std::unique_ptr<Shader> text_shader;
+  std::unique_ptr<GLuint> text_vbo = nullptr;
+  std::unique_ptr<Shader> text_shader = nullptr;
 
 };

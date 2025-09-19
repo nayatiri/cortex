@@ -89,8 +89,6 @@ void Shadow_Map_Pipeline::render_depth_pass() {
 
   shared_light_space_matrix = light_projection_mat * light_look_at;
 
-  depth_shader->use();
-
   // set viewport to light settings (not fb output for user)
   glViewport(0, 0, shadow_map_width, shadow_map_height);
   glBindFramebuffer(GL_FRAMEBUFFER, window_depth_map_fbo);
@@ -225,7 +223,9 @@ void Shadow_Map_Pipeline::render_color_pass() {
 	upload_to_uniform(mesh.m_material.m_shader, "lightPosition",
 			  m_active_scene->m_loaded_lights[0].get_light_position());
 	upload_to_uniform(mesh.m_material.m_shader, "viewPos",
-			  m_active_scene->m_local_player->m_player_camera->m_cameraPos);	
+			  m_active_scene->m_local_player->m_player_camera->m_cameraPos);
+	upload_to_uniform(mesh.m_material.m_shader, "objectColor",
+			  glm::vec3(mesh.m_material.m_material_phong_base_color));
       }
 
       if(!entity.is_held_by_localplayer){
@@ -517,7 +517,7 @@ void Shadow_Map_Pipeline::init_depth_pass() {
   glReadBuffer(GL_NONE);
   glBindFramebuffer(GL_FRAMEBUFFER, 0);
   
-  depth_shader = new Shader("src/shaders/shader_src/depth.vert",
+  depth_shader = std::make_shared<Shader>("src/shaders/shader_src/depth.vert",
                             "src/shaders/shader_src/depth.frag");
 }
 

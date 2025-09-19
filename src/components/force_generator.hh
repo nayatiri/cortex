@@ -6,7 +6,7 @@
 
 class Force_generator {
 public:
-  glm::vec3 force_to_generate;
+  glm::vec3 force_to_generate = glm::vec3(0,0,0);
   virtual glm::vec3 get_force(Point& p, float delta_time) = 0;
   
 };
@@ -41,8 +41,8 @@ class Spring_force_generator : public Force_generator {
 private:
   std::shared_ptr<Point> from = nullptr;
   std::shared_ptr<Point> to = nullptr;
-  float strength;
-  float rest_length;
+  float strength = 50.0f;
+  float rest_length = 5.0f;
 public:
   Spring_force_generator(std::shared_ptr<Point> to, std::shared_ptr<Point> from, float strength, float rest_length);
   glm::vec3 get_force(Point& p, float delta_time);
@@ -51,8 +51,8 @@ public:
 // bouyancy simulation for liquid, gravity affected mediae
 class Bouyancy_force_generator : public Force_generator {
 private:
-  float medium_height;
-  float medium_density;
+  float medium_height = 0.0f;
+  float medium_density = 1000.0f;
 public:
   Bouyancy_force_generator(glm::vec3 force, float height, float density);
   glm::vec3 get_force(Point& p, float delta_time);
@@ -63,8 +63,8 @@ class Stiff_Spring_force_generator : public Force_generator {
 private:
   std::shared_ptr<Point> from = nullptr;
   std::shared_ptr<Point> to = nullptr;
-  float strength;
-  float rest_length;
+  float strength = 200.0f;
+  float rest_length = 5.0f;
 public:
   Stiff_Spring_force_generator(std::shared_ptr<Point> to, std::shared_ptr<Point> from, float strength, float rest_length);
   glm::vec3 get_force(Point& p, float delta_time);

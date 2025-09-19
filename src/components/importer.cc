@@ -1,6 +1,7 @@
 #include "importer.hh"
 
 #include <atomic>
+#include <glm/ext/vector_float4.hpp>
 #include <tuple>
 
 #include "logging.hh"
@@ -46,10 +47,50 @@ void dbgModel(tinygltf::Model &model) {
   }
 }
 
+// For TextureInfo (baseColor, metallicRoughness, emissive)
+std::optional<std::string> get_texture_path(const tinygltf::Model& model, const tinygltf::TextureInfo& texInfo) {
+    if (texInfo.index < 0) return std::nullopt;
+
+    const auto& texture = model.textures[texInfo.index];
+    if (texture.source < 0 || texture.source >= static_cast<int>(model.images.size())) {
+        return std::nullopt;
+    }
+
+    const auto& image = model.images[texture.source];
+    return image.uri.empty() ? std::nullopt : std::make_optional(image.uri);
+}
+
+// For NormalTextureInfo
+std::optional<std::string> get_texture_path(const tinygltf::Model& model, const tinygltf::NormalTextureInfo& texInfo) {
+    if (texInfo.index < 0) return std::nullopt;
+
+    const auto& texture = model.textures[texInfo.index];
+    if (texture.source < 0 || texture.source >= static_cast<int>(model.images.size())) {
+        return std::nullopt;
+    }
+
+    const auto& image = model.images[texture.source];
+    return image.uri.empty() ? std::nullopt : std::make_optional(image.uri);
+}
+
+// For OcclusionTextureInfo
+std::optional<std::string> get_texture_path(const tinygltf::Model& model, const tinygltf::OcclusionTextureInfo& texInfo) {
+    if (texInfo.index < 0) return std::nullopt;
+
+    const auto& texture = model.textures[texInfo.index];
+    if (texture.source < 0 || texture.source >= static_cast<int>(model.images.size())) {
+        return std::nullopt;
+    }
+
+    const auto& image = model.images[texture.source];
+    return image.uri.empty() ? std::nullopt : std::make_optional(image.uri);
+}
+
 GLuint Importer::bind_texture_to_slot(
     std::string to_load, unsigned int slot,
     std::vector<std::tuple<std::string, unsigned int, GLuint>> &texture_map) {
-  std::cout << "trying to load texture into slot: " << slot << " with FP: " << to_load << std::endl;
+  std::cout << "trying to load texture into slot: " << slot
+            << " with FP: " << to_load << std::endl;
   int width, height, nrChannels;
 
   for (int i = 0; i < (int)texture_map.size(); i++) {
@@ -114,7 +155,7 @@ std::vector<Mesh> Importer::load_all_meshes_from_gltf(
   std::string err, warn;
 
   log_success("importing a gltf file... loading ascii file...");
-  
+
   bool ret = loader.LoadASCIIFromFile(&model, &err, &warn, file_path);
   if (!ret)
     log_error("couldnt load ASCII gltf file!!!");
@@ -124,10 +165,12 @@ std::vector<Mesh> Importer::load_all_meshes_from_gltf(
     printf("Err: %s\n", err.c_str());
 
   //  dbgModel(model);
-  
+
   // check_pbr_textures_present(model);
 
-  std::vector<Mesh> meshes;
+  std::vector<Mesh> new_meshes = {};
+  new_meshes.reserve(100);
+  
   auto get_index = [&](const tinygltf::Primitive &primitive,
                        int idx) -> uint32_t {
     const auto &indexAccessor = model.accessors[primitive.indices];
@@ -150,8 +193,14 @@ std::vector<Mesh> Importer::load_all_meshes_from_gltf(
 
   log_debug("starting to load gltf node tree...");
 
+  static int depth = 0;
+  
   std::function<void(int, glm::mat4)> process_node;
   process_node = [&](int node_idx, glm::mat4 parent_transform) {
+    depth++;
+    std::cout << depth << " rec depth" << std::endl;
+
+    
     const auto &node = model.nodes[node_idx];
     glm::mat4 node_transform = glm::mat4(1.0f);
 
@@ -175,12 +224,18 @@ std::vector<Mesh> Importer::load_all_meshes_from_gltf(
     glm::mat4 global_transform = parent_transform * node_transform;
 
     if (node.mesh >= 0) {
+
+      std::cout << "Vector size before node mesh: " << new_meshes.size() << ", capacity: " << new_meshes.capacity() << std::endl;
       const auto &found_mesh = model.meshes[node.mesh];
 
       for (const auto &primitive : found_mesh.primitives) {
-
+	
+	
+	//buffers (for material properties)
+	glm::vec4 base_color_buffer = glm::vec4(0.0f,0.0f,0.0f,0.0f);
+	
         log_debug("importing primitive from node tree...");
-
+	
         const auto &posAccessor =
             model.accessors[primitive.attributes.at("POSITION")];
         const auto &posBufferView = model.bufferViews[posAccessor.bufferView];
@@ -218,56 +273,95 @@ std::vector<Mesh> Importer::load_all_meshes_from_gltf(
                    .data[view.byteOffset + accessor.byteOffset]);
         }
 
-        log_debug("checking material for textures etc");
+        log_debug("checking material type to resolve render mode...");
 
-        uint8_t shader_type_carry = 0;
         // 0 invalid
         // 1 phong (fallback - always possible if we have a mesh)
         // 2 texture shading (possible if albedo exists)
-        // 3 pbr (albedo, normal, roughness, [depth])
-
+        // 4 pbr (albedo, normal, roughness, [depth])
+        unsigned int shader_type_carry = 0;
         std::string texture_path_of_model;
 
+
+	std::cout << "Vector size b4 mat: " << new_meshes.size() << ", capacity: " << new_meshes.capacity() << std::endl;
+	
         if (primitive.material >= 0) {
 
           const tinygltf::Material &material =
               model.materials[primitive.material];
+          const auto &pbr = material.pbrMetallicRoughness;
 
-          // check for albedo texure present
-          auto it = material.values.find("baseColorTexture");
-          if (it != material.values.end() && it->second.TextureIndex() >= 0) {
-            const tinygltf::Texture &texture =
-                model.textures[it->second.TextureIndex()];
-            const tinygltf::Image &image = model.images[texture.source];
-            std::cout << "Texture path: " << image.uri << std::endl;
-            texture_path_of_model = image.uri;
+          // TMP
+
+          std::cout << "\n--- Material for Primitive ---\n";
+
+	  // albedo
+          if (auto path = get_texture_path(model, pbr.baseColorTexture)) {
+            std::cout << "Base Color Texture: " << *path << "\n";
+            texture_path_of_model = *path;
             shader_type_carry = 2; // flat shading is possible
-	    log_success("albedo texture present!");
-	    
+            log_success("albedo texture present!");
           } else {
-            // use fallback if no color tex is in mesh.
-            log_error(
-                "no materials in mesh! using phong shaders as a fallback.");
-
-	    //TMP
-	    int material_index = primitive.material;
-	    if(material_index < 0)
-	      log_error("FUCK");
-
-
-	    const std::vector<double>& baseColor =   
-	      model.materials[material_index].pbrMetallicRoughness.baseColorFactor;  
-
-	    std::cout << "basecolor:" << baseColor[0] << ","<< baseColor[1] << ","<< baseColor[2] << "," << baseColor[3] << std::endl;
-	    
-	    //ENDTMP
-	    
-            shader_type_carry = 1;
+            std::cout << "No Base Color Texture\n";
           }
 
-          // TODO check for other textures for pbr
+	  //metallic / roughness
+          if (auto path =
+                  get_texture_path(model, pbr.metallicRoughnessTexture)) {
+            std::cout << "Metallic-Roughness Texture: " << *path << "\n";
+	    shader_type_carry ++; // raise by 1, see if we have all tex later
+          } else {
+            std::cout << "No Metallic-Roughness Texture\n";
+          }
 
-        } else {
+	  // normal
+          if (material.normalTexture.index >= 0) {
+            if (auto path = get_texture_path(model, material.normalTexture)) {
+              std::cout << "Normal Texture: " << *path << "\n";
+	      shader_type_carry ++; // raise by 1, see if we have all tex later
+            }
+          } else {
+            std::cout << "No Normal Texture\n";
+	  }
+
+          if (material.emissiveTexture.index >= 0) {
+            if (auto path = get_texture_path(model, material.emissiveTexture)) {
+              std::cout << "Emissive Texture: " << *path << "\n";
+	      // dont treat yet idk how that shi work in da shader cuh
+            }
+          } else {
+            std::cout << "No Emissive Texture\n";
+          }
+
+          /*
+          if (material.occlusionTexture.index >= 0) {
+            if (auto path = get_texture_path(model, material.occlusionTexture))
+          { std::cout << "Occlusion Texture: " << *path << "\n";
+            }
+          } else {
+            std::cout << "No Occlusion Texture\n";
+          }
+            */
+
+	  //get base color.
+	  const std::vector<double> &baseColor =
+	    model.materials[primitive.material]
+	    .pbrMetallicRoughness.baseColorFactor;
+	  
+	  std::cout << "basecolor:" << baseColor[0] << "," << baseColor[1]
+		    << "," << baseColor[2] << "," << baseColor[3]
+		    << std::endl;
+
+	  std::cout << baseColor.size() << " basecolor SIZE ---------lwdjhalkwjdalwkdj" << std::endl;
+
+	  base_color_buffer[0] = baseColor[0];
+	  base_color_buffer[1] = baseColor[1];
+	  base_color_buffer[2] = baseColor[2];
+	  base_color_buffer[3] = baseColor[3];
+
+	  std::cout << "Vector size after basecol: " << new_meshes.size() << ", capacity: " << new_meshes.capacity() << std::endl;
+
+	} else {
           // also need to use fallback if there is 0 materials in mesh
           shader_type_carry = 1;
         }
@@ -275,6 +369,8 @@ std::vector<Mesh> Importer::load_all_meshes_from_gltf(
         std::vector<float> final_vertices, final_normals, final_tangents,
             final_bitangents, final_texcoords;
 
+	std::cout << "Vector size after checking textures: " << new_meshes.size() << ", capacity: " << new_meshes.capacity() << std::endl;
+	
         size_t vertex_count = posAccessor.count;
         if (primitive.indices >= 0) {
           const auto &indexAccessor = model.accessors[primitive.indices];
@@ -323,9 +419,14 @@ std::vector<Mesh> Importer::load_all_meshes_from_gltf(
           }
         }
 
+	std::cout << "Vector size before shader and mat init: " << new_meshes.size() << ", capacity: " << new_meshes.capacity() << std::endl;
+	
         log_success("done importing models, loading shaders...");
 
-        if (shader_type_carry == 2) {
+	std::cout << shader_type_carry << "shader type carry before init" <<std::endl;
+	
+	// TODO turn this into a switch later with all types
+        if (shader_type_carry > 1) {
           // use texture shading
           Shader shader_to_use("src/shaders/shader_src/flat.vert",
                                "src/shaders/shader_src/flat.frag");
@@ -375,25 +476,27 @@ std::vector<Mesh> Importer::load_all_meshes_from_gltf(
           primitive_mesh.m_sca_x = scale_x;
           primitive_mesh.m_sca_y = scale_y;
           primitive_mesh.m_sca_z = scale_z;
-           // endTMP
+          // endTMP
 
-           // bind tex to num_loaded_tex and increment.
-           std::filesystem::path cwd = std::filesystem::current_path();
+          // bind tex to num_loaded_tex and increment.
+          std::filesystem::path cwd = std::filesystem::current_path();
           std::cout << "Current working directory: " << cwd.string()
                     << std::endl;
 
-          // this is garbage hacky shit again TODO: clean shit up lol (ill never clean this up xd)
+          // this is garbage hacky shit again TODO: clean shit up lol (ill never
+          // clean this up xd)
           std::filesystem::path model_path = file_path;
           std::filesystem::path full_tex_path =
               cwd / model_path.parent_path() / texture_path_of_model;
           std::string final_path = full_tex_path.lexically_normal().string();
 
-          primitive_mesh.m_material.bound_texture_id = bind_texture_to_slot(
-              final_path, num_loaded_textures.load(), texture_map);
+	  primitive_mesh.m_material.bound_texture_id = bind_texture_to_slot(
+									    final_path, num_loaded_textures.load(), texture_map);
           primitive_mesh.m_material.m_material_type = E_PBR_TEX;
           num_loaded_textures.fetch_add(1);
 
-          meshes.push_back(std::move(primitive_mesh));
+	  std::cout << "Vector size: " << new_meshes.size() << ", capacity: " << new_meshes.capacity() << std::endl;
+          new_meshes.push_back(primitive_mesh);
 
           log_success("texture shaded mesh successfully imported.");
 
@@ -402,6 +505,7 @@ std::vector<Mesh> Importer::load_all_meshes_from_gltf(
           Shader shader_to_use("src/shaders/shader_src/phong.vert",
                                "src/shaders/shader_src/phong.frag");
           Material mat_to_use(E_FACE, shader_to_use);
+	  mat_to_use.m_material_phong_base_color = base_color_buffer;
 
           Mesh primitive_mesh(mat_to_use);
           primitive_mesh.m_render_mode = E_FILLED;
@@ -412,7 +516,7 @@ std::vector<Mesh> Importer::load_all_meshes_from_gltf(
           primitive_mesh.m_binormals_array = std::move(final_bitangents);
           primitive_mesh.m_tex_coords_array = std::move(final_texcoords);
 
-	  // TMP
+          // TMP
           // primitive_mesh.exp_overwrite_model_matrix(global_transform);
           glm::vec3 translation(global_transform[3][0], global_transform[3][1],
                                 global_transform[3][2]);
@@ -447,11 +551,12 @@ std::vector<Mesh> Importer::load_all_meshes_from_gltf(
           primitive_mesh.m_sca_x = scale_x;
           primitive_mesh.m_sca_y = scale_y;
           primitive_mesh.m_sca_z = scale_z;
-           // endTMP
+          // endTMP
 
           primitive_mesh.m_material.m_material_type = E_PHONG;
 
-          meshes.push_back(std::move(primitive_mesh));
+	  std::cout << "Vector size: " << new_meshes.size() << ", capacity: " << new_meshes.capacity() << std::endl;
+          new_meshes.push_back(primitive_mesh);
 
           log_success("fallback phong shaded mesh successfully imported.");
         }
@@ -473,7 +578,7 @@ std::vector<Mesh> Importer::load_all_meshes_from_gltf(
 
   log_success("GLTF scene fully loaded with multiple meshes!");
 
-  return meshes;
+  return new_meshes;
 }
 
 std::vector<float>
@@ -618,3 +723,38 @@ Importer::calculate_vert_tan_bin(std::vector<float> mesh_vertices,
 
   return return_glob;
 }
+
+std::vector<Mesh> Importer::load_all_meshes_from_gltf_temp(
+							   const std::string &file_path,
+							   std::atomic<unsigned int> &num_loaded_textures,
+							   std::vector<std::tuple<std::string, unsigned int, GLuint>> &texture_map) {
+
+  //Load the model
+  tinygltf::Model model;
+  tinygltf::TinyGLTF loader;
+  std::string err, warn;
+  
+  log_success("importing a gltf file... loading ascii file...");
+  bool ret = loader.LoadASCIIFromFile(&model, &err, &warn, file_path);
+  if (!ret)
+    log_error("couldnt load ASCII gltf file!!!");
+  if (!warn.empty())
+    printf("Warn: %s\n", warn.c_str());
+  if (!err.empty())
+    printf("Err: %s\n", err.c_str());
+
+  //buffer for new meshes
+  std::vector<Mesh> new_meshes = {};
+
+  for(tinygltf::Mesh mesh : model.meshes) {
+    for(tinygltf::Primitive prim : mesh.primitives) {
+      if (prim.mode != TINYGLTF_MODE_TRIANGLES) {log_error("this mesh isnt made from tris?? not importing");};
+
+      
+      
+    }
+  }
+
+  
+  return new_meshes;
+};

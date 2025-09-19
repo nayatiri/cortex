@@ -23,10 +23,10 @@ enum e_light_type {
 
 class Light {
 public:
-  e_light_type m_light_type;
+  e_light_type m_light_type = E_POINT_LIGHT;
 
-  float m_strength;
-  uint64_t m_color;
+  float m_strength = 100.0f;
+  uint64_t m_color = 0xFFFFFF;
 
   float light_width = 10.0f;
   

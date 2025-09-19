@@ -24,10 +24,10 @@ public:
   float fov = 90.0f;
   
   bool m_view_mat_initialized = false;
-  glm::mat4 m_view_matrix;
+  glm::mat4 m_view_matrix = glm::mat4(1.0f);
 
   bool m_proj_mat_initialized = false;
-  glm::mat4 m_projection_matrix;
+  glm::mat4 m_projection_matrix = glm::mat4(1.0f);
 
   std::vector<animation*>* m_animation_table = nullptr;
   

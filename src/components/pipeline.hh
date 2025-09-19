@@ -5,7 +5,7 @@
 class Pipeline {
 public:
 
-  ~Pipeline() = default;
+  virtual ~Pipeline() = default;
 
   virtual void init_pipeline() = 0;
   virtual void render_frame() = 0;
@@ -21,11 +21,11 @@ public:
 
   //shared variables between render passes
   std::shared_ptr<Scene> m_active_scene = nullptr;
-  unsigned int window_depth_map;
-  int m_viewport_width, m_viewport_height;
-  glm::mat4 shared_light_space_matrix;
-  glm::mat4 shared_camera_view_matrix;
-  glm::mat4 shared_camera_projection_matrix;
+  unsigned int window_depth_map = 0;
+  int m_viewport_width = 0, m_viewport_height = 0;
+  glm::mat4 shared_light_space_matrix = glm::mat4(1.0f);
+  glm::mat4 shared_camera_view_matrix = glm::mat4(1.0f);
+  glm::mat4 shared_camera_projection_matrix = glm::mat4(1.0f);
 
   
 };
@@ -42,10 +42,10 @@ private:
   void init_color_pass();
 
   // shadow mapping utils
-  unsigned int window_depth_map_fbo;
+  unsigned int window_depth_map_fbo = 0;
   const unsigned int shadow_map_width = 4000;
   const unsigned int shadow_map_height = 4000;
-  Shader* depth_shader = nullptr;
+  std::shared_ptr<Shader> depth_shader = nullptr;
   
 public:
   void render_frame();

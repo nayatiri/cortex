@@ -41,18 +41,18 @@ public:
   //FLAGS / ATTRIBUTE
   bool m_should_shutdown = false;
   bool m_render_mode_wireframe = false;
-  int m_viewport_width, m_viewport_height;
-  GLFWwindow* associated_window;
+  int m_viewport_width = 0, m_viewport_height = 0;
+  GLFWwindow* associated_window = nullptr;
 
   //abstract render function
   std::unique_ptr<Pipeline> m_pipeline = nullptr;
   
   // Scene management
-  std::shared_ptr<Scene> m_active_scene;
+  std::shared_ptr<Scene> m_active_scene = nullptr;
 
   // texture cache index
   std::atomic<uint32_t> num_loaded_textures = 0;
-  std::vector<std::tuple<std::string, unsigned int, GLuint>> m_texture_map;
+  std::vector<std::tuple<std::string, unsigned int, GLuint>> m_texture_map = {};
   
   /////////////////////
   // CALLBACK FUNCTIONS

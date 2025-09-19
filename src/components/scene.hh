@@ -53,8 +53,8 @@ public:
   float m_scene_abstime = 0;
 
   //TODO: make this not be here xd
-  int m_scene_framebuffer_width;
-  int m_scene_framebuffer_height;
+  int m_scene_framebuffer_width = 0;
+  int m_scene_framebuffer_height = 0;
 
   //universal shaders (sdf magic) :)
   Shader universal_hitbox_shader;
