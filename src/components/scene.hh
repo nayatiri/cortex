@@ -60,5 +60,10 @@ public:
   Shader universal_hitbox_shader;
   Shader universal_line_shader;
   Shader universal_point_shader;
+
+  //universal shaders normal shit
+  Shader universal_phong_shader;
+  Shader universal_flat_shader;
+  Shader universal_depth_shader;
   
 };

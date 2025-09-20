@@ -30,7 +30,7 @@ public:
 
   float light_width = 10.0f;
   
-  Mesh m_light_visualizer_mesh;
+  std::shared_ptr<Mesh> m_light_visualizer_mesh = nullptr;
 
   glm::vec3 m_light_position = glm::vec3(0.0f);
   glm::vec3 m_light_look_at_point = glm::vec3(0.0f);
@@ -42,6 +42,6 @@ public:
   void set_light_position(float x,float y,float z);
   void set_light_look_at(float x,float y,float z);
   
-  Light(Mesh to_use);
+  Light(std::shared_ptr<Mesh> to_use);
   
 };

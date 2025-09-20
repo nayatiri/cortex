@@ -15,7 +15,7 @@ namespace Importer {
   GLuint bind_texture_to_slot(std::string to_load, unsigned int slot,
 			      std::vector<std::tuple<std::string, unsigned int, GLuint>> &texture_map);
   
-  std::vector<Mesh> load_all_meshes_from_gltf(const std::string &file_path,
+  std::vector<std::shared_ptr<Mesh>> load_all_meshes_from_gltf(const std::string &file_path,
 					      std::atomic<unsigned int> &num_loaded_textures,
 					      std::vector<std::tuple<std::string, unsigned int, GLuint>> &texture_map);
 

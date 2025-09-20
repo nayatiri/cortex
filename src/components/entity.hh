@@ -23,6 +23,7 @@ private:
 public:
 
   Entity() = default;
+  ~Entity() = default;
 
   Entity(Entity_types new_type);
   
@@ -49,7 +50,7 @@ public:
   
   std::shared_ptr<Shader> point_cloud_shader = nullptr;
   
-  std::vector<Mesh> m_mesh = {};
+  std::vector<std::shared_ptr<Mesh>> m_mesh = {};
 
   std::vector<animation>* m_animation_table = nullptr;
   

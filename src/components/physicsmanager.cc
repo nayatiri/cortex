@@ -50,22 +50,22 @@ void Physics_Manager::calculate_phys_boxes() {
     std::cout << "Entity contains meshes: " << entity.m_mesh.size()
               << std::endl;
 
-    for (Mesh& mesh : entity.m_mesh) {
+    for (std::shared_ptr<Mesh> &mesh : entity.m_mesh) {
       
-      if (mesh.m_type != E_MESH) {
+      if (mesh->m_type != E_MESH) {
         log_error("Mesh does'nt seem to be a Mesh lol. skipping.");
         continue;
       };
 
-      if (mesh.m_vertices_array.size() < 3) {
+      if (mesh->m_vertices_array.size() < 3) {
         log_error("Attempted to create hitbox for mesh with insufficient "
                   "vertices (less than 3). Skipping.");
         continue;
       }
 
-      AABB bbox = compute_world_space_aabb(mesh, entity_transform);
+      AABB bbox = compute_world_space_aabb(*mesh, entity_transform);
       
-      mesh.AABB_visualizer = std::make_shared<AABB_Box>(bbox.min,bbox.max);
+      mesh->AABB_visualizer = std::make_shared<AABB_Box>(bbox.min,bbox.max);
 
       m_active_scene->m_scene_vbos_need_refresh = true;
       

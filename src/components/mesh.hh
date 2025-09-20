@@ -35,7 +35,9 @@ public:
 
   void exp_overwrite_model_matrix(glm::mat4 new_mat);
 
-  Mesh(Material use_material);
+  Mesh() = default;
+  Mesh(std::shared_ptr<Material> set_material);
+  ~Mesh() = default;
 
   bool m_mesh_vbo_needs_refresh = true;
   
@@ -46,7 +48,7 @@ public:
   std::vector<float> m_binormals_array;
 
   GLuint m_mesh_vao = 0;
-  Material m_material;
+  std::shared_ptr<Material> m_material = nullptr;
 
   GLuint m_vertices_glid = 0;
   GLuint m_tex_coords_glid = 0;

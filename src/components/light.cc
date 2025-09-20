@@ -9,7 +9,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
-Light::Light(Mesh to_use)  : m_light_visualizer_mesh(to_use) {}
+Light::Light(std::shared_ptr<Mesh> to_use)  : m_light_visualizer_mesh(to_use) {}
 
 glm::vec3 Light::get_light_position() {
   return m_light_position;

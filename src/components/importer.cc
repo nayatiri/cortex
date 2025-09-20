@@ -145,7 +145,7 @@ GLuint Importer::bind_texture_to_slot(
   return texture;
 }
 
-std::vector<Mesh> Importer::load_all_meshes_from_gltf(
+std::vector<std::shared_ptr<Mesh>> Importer::load_all_meshes_from_gltf(
     const std::string &file_path,
     std::atomic<unsigned int> &num_loaded_textures,
     std::vector<std::tuple<std::string, unsigned int, GLuint>> &texture_map) {
@@ -168,7 +168,7 @@ std::vector<Mesh> Importer::load_all_meshes_from_gltf(
 
   // check_pbr_textures_present(model);
 
-  std::vector<Mesh> new_meshes = {};
+  std::vector<std::shared_ptr<Mesh>> new_meshes = {};
   new_meshes.reserve(100);
   
   auto get_index = [&](const tinygltf::Primitive &primitive,
@@ -430,16 +430,15 @@ std::vector<Mesh> Importer::load_all_meshes_from_gltf(
           // use texture shading
           Shader shader_to_use("src/shaders/shader_src/flat.vert",
                                "src/shaders/shader_src/flat.frag");
-          Material mat_to_use(E_FACE, shader_to_use);
 
-          Mesh primitive_mesh(mat_to_use);
-          primitive_mesh.m_render_mode = E_FILLED;
-          primitive_mesh.m_type = E_MESH;
-          primitive_mesh.m_vertices_array = std::move(final_vertices);
-          primitive_mesh.m_normals_array = std::move(final_normals);
-          primitive_mesh.m_tangents_array = std::move(final_tangents);
-          primitive_mesh.m_binormals_array = std::move(final_bitangents);
-          primitive_mesh.m_tex_coords_array = std::move(final_texcoords);
+	  std::shared_ptr<Mesh> primitive_mesh = std::make_shared<Mesh>(std::make_shared<Material>(E_FACE, shader_to_use));
+          primitive_mesh->m_render_mode = E_FILLED;
+          primitive_mesh->m_type = E_MESH;
+          primitive_mesh->m_vertices_array = std::move(final_vertices);
+          primitive_mesh->m_normals_array = std::move(final_normals);
+          primitive_mesh->m_tangents_array = std::move(final_tangents);
+          primitive_mesh->m_binormals_array = std::move(final_bitangents);
+          primitive_mesh->m_tex_coords_array = std::move(final_texcoords);
 
           // TMP
           // primitive_mesh.exp_overwrite_model_matrix(global_transform);
@@ -468,14 +467,14 @@ std::vector<Mesh> Importer::load_all_meshes_from_gltf(
           glm::quat rotation = glm::quat_cast(rotMatrix);
           glm::vec3 eulerAngles = glm::eulerAngles(rotation);
 
-          primitive_mesh.set_position(translation.x, translation.y,
-                                      translation.z);
-          primitive_mesh.set_rotation(glm::degrees(eulerAngles.x),
-                                      glm::degrees(eulerAngles.y),
-                                      glm::degrees(eulerAngles.z));
-          primitive_mesh.m_sca_x = scale_x;
-          primitive_mesh.m_sca_y = scale_y;
-          primitive_mesh.m_sca_z = scale_z;
+          primitive_mesh->set_position(translation.x, translation.y,
+				       translation.z);
+          primitive_mesh->set_rotation(glm::degrees(eulerAngles.x),
+				       glm::degrees(eulerAngles.y),
+				       glm::degrees(eulerAngles.z));
+          primitive_mesh->m_sca_x = scale_x;
+          primitive_mesh->m_sca_y = scale_y;
+          primitive_mesh->m_sca_z = scale_z;
           // endTMP
 
           // bind tex to num_loaded_tex and increment.
@@ -490,9 +489,9 @@ std::vector<Mesh> Importer::load_all_meshes_from_gltf(
               cwd / model_path.parent_path() / texture_path_of_model;
           std::string final_path = full_tex_path.lexically_normal().string();
 
-	  primitive_mesh.m_material.bound_texture_id = bind_texture_to_slot(
+	  primitive_mesh->m_material->bound_texture_id = bind_texture_to_slot(
 									    final_path, num_loaded_textures.load(), texture_map);
-          primitive_mesh.m_material.m_material_type = E_PBR_TEX;
+          primitive_mesh->m_material->m_material_type = E_PBR_TEX;
           num_loaded_textures.fetch_add(1);
 
 	  std::cout << "Vector size: " << new_meshes.size() << ", capacity: " << new_meshes.capacity() << std::endl;
@@ -504,17 +503,17 @@ std::vector<Mesh> Importer::load_all_meshes_from_gltf(
           // use phong shading (fallback)
           Shader shader_to_use("src/shaders/shader_src/phong.vert",
                                "src/shaders/shader_src/phong.frag");
-          Material mat_to_use(E_FACE, shader_to_use);
-	  mat_to_use.m_material_phong_base_color = base_color_buffer;
+	  std::shared_ptr<Material> mat_to_use = std::make_shared<Material>(E_FACE, shader_to_use);
+	  mat_to_use->m_material_phong_base_color = base_color_buffer;
 
-          Mesh primitive_mesh(mat_to_use);
-          primitive_mesh.m_render_mode = E_FILLED;
-          primitive_mesh.m_type = E_MESH;
-          primitive_mesh.m_vertices_array = std::move(final_vertices);
-          primitive_mesh.m_normals_array = std::move(final_normals);
-          primitive_mesh.m_tangents_array = std::move(final_tangents);
-          primitive_mesh.m_binormals_array = std::move(final_bitangents);
-          primitive_mesh.m_tex_coords_array = std::move(final_texcoords);
+	  std::shared_ptr<Mesh> primitive_mesh = std::make_shared<Mesh>(mat_to_use);
+          primitive_mesh->m_render_mode = E_FILLED;
+          primitive_mesh->m_type = E_MESH;
+          primitive_mesh->m_vertices_array = std::move(final_vertices);
+          primitive_mesh->m_normals_array = std::move(final_normals);
+          primitive_mesh->m_tangents_array = std::move(final_tangents);
+          primitive_mesh->m_binormals_array = std::move(final_bitangents);
+          primitive_mesh->m_tex_coords_array = std::move(final_texcoords);
 
           // TMP
           // primitive_mesh.exp_overwrite_model_matrix(global_transform);
@@ -543,17 +542,17 @@ std::vector<Mesh> Importer::load_all_meshes_from_gltf(
           glm::quat rotation = glm::quat_cast(rotMatrix);
           glm::vec3 eulerAngles = glm::eulerAngles(rotation);
 
-          primitive_mesh.set_position(translation.x, translation.y,
+          primitive_mesh->set_position(translation.x, translation.y,
                                       translation.z);
-          primitive_mesh.set_rotation(glm::degrees(eulerAngles.x),
+          primitive_mesh->set_rotation(glm::degrees(eulerAngles.x),
                                       glm::degrees(eulerAngles.y),
                                       glm::degrees(eulerAngles.z));
-          primitive_mesh.m_sca_x = scale_x;
-          primitive_mesh.m_sca_y = scale_y;
-          primitive_mesh.m_sca_z = scale_z;
+          primitive_mesh->m_sca_x = scale_x;
+          primitive_mesh->m_sca_y = scale_y;
+          primitive_mesh->m_sca_z = scale_z;
           // endTMP
 
-          primitive_mesh.m_material.m_material_type = E_PHONG;
+          primitive_mesh->m_material->m_material_type = E_PHONG;
 
 	  std::cout << "Vector size: " << new_meshes.size() << ", capacity: " << new_meshes.capacity() << std::endl;
           new_meshes.push_back(primitive_mesh);

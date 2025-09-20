@@ -6,6 +6,26 @@
 #define window_height 1080
 int main () {
 
+
+  /*
+    NOTES
+
+    TODO write text rendering shader with bitmap texture shader thingy
+
+    TODO cleanup files that arent used
+
+    TODO make importer more streamline
+
+    TODO move more shit into shared_ptr from static member vars
+
+    TODO support transparent materials (detection + rendering)
+
+    TODO add lens simulation (renderbuffer into fsquad w/ projection shader)
+
+    TODO fix leaky animation system 
+    
+   */
+  
   Renderer main_renderer(1920,1080);
   main_renderer.init_scene("models/test_scene/test_scene.gltf");
   main_renderer.add_model_to_scene("models/cube/cube.gltf");

@@ -22,8 +22,13 @@ Scene::Scene()
       universal_line_shader("src/shaders/shader_src/line_vertex.glsl",
                             "src/shaders/shader_src/line_fragment.glsl"),
       universal_point_shader("src/shaders/shader_src/point_vertex.glsl",
-                             "src/shaders/shader_src/point_fragment.glsl") {
+                             "src/shaders/shader_src/point_fragment.glsl"),
+      universal_phong_shader("src/shaders/shader_src/phong.vert",
+                             "src/shaders/shader_src/phong.frag"),
+      universal_flat_shader("src/shaders/shader_src/flat.vert",
+                            "src/shaders/shader_src/flat.frag"),
+      universal_depth_shader("src/shaders/shader_src/depth.vert",
+                             "src/shaders/shader_src/depth.frag") {
 
   m_selectionstate = std::make_shared<Selectionstate>();
-  
 }
