@@ -428,10 +428,7 @@ std::vector<std::shared_ptr<Mesh>> Importer::load_all_meshes_from_gltf(
 	// TODO turn this into a switch later with all types
         if (shader_type_carry > 1) {
           // use texture shading
-          Shader shader_to_use("src/shaders/shader_src/flat.vert",
-                               "src/shaders/shader_src/flat.frag");
-
-	  std::shared_ptr<Mesh> primitive_mesh = std::make_shared<Mesh>(std::make_shared<Material>(E_FACE, shader_to_use));
+	  std::shared_ptr<Mesh> primitive_mesh = std::make_shared<Mesh>(std::make_shared<Material>(E_FACE));
           primitive_mesh->m_render_mode = E_FILLED;
           primitive_mesh->m_type = E_MESH;
           primitive_mesh->m_vertices_array = std::move(final_vertices);
@@ -501,9 +498,7 @@ std::vector<std::shared_ptr<Mesh>> Importer::load_all_meshes_from_gltf(
 
         } else {
           // use phong shading (fallback)
-          Shader shader_to_use("src/shaders/shader_src/phong.vert",
-                               "src/shaders/shader_src/phong.frag");
-	  std::shared_ptr<Material> mat_to_use = std::make_shared<Material>(E_FACE, shader_to_use);
+	  std::shared_ptr<Material> mat_to_use = std::make_shared<Material>(E_FACE);
 	  mat_to_use->m_material_phong_base_color = base_color_buffer;
 
 	  std::shared_ptr<Mesh> primitive_mesh = std::make_shared<Mesh>(mat_to_use);

@@ -26,7 +26,7 @@
 #include "components/animationmanager.hh"
 #include "components/importer.hh"
 #include "components/pipeline.hh"
-#include "shaders/shaderclass.hh"
+#include "components/texture_atlas.hh"
 
 #define DEF_NEAR_CLIP_PLANE 0.01f
 #define DEF_FAR_CLIP_PLANE 10000.0f
@@ -132,6 +132,9 @@ void Renderer::add_model_to_player_hand(const char* filepath) {
 
 void Renderer::init_scene(const char *scene_fp) {
 
+  Texture_Atlas tex_atl;
+  tex_atl.load_glyph_table("fonts/dejavu.fnt");
+  
   m_pipeline = std::make_unique<Shadow_Map_Pipeline>();
   
   Entity load_entity;
@@ -169,13 +172,8 @@ void Renderer::init_scene(const char *scene_fp) {
   // initialize scene vbos
   init_scene_vbos();
 
-  // Initialize shader programs
-  log_debug("Initializing Shader Programs for scene...");
-  for (auto &entity_to_render : m_active_scene->m_loaded_entities) {
-    for (auto &mesh_of_entity : entity_to_render.m_mesh) {
-      mesh_of_entity->m_material->m_shader.use();
-    }
-  }
+  // TODO check if init scenes shader programs needed?
+
   log_success("Finished initialization for Shader Programs");
 
   //TMP setup vbos n shi

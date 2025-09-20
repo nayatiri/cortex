@@ -32,9 +32,8 @@ public:
 
   e_mat_type m_material_type = E_PHONG;
 
-  Material(e_mat_type material_type, Shader use_shader);
+  Material(e_mat_type material_type);
 
-  Shader m_shader;
   int bound_texture_id = -1;
   
   //pbr with textures

@@ -7,6 +7,7 @@
 #include <glm/ext/vector_float3.hpp>
 #include <glm/glm.hpp>
 #include <memory>
+#include <stdexcept>
 
 /// Pipeline util functions
 
@@ -176,7 +177,19 @@ void Shadow_Map_Pipeline::render_color_pass() {
     for (std::shared_ptr<Mesh> &mesh : entity.m_mesh) {
 
       // use shader of mesh
-      mesh->m_material->m_shader.use();
+      Shader* touse = nullptr;
+
+      if(mesh->m_material->m_material_type == E_PBR_TEX)
+	touse = &m_active_scene->universal_flat_shader;
+      
+      if(mesh->m_material->m_material_type == E_PHONG)
+	touse = &m_active_scene->universal_phong_shader;
+
+      //use our thingy
+      if(touse == nullptr)
+	throw new std::runtime_error("encountered imported mesh with unknown shading type");
+      touse->use();
+      
       check_gl_error("after setting shader active");
       
       // change hitbox or flat style
@@ -199,7 +212,7 @@ void Shadow_Map_Pipeline::render_color_pass() {
         glBindTexture(GL_TEXTURE_2D, mesh->m_material->bound_texture_id);
 
         GLint loc_tex =
-            mesh->m_material->m_shader.get_cached_uniform_id("uTexture");
+            touse->get_cached_uniform_id("uTexture");
 
         glUniform1i(loc_tex, 0);
 	
@@ -207,33 +220,33 @@ void Shadow_Map_Pipeline::render_color_pass() {
         glActiveTexture(GL_TEXTURE1);
         glBindTexture(GL_TEXTURE_2D, window_depth_map);
         GLint loc_depth =
-            glGetUniformLocation(mesh->m_material->m_shader.ID, "uDepthMap");
+            glGetUniformLocation(touse->ID, "uDepthMap");
         glUniform1i(loc_depth, 1);
 
         check_gl_error("after uploading textures");
 
 	// set rest of uniforms
-	upload_to_uniform(mesh->m_material->m_shader, "light_space_matrix",
+	upload_to_uniform(*touse, "light_space_matrix",
 			  shared_light_space_matrix);	
       }
       
       if(mesh->m_material->m_material_type == E_PHONG) {
 
 	// set rest of uniforms
-	upload_to_uniform(mesh->m_material->m_shader, "lightPosition",
+	upload_to_uniform(*touse, "lightPosition",
 			  m_active_scene->m_loaded_lights[0].get_light_position());
-	upload_to_uniform(mesh->m_material->m_shader, "viewPos",
+	upload_to_uniform(*touse, "viewPos",
 			  m_active_scene->m_local_player->m_player_camera->m_cameraPos);
-	upload_to_uniform(mesh->m_material->m_shader, "objectColor",
+	upload_to_uniform(*touse, "objectColor",
 			  glm::vec3(mesh->m_material->m_material_phong_base_color));
       }
 
       if(!entity.is_held_by_localplayer){
-	upload_to_uniform(mesh->m_material->m_shader, "model",
+	upload_to_uniform(*touse, "model",
 			  entity.get_model_matrix() * mesh->get_model_matrix());
-	upload_to_uniform(mesh->m_material->m_shader, "view",
+	upload_to_uniform(*touse, "view",
 			  shared_camera_view_matrix);
-	upload_to_uniform(mesh->m_material->m_shader, "projection",
+	upload_to_uniform(*touse, "projection",
 			  shared_camera_projection_matrix);
       } else {
 	
@@ -241,11 +254,11 @@ void Shadow_Map_Pipeline::render_color_pass() {
 	
 	glm::mat4 model = trans_mat * entity.get_model_matrix() * mesh->get_model_matrix();
 	
-	upload_to_uniform(mesh->m_material->m_shader, "model", model);
+	upload_to_uniform(*touse, "model", model);
 	
-	upload_to_uniform(mesh->m_material->m_shader, "view",
+	upload_to_uniform(*touse, "view",
 			  shared_camera_view_matrix);
-	upload_to_uniform(mesh->m_material->m_shader, "projection",
+	upload_to_uniform(*touse, "projection",
 			  shared_camera_projection_matrix);      
       }
       
@@ -288,18 +301,18 @@ void Shadow_Map_Pipeline::render_overlay_pass() {
     }
     check_gl_error("after binding vao (lights)");
     
-    light_source.m_light_visualizer_mesh->m_material->m_shader.use();
+    m_active_scene->universal_phong_shader.use();
     check_gl_error("after setting shader active (lights)");
 
-    upload_to_uniform(light_source.m_light_visualizer_mesh->m_material->m_shader,
+    upload_to_uniform(m_active_scene->universal_phong_shader,
                       "model", glm::translate(glm::mat4(1.0f),light_source.get_light_position()) * light_source.get_light_rotation_matrix());
-    upload_to_uniform(light_source.m_light_visualizer_mesh->m_material->m_shader,
+    upload_to_uniform(m_active_scene->universal_phong_shader,
                       "view", shared_camera_view_matrix);
-    upload_to_uniform(light_source.m_light_visualizer_mesh->m_material->m_shader,
+    upload_to_uniform(m_active_scene->universal_phong_shader,
                       "projection", shared_camera_projection_matrix);    
-    upload_to_uniform(light_source.m_light_visualizer_mesh->m_material->m_shader,
+    upload_to_uniform(m_active_scene->universal_phong_shader,
                       "lightPosition", glm::vec3(0.0f));
-    upload_to_uniform(light_source.m_light_visualizer_mesh->m_material->m_shader,
+    upload_to_uniform(m_active_scene->universal_phong_shader,
                       "viewPos", m_active_scene->m_local_player->get_position());
     
     check_gl_error("after setting uniforms (overlay pass light)");

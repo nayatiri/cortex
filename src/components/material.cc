@@ -8,11 +8,9 @@
 #include <glm/gtc/type_ptr.hpp>
 
 //material constructor
-Material::Material(e_mat_type material_type, Shader use_shader) : m_shader(use_shader) {
+Material::Material(e_mat_type material_type) {
   
   m_material_type = material_type;
-
-  m_shader.use();
   
 }
 
