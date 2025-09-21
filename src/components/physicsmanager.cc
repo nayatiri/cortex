@@ -86,7 +86,7 @@ void Physics_Manager::handle_scene_physics() {
   }
 
   // if the scene doesnt have any force generators, setup force generators
-  if(!m_force_generators_initialized) {
+  if(!m_force_generators_initialized && m_active_scene->m_loaded_points.size() > 0) {
     bool success = initialize_force_generators();
     if (success)
       m_force_generators_initialized = true;

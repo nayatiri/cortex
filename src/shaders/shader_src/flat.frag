@@ -70,8 +70,7 @@ void main() {
      float normal_bias = pbr_normal_component();
      vec3  texColor    = texture(uTexture, TexCoord).rgb;
      
-     //FragColor = texColor * normal_bias * (ambient + shadow);
-     FragColor = (texColor * ambient) + (texColor * shadow * normal_bias);
+     FragColor = (texColor * ambient * normal_bias) + (texColor * shadow * normal_bias);
 
      //FragColor = texture(uNormalMap, TexCoord).rgb;
 

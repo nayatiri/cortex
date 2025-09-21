@@ -4,6 +4,7 @@
 #include "material.hh"
 #include "mesh.hh"
 
+#include <glm/ext/matrix_clip_space.hpp>
 #include <glm/ext/vector_float3.hpp>
 #include <glm/glm.hpp>
 #include <memory>
@@ -92,11 +93,18 @@ void Shadow_Map_Pipeline::render_depth_pass() {
 					light_pos_new, // location
 					glm::vec3(0.0f,0.0f,0.0f), // look at
 					glm::vec3(0.0f, 1.0f, 0.0f)); // up vector 
-
+  
   float width = m_active_scene->m_loaded_lights[0].light_width;
   glm::mat4 light_projection_mat =
-    glm::ortho(-width, width, -width, width, 0.01f, 50.0f); 
-
+    glm::ortho(-width, width, -width, width, 0.01f, 50.0f);
+  
+  /*  glm::mat4 light_projection_mat =
+    glm::perspective(
+		     glm::radians(90.0f),
+		     (float)m_viewport_width / (float)m_viewport_height,
+		     0.001f, 1000.0f);
+  */
+  
   shared_light_space_matrix = light_projection_mat * light_look_at;
 
   // set viewport to light settings (not fb output for user)
@@ -247,6 +255,7 @@ void Shadow_Map_Pipeline::render_color_pass() {
 	upload_to_uniform(*touse, "lightPosition",
 			  m_active_scene->m_loaded_lights[0].get_light_position());
       }
+      
       
       if(mesh->m_material->m_material_type == E_PHONG) {
 

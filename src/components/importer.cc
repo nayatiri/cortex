@@ -253,7 +253,7 @@ std::vector<std::shared_ptr<Mesh>> Importer::load_all_meshes_from_gltf(
           normals = reinterpret_cast<const float *>(
               &model.buffers[view.buffer]
                    .data[view.byteOffset + accessor.byteOffset]);
-        }
+        } else {log_error("mesh contains NO FUCKING NORMALS");}
 
         const float *tangents = nullptr;
         if (primitive.attributes.count("TANGENT")) {
@@ -263,7 +263,7 @@ std::vector<std::shared_ptr<Mesh>> Importer::load_all_meshes_from_gltf(
           tangents = reinterpret_cast<const float *>(
               &model.buffers[view.buffer]
                    .data[view.byteOffset + accessor.byteOffset]);
-        }
+        } else {log_error("mesh contains NO FUCKING TANGENTS");} 
 
         const float *texcoords = nullptr;
         if (primitive.attributes.count("TEXCOORD_0")) {
@@ -354,7 +354,7 @@ std::vector<std::shared_ptr<Mesh>> Importer::load_all_meshes_from_gltf(
 
 	  metallic_factor_buffer = model.materials[primitive.material].pbrMetallicRoughness.metallicFactor;
 	  roughness_factor_buffer = model.materials[primitive.material].pbrMetallicRoughness.roughnessFactor;
-
+	  
 	  base_color_buffer[0] = baseColor[0];
 	  base_color_buffer[1] = baseColor[1];
 	  base_color_buffer[2] = baseColor[2];
@@ -367,8 +367,6 @@ std::vector<std::shared_ptr<Mesh>> Importer::load_all_meshes_from_gltf(
 
         std::vector<float> final_vertices, final_normals, final_tangents,
             final_bitangents, final_texcoords;
-
-	std::cout << "Vector size after checking textures: " << new_meshes.size() << ", capacity: " << new_meshes.capacity() << std::endl;
 	
         size_t vertex_count = posAccessor.count;
         if (primitive.indices >= 0) {
@@ -422,7 +420,10 @@ std::vector<std::shared_ptr<Mesh>> Importer::load_all_meshes_from_gltf(
 
 	if(shader_type_carry > 3)
 	  log_error("theoretically PBR possible!!!");
-	
+
+	if(final_tangents.size() < 2 || final_normals.size() < 2 || final_texcoords.size() < 2)
+	  log_error("waddafak this shit broken");
+	  
 	// TODO turn this into a switch later with all types
         if (shader_type_carry > 1) {
           // use texture shading

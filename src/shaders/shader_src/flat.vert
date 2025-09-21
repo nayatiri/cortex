@@ -4,7 +4,6 @@ layout(location = 0) in vec3 aPos;     // Vertex position (x, y, z)
 layout(location = 1) in vec2 aTexCoord; // Texture coordinate (u, v)
 layout(location = 2) in vec3 aNormals; // Texture coordinate (u, v)
 layout(location = 3) in vec3 aTangents; // Texture coordinate (u, v)
-layout(location = 4) in vec3 aBinormals; // Texture coordinate (u, v)
 
 out vec2 TexCoord;
 out vec4 FragLightSpacePos;
