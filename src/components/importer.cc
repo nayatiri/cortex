@@ -421,7 +421,7 @@ std::vector<std::shared_ptr<Mesh>> Importer::load_all_meshes_from_gltf(
 	if(shader_type_carry > 3)
 	  log_error("theoretically PBR possible!!!");
 
-	if(final_tangents.size() < 2 || final_normals.size() < 2 || final_texcoords.size() < 2)
+	if(final_tangents.size() < 1 || final_normals.size() < 1 || final_texcoords.size() < 1)
 	  log_error("waddafak this shit broken");
 	  
 	// TODO turn this into a switch later with all types
@@ -500,11 +500,19 @@ std::vector<std::shared_ptr<Mesh>> Importer::load_all_meshes_from_gltf(
 										    final_albedo_path, num_loaded_textures.load(), texture_map);
           
 	  if(mat_to_use->full_pbr) {
+	    // also upload normal tex
 	    std::filesystem::path full_normal_path =
 	      cwd / model_path.parent_path() / texture_path_of_normal;
 	    std::string final_normal_path = full_normal_path.lexically_normal().string();
 	    primitive_mesh->m_material->m_material_normal_glid = bind_texture_to_slot(
 										      final_normal_path, num_loaded_textures.load(), texture_map);
+	    // do same for metalrough
+	    std::filesystem::path full_metal_rough_path =
+	      cwd / model_path.parent_path() / texture_path_of_metallic_roughness;
+	    std::string final_metal_rough_path = full_metal_rough_path.lexically_normal().string();
+	    primitive_mesh->m_material->m_material_metallic_roughness_glid = bind_texture_to_slot(
+										      final_metal_rough_path, num_loaded_textures.load(), texture_map);
+
 	  }
 
 	  primitive_mesh->m_material->m_material_type = E_PBR;

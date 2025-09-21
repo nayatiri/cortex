@@ -23,10 +23,8 @@ public:
   //BSDF 
   const char* m_material_albedo_path = "";
   GLuint m_material_albedo_glid = 0;
-  const char* m_material_metallic_path = "";
-  GLuint m_material_metallic_glid = 0;
-  const char* m_material_roughness_path = "";
-  GLuint m_material_roughness_glid = 0;
+  const char* m_material_metallic_roughness_path = "";
+  GLuint m_material_metallic_roughness_glid = 0;
   const char* m_material_normal_path = "";
   GLuint m_material_normal_glid = 0;
   const char* m_material_displacement_path = "";

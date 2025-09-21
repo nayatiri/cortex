@@ -104,7 +104,6 @@ void Shadow_Map_Pipeline::render_depth_pass() {
 		     (float)m_viewport_width / (float)m_viewport_height,
 		     0.001f, 1000.0f);
   */
-  
   shared_light_space_matrix = light_projection_mat * light_look_at;
 
   // set viewport to light settings (not fb output for user)
@@ -242,6 +241,12 @@ void Shadow_Map_Pipeline::render_color_pass() {
 	  glBindTexture(GL_TEXTURE_2D, mesh->m_material->m_material_normal_glid);
 	  upload_to_uniform(*touse, "uNormalMap", 2);
 
+	  if(mesh->m_material->m_material_metallic_roughness_glid) {
+	    glActiveTexture(GL_TEXTURE3);
+	    glBindTexture(GL_TEXTURE_2D, mesh->m_material->m_material_metallic_roughness_glid);
+	    upload_to_uniform(*touse, "uMetallicRoughnessMap", 3);
+	    upload_to_uniform(*touse, "useMetallicRoughness", 1);
+	  } else { upload_to_uniform(*touse, "useMetallicRoughness", 0); }
 	  upload_to_uniform(*touse, "use_full_pbr", 1);
 	} else {
 	  upload_to_uniform(*touse, "use_full_pbr", 0);
@@ -254,6 +259,11 @@ void Shadow_Map_Pipeline::render_color_pass() {
 			  shared_light_space_matrix);
 	upload_to_uniform(*touse, "lightPosition",
 			  m_active_scene->m_loaded_lights[0].get_light_position());
+	upload_to_uniform(*touse, "cameraPosition",
+			  m_active_scene->m_local_player->m_player_camera->m_cameraPos);
+	upload_to_uniform(*touse, "lightIntensity",
+			  m_active_scene->m_loaded_lights[0].m_strength);
+	
       }
       
       
