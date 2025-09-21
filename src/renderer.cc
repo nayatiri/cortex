@@ -38,6 +38,11 @@ void Renderer::setup_render_properties() {
   else {
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
   }
+  
+  //TMP make light move in a circle
+  m_active_scene->m_loaded_lights[0].set_light_look_at(0,0,0);
+  m_active_scene->m_loaded_lights[0].set_light_position(10*sin(m_application_current_time),10,10*cos(m_application_current_time));
+  
 }
 
 void Renderer::framebuffer_size_callback(GLFWwindow *window, int width,
@@ -255,7 +260,6 @@ void Renderer::init_scene_vbos() {
     glBindBuffer(GL_ARRAY_BUFFER, 0);
 
     mesh->m_mesh_vbo_needs_refresh = false;
-    log_debug_sub("Updated VBOs for light visualizer");
   }
 
   /////////////////////////////
@@ -266,8 +270,6 @@ void Renderer::init_scene_vbos() {
       
       if (!mesh->m_mesh_vbo_needs_refresh)
         continue;
-
-      log_debug_sub("Reinitializing VBOs for mesh (needs refresh)");
 
       // Clean up old buffers to prevent leaks
       cleanup_mesh_vbos(*mesh);
@@ -356,7 +358,6 @@ void Renderer::init_scene_vbos() {
       glBindBuffer(GL_ARRAY_BUFFER, 0);
 
       mesh->m_mesh_vbo_needs_refresh = false;
-      log_debug_sub("Successfully updated VBOs for mesh");
     }
   }
 
@@ -368,7 +369,6 @@ void Renderer::init_scene_vbos() {
       //and init it with 3 0's as a vbo since we renderb
       //the dots as signed distance fields anyway and
       //dont need a vbo with vertex data.      
-      log_debug_sub("Reinitializing VBOs for point (needs refresh [this shouldnt happen more than once lmao])");
 
       if (p->VAO_id != 0) {
 	glDeleteVertexArrays(1, &p->VAO_id);
@@ -402,7 +402,6 @@ void Renderer::init_scene_vbos() {
       //and init it with 3 0's as a vbo since we renderb
       //the dots as signed distance fields anyway and
       //dont need a vbo with vertex data.      
-      log_debug_sub("Reinitializing VBOs for point (needs refresh [this shouldnt happen more than once lmao])");
 
       if (s->VAO_id != 0) {
 	glDeleteVertexArrays(1, &s->VAO_id);

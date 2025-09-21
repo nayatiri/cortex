@@ -120,7 +120,7 @@ bool Physics_Manager::initialize_force_generators() {
     return true;
   }
   
-  log_error("couldnt init gens!!!");
+  log_error("initializing force generators requested but no points in scene, aborting!!!");
   
   return false;
   

@@ -26,6 +26,6 @@ public:
 
   void load_glyph_table(const char* filepath);
 
-  std::tuple<unsigned int, unsigned int> get_glyph_sequence_for_string(const char* filepath);
+  std::tuple<unsigned int, unsigned int> get_glyph_UV_sequence_for_string(const char* filepath);
   
 };

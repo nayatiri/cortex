@@ -54,19 +54,28 @@ void Pipeline::upload_to_uniform(Shader bound_shader, std::string uniform_name,
     glUniformMatrix4fv(loc, 1, GL_FALSE, glm::value_ptr(upload_data));
   } else
     
-    if constexpr (std::is_same<T, glm::vec3>::value) {
-      glUniform3fv(loc, 1, glm::value_ptr(upload_data));
+    if constexpr (std::is_same<T, int>::value) {
+      glUniform1i(loc, upload_data);
     } else
+
+      if constexpr (std::is_same<T, bool>::value) {
+	glUniform1i(loc, upload_data);
+      } else
       
-      if constexpr (std::is_same<T, float>::value) {
-	glUniform1f(loc, upload_data);
+      if constexpr (std::is_same<T, glm::vec3>::value) {
+	glUniform3fv(loc, 1, glm::value_ptr(upload_data));
       } else
 	
-	if constexpr (std::is_same<T, glm::mat3>::value) {
-	  glUniformMatrix3fv(loc, 1, GL_FALSE, glm::value_ptr(upload_data));
-	} else {
-	  log_error("unknown datatype passed to uniform!");
-	}
+	if constexpr (std::is_same<T, float>::value) {
+	  glUniform1f(loc, upload_data);
+	} else
+	  
+	  if constexpr (std::is_same<T, glm::mat3>::value) {
+	    glUniformMatrix3fv(loc, 1, GL_FALSE, glm::value_ptr(upload_data));
+	  } else {
+	    log_error("unknown datatype passed to uniform!");
+	  }
+  
 };
 
 /// shadowmapping impl
@@ -107,6 +116,10 @@ void Shadow_Map_Pipeline::render_depth_pass() {
       //prevent rendering hitboxes / other non solid geometry
       if(mesh->m_render_mode == E_WIREFRAME)
 	return;
+
+      // dont render transparent meshes TODO make good
+      if(mesh->m_material->transparent == true)
+	continue;
 
       // bind meshes vao context
       glBindVertexArray(mesh->m_mesh_vao);
@@ -176,18 +189,16 @@ void Shadow_Map_Pipeline::render_color_pass() {
   for (Entity &entity : m_active_scene->m_loaded_entities) {
     for (std::shared_ptr<Mesh> &mesh : entity.m_mesh) {
 
+      // dont render transparent meshes TODO make this actual proper impl
+      if( mesh->m_material->transparent == true  || mesh->m_type != E_MESH)
+	continue;
+      
       // use shader of mesh
       Shader* touse = nullptr;
-
-      if(mesh->m_material->m_material_type == E_PBR_TEX)
+      if(mesh->m_material->m_material_type == E_PBR)
 	touse = &m_active_scene->universal_flat_shader;
-      
-      if(mesh->m_material->m_material_type == E_PHONG)
+      else
 	touse = &m_active_scene->universal_phong_shader;
-
-      //use our thingy
-      if(touse == nullptr)
-	throw new std::runtime_error("encountered imported mesh with unknown shading type");
       touse->use();
       
       check_gl_error("after setting shader active");
@@ -205,29 +216,36 @@ void Shadow_Map_Pipeline::render_color_pass() {
       }
       check_gl_error("after binding vao");
 
-      if (mesh->m_material->m_material_type == E_PBR_TEX) {
+      if (mesh->m_material->m_material_type == E_PBR) {
 	
         // bind texture to sampler slot + set uniform to texture sampler ID
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, mesh->m_material->bound_texture_id);
-
-        GLint loc_tex =
-            touse->get_cached_uniform_id("uTexture");
-
-        glUniform1i(loc_tex, 0);
+	// uploding texture slot ID to shaders sampler. so that uTexture will sample what we wrote into BL_TEXTURE0
+	glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, mesh->m_material->m_material_albedo_glid);
+	upload_to_uniform(*touse, "uTexture",0);
 	
 	// bind depth map to sampler slot + set depth map to texture sampler ID
         glActiveTexture(GL_TEXTURE1);
         glBindTexture(GL_TEXTURE_2D, window_depth_map);
-        GLint loc_depth =
-            glGetUniformLocation(touse->ID, "uDepthMap");
-        glUniform1i(loc_depth, 1);
+	upload_to_uniform(*touse, "uDepthMap", 1);
 
+	if(mesh->m_material->full_pbr) {
+	  glActiveTexture(GL_TEXTURE2);
+	  glBindTexture(GL_TEXTURE_2D, mesh->m_material->m_material_normal_glid);
+	  upload_to_uniform(*touse, "uNormalMap", 2);
+
+	  upload_to_uniform(*touse, "use_full_pbr", 1);
+	} else {
+	  upload_to_uniform(*touse, "use_full_pbr", 0);
+	}
+	
         check_gl_error("after uploading textures");
 
 	// set rest of uniforms
 	upload_to_uniform(*touse, "light_space_matrix",
-			  shared_light_space_matrix);	
+			  shared_light_space_matrix);
+	upload_to_uniform(*touse, "lightPosition",
+			  m_active_scene->m_loaded_lights[0].get_light_position());
       }
       
       if(mesh->m_material->m_material_type == E_PHONG) {

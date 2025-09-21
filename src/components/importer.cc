@@ -5,6 +5,7 @@
 #include <tuple>
 
 #include "logging.hh"
+#include "material.hh"
 #include "mesh.hh"
 
 #define TINYGLTF_IMPLEMENTATION
@@ -165,7 +166,6 @@ std::vector<std::shared_ptr<Mesh>> Importer::load_all_meshes_from_gltf(
     printf("Err: %s\n", err.c_str());
 
   //  dbgModel(model);
-
   // check_pbr_textures_present(model);
 
   std::vector<std::shared_ptr<Mesh>> new_meshes = {};
@@ -233,6 +233,8 @@ std::vector<std::shared_ptr<Mesh>> Importer::load_all_meshes_from_gltf(
 	
 	//buffers (for material properties)
 	glm::vec4 base_color_buffer = glm::vec4(0.0f,0.0f,0.0f,0.0f);
+	float metallic_factor_buffer = 0.0f;
+	float roughness_factor_buffer = 0.0f;
 	
         log_debug("importing primitive from node tree...");
 	
@@ -280,8 +282,9 @@ std::vector<std::shared_ptr<Mesh>> Importer::load_all_meshes_from_gltf(
         // 2 texture shading (possible if albedo exists)
         // 4 pbr (albedo, normal, roughness, [depth])
         unsigned int shader_type_carry = 0;
-        std::string texture_path_of_model;
-
+        std::string texture_path_of_albedo = "";
+	std::string texture_path_of_normal = "";
+	std::string texture_path_of_metallic_roughness = "";
 
 	std::cout << "Vector size b4 mat: " << new_meshes.size() << ", capacity: " << new_meshes.capacity() << std::endl;
 	
@@ -298,7 +301,7 @@ std::vector<std::shared_ptr<Mesh>> Importer::load_all_meshes_from_gltf(
 	  // albedo
           if (auto path = get_texture_path(model, pbr.baseColorTexture)) {
             std::cout << "Base Color Texture: " << *path << "\n";
-            texture_path_of_model = *path;
+            texture_path_of_albedo = *path;
             shader_type_carry = 2; // flat shading is possible
             log_success("albedo texture present!");
           } else {
@@ -309,6 +312,7 @@ std::vector<std::shared_ptr<Mesh>> Importer::load_all_meshes_from_gltf(
           if (auto path =
                   get_texture_path(model, pbr.metallicRoughnessTexture)) {
             std::cout << "Metallic-Roughness Texture: " << *path << "\n";
+	    texture_path_of_metallic_roughness = *path;
 	    shader_type_carry ++; // raise by 1, see if we have all tex later
           } else {
             std::cout << "No Metallic-Roughness Texture\n";
@@ -318,7 +322,8 @@ std::vector<std::shared_ptr<Mesh>> Importer::load_all_meshes_from_gltf(
           if (material.normalTexture.index >= 0) {
             if (auto path = get_texture_path(model, material.normalTexture)) {
               std::cout << "Normal Texture: " << *path << "\n";
-	      shader_type_carry ++; // raise by 1, see if we have all tex later
+	      texture_path_of_normal = *path;
+              shader_type_carry ++; // raise by 1, see if we have all tex later
             }
           } else {
             std::cout << "No Normal Texture\n";
@@ -332,35 +337,29 @@ std::vector<std::shared_ptr<Mesh>> Importer::load_all_meshes_from_gltf(
           } else {
             std::cout << "No Emissive Texture\n";
           }
-
-          /*
+	  
           if (material.occlusionTexture.index >= 0) {
-            if (auto path = get_texture_path(model, material.occlusionTexture))
-          { std::cout << "Occlusion Texture: " << *path << "\n";
-            }
+            if (auto path = get_texture_path(model, material.occlusionTexture)) {
+	      std::cout << "Occlusion Texture: " << *path << "\n";
+	      // dont treat yet idk how that shi work in da shader cuh
+	    }
           } else {
             std::cout << "No Occlusion Texture\n";
           }
-            */
-
+	  
 	  //get base color.
 	  const std::vector<double> &baseColor =
 	    model.materials[primitive.material]
 	    .pbrMetallicRoughness.baseColorFactor;
-	  
-	  std::cout << "basecolor:" << baseColor[0] << "," << baseColor[1]
-		    << "," << baseColor[2] << "," << baseColor[3]
-		    << std::endl;
 
-	  std::cout << baseColor.size() << " basecolor SIZE ---------lwdjhalkwjdalwkdj" << std::endl;
+	  metallic_factor_buffer = model.materials[primitive.material].pbrMetallicRoughness.metallicFactor;
+	  roughness_factor_buffer = model.materials[primitive.material].pbrMetallicRoughness.roughnessFactor;
 
 	  base_color_buffer[0] = baseColor[0];
 	  base_color_buffer[1] = baseColor[1];
 	  base_color_buffer[2] = baseColor[2];
 	  base_color_buffer[3] = baseColor[3];
-
-	  std::cout << "Vector size after basecol: " << new_meshes.size() << ", capacity: " << new_meshes.capacity() << std::endl;
-
+	  
 	} else {
           // also need to use fallback if there is 0 materials in mesh
           shader_type_carry = 1;
@@ -418,17 +417,28 @@ std::vector<std::shared_ptr<Mesh>> Importer::load_all_meshes_from_gltf(
             final_bitangents.push_back(B.z);
           }
         }
-
-	std::cout << "Vector size before shader and mat init: " << new_meshes.size() << ", capacity: " << new_meshes.capacity() << std::endl;
 	
         log_success("done importing models, loading shaders...");
 
-	std::cout << shader_type_carry << "shader type carry before init" <<std::endl;
+	if(shader_type_carry > 3)
+	  log_error("theoretically PBR possible!!!");
 	
 	// TODO turn this into a switch later with all types
         if (shader_type_carry > 1) {
           // use texture shading
-	  std::shared_ptr<Mesh> primitive_mesh = std::make_shared<Mesh>(std::make_shared<Material>(E_FACE));
+
+	  //TODO theres material_flat_base_color but i lowkey forgot why i added that
+	  std::shared_ptr<Material> mat_to_use = std::make_shared<Material>(E_PBR);
+	  mat_to_use->m_material_phong_base_color = base_color_buffer;
+	  mat_to_use->metallic_factor = metallic_factor_buffer;
+	  mat_to_use->roughness_factor = roughness_factor_buffer;
+          if(base_color_buffer[3] < 0.9f)
+	    mat_to_use->transparent = true;
+
+	  if(texture_path_of_albedo != "" && texture_path_of_normal != "")
+	    mat_to_use->full_pbr = true;
+
+	  std::shared_ptr<Mesh> primitive_mesh = std::make_shared<Mesh>(mat_to_use);
           primitive_mesh->m_render_mode = E_FILLED;
           primitive_mesh->m_type = E_MESH;
           primitive_mesh->m_vertices_array = std::move(final_vertices);
@@ -475,32 +485,43 @@ std::vector<std::shared_ptr<Mesh>> Importer::load_all_meshes_from_gltf(
           // endTMP
 
           // bind tex to num_loaded_tex and increment.
-          std::filesystem::path cwd = std::filesystem::current_path();
-          std::cout << "Current working directory: " << cwd.string()
-                    << std::endl;
+
 
           // this is garbage hacky shit again TODO: clean shit up lol (ill never
           // clean this up xd)
+          std::filesystem::path cwd = std::filesystem::current_path();
           std::filesystem::path model_path = file_path;
-          std::filesystem::path full_tex_path =
-              cwd / model_path.parent_path() / texture_path_of_model;
-          std::string final_path = full_tex_path.lexically_normal().string();
+	  
+          std::filesystem::path full_albedo_path =
+              cwd / model_path.parent_path() / texture_path_of_albedo;
+          std::string final_albedo_path = full_albedo_path.lexically_normal().string();
+	  primitive_mesh->m_material->m_material_albedo_glid = bind_texture_to_slot(
+										    final_albedo_path, num_loaded_textures.load(), texture_map);
+          
+	  if(mat_to_use->full_pbr) {
+	    std::filesystem::path full_normal_path =
+	      cwd / model_path.parent_path() / texture_path_of_normal;
+	    std::string final_normal_path = full_normal_path.lexically_normal().string();
+	    primitive_mesh->m_material->m_material_normal_glid = bind_texture_to_slot(
+										      final_normal_path, num_loaded_textures.load(), texture_map);
+	  }
 
-	  primitive_mesh->m_material->bound_texture_id = bind_texture_to_slot(
-									    final_path, num_loaded_textures.load(), texture_map);
-          primitive_mesh->m_material->m_material_type = E_PBR_TEX;
+	  primitive_mesh->m_material->m_material_type = E_PBR;
           num_loaded_textures.fetch_add(1);
 
-	  std::cout << "Vector size: " << new_meshes.size() << ", capacity: " << new_meshes.capacity() << std::endl;
           new_meshes.push_back(primitive_mesh);
 
           log_success("texture shaded mesh successfully imported.");
 
         } else {
           // use phong shading (fallback)
-	  std::shared_ptr<Material> mat_to_use = std::make_shared<Material>(E_FACE);
+	  std::shared_ptr<Material> mat_to_use = std::make_shared<Material>(E_PHONG);
 	  mat_to_use->m_material_phong_base_color = base_color_buffer;
-
+	  mat_to_use->metallic_factor = metallic_factor_buffer;
+	  mat_to_use->roughness_factor = roughness_factor_buffer;	  
+	  if(base_color_buffer[3] < 0.9f)
+	    mat_to_use->transparent = true;
+	  
 	  std::shared_ptr<Mesh> primitive_mesh = std::make_shared<Mesh>(mat_to_use);
           primitive_mesh->m_render_mode = E_FILLED;
           primitive_mesh->m_type = E_MESH;
@@ -549,7 +570,6 @@ std::vector<std::shared_ptr<Mesh>> Importer::load_all_meshes_from_gltf(
 
           primitive_mesh->m_material->m_material_type = E_PHONG;
 
-	  std::cout << "Vector size: " << new_meshes.size() << ", capacity: " << new_meshes.capacity() << std::endl;
           new_meshes.push_back(primitive_mesh);
 
           log_success("fallback phong shaded mesh successfully imported.");

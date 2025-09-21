@@ -15,6 +15,7 @@ void Texture_Atlas::load_glyph_table(const char *to_load) {
 
     unsigned int id_end_index = str_buffer.find(' ');
     std::string glyph_id = str_buffer.substr(0, id_end_index);
+    char str_buffer_char = str_buffer[str_buffer.length()-1]; 
 
     unsigned int glyph_row = std::floor(std::stoi(glyph_id)/glyph_table_stride);
 
@@ -22,11 +23,12 @@ void Texture_Atlas::load_glyph_table(const char *to_load) {
 
     unsigned int glyph_column = std::floor(rest * glyph_table_stride);
     
-    std::cout << "loaded character with ID:" << glyph_id << std::endl;
-    std::cout << "into row:" << glyph_row << " , column: " << glyph_column << std::endl;
-    
-    std::cout << str_buffer << std::endl;
+    std::cout << "string buffer: " << str_buffer << "loaded into row:" << glyph_row << " , column: " << glyph_column << " | representing char: " << str_buffer_char << std::endl;
 
+    new_glyph.pos_x = glyph_column;
+    new_glyph.pos_y = glyph_row;
+    new_glyph.char_to_represent = str_buffer_char;
+    
     glyph_table.push_back(new_glyph);
     
   }
