@@ -168,6 +168,7 @@ void Renderer::init_scene(const char *scene_fp) {
   main_light.m_light_type = E_POINT_LIGHT;
   main_light.m_color = 0xFFFFFF;
   main_light.m_strength = 7.0f;
+  main_light.light_width = 100.0f;
 
   main_light.set_light_position(10,8,5);
   
