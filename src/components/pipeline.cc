@@ -86,14 +86,9 @@ void Shadow_Map_Pipeline::render_depth_pass() {
   m_active_scene->universal_depth_shader.use();
 
   // configure spotlight shadow mapping
-  glm::vec3 light_pos_new =
-      m_active_scene->m_loaded_lights[0].get_light_position();
-
-  glm::mat4 light_look_at = glm::lookAt(
-					light_pos_new, // location
-					glm::vec3(0.0f,0.0f,0.0f), // look at
-					glm::vec3(0.0f, 1.0f, 0.0f)); // up vector 
-  
+  glm::mat4 light_look_at =
+      m_active_scene->m_loaded_lights[0].get_light_look_at();
+    
   float width = m_active_scene->m_loaded_lights[0].light_width;
   glm::mat4 light_projection_mat =
     glm::ortho(-width, width, -width, width, 0.01f, 50.0f);

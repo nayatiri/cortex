@@ -40,8 +40,8 @@ void Renderer::setup_render_properties() {
   }
   
   //TMP make light move in a circle
-  m_active_scene->m_loaded_lights[0].set_light_look_at(0,0,0);
-  m_active_scene->m_loaded_lights[0].set_light_position(10*sin(m_application_current_time),10,10*cos(m_application_current_time));
+  m_active_scene->m_loaded_lights[0].set_light_look_at(-20,0,0);
+  m_active_scene->m_loaded_lights[0].set_light_position(10*sin(m_application_current_time)-20,10,10*cos(m_application_current_time));
   
 }
 
@@ -168,7 +168,7 @@ void Renderer::init_scene(const char *scene_fp) {
   main_light.m_light_type = E_POINT_LIGHT;
   main_light.m_color = 0xFFFFFF;
   main_light.m_strength = 7.0f;
-  main_light.light_width = 100.0f;
+  main_light.light_width = 25.0f;
 
   main_light.set_light_position(10,8,5);
   
