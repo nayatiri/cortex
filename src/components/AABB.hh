@@ -51,10 +51,6 @@ public:
   
   std::vector<float> m_vertices_array;
 
-  GLuint m_mesh_vao = 0;
-
-  GLuint m_vertices_glid = 0;
-
   e_mesh_type m_type = E_COL_BOX;
   e_mesh_render_mode m_render_mode = E_WIREFRAME;
   

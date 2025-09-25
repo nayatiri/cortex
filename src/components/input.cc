@@ -141,6 +141,15 @@ void Input_Manager::process_input(GLFWwindow *window,
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
   }
 
+  if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS) {
+    glm::vec3 point = m_active_scene->m_local_player->m_player_camera->m_cameraPos;
+    std::shared_ptr<Point>to_add = std::make_shared<Point>(point.x,point.y,point.z); 
+    m_active_scene->add_point_to_scene(to_add);
+
+    std::cout << "number of points in scene:" << m_active_scene->m_loaded_points.size() << std::endl;  
+    
+  }
+  
   if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) {
     m_active_scene->m_local_player->m_player_camera->m_cameraPos +=
         cameraSpeed * glm::normalize(glm::vec3(

@@ -40,8 +40,8 @@ void Renderer::setup_render_properties() {
   }
   
   //TMP make light move in a circle
-  m_active_scene->m_loaded_lights[0].set_light_look_at(-20,0,0);
-  m_active_scene->m_loaded_lights[0].set_light_position(10*sin(m_application_current_time)-20,10,10*cos(m_application_current_time));
+  m_active_scene->m_loaded_lights[0].set_light_look_at(0,0,0);
+  m_active_scene->m_loaded_lights[0].set_light_position(10*sin(m_application_current_time/10),10,10*cos(m_application_current_time/10));
   
 }
 
@@ -179,7 +179,6 @@ void Renderer::init_scene(const char *scene_fp) {
   init_scene_vbos();
 
   // TODO check if init scenes shader programs needed?
-
   log_success("Finished initialization for Shader Programs");
 
   //TMP setup vbos n shi
@@ -363,38 +362,31 @@ void Renderer::init_scene_vbos() {
   }
 
   ///////////////////
-  // Update Point VBOs
+  // Update signed distance field shared vbo
   ///////////////////
-  for(std::shared_ptr<Point> p : m_active_scene->m_loaded_points) {
-      //if entity is a point, we can simply init a mesh,
-      //and init it with 3 0's as a vbo since we renderb
-      //the dots as signed distance fields anyway and
-      //dont need a vbo with vertex data.      
-
-      if (p->VAO_id != 0) {
-	glDeleteVertexArrays(1, &p->VAO_id);
-	p->VAO_id = 0;
-      }
-      if (p->VBO_vertices != 0) {
-	glDeleteBuffers(1, &p->VBO_vertices);
-	p->VBO_vertices = 0;
-      }
-      
-      // Create VAO n load fullscreen tri xd
-      glGenVertexArrays(1, &p->VAO_id);
-      glBindVertexArray(p->VAO_id);
-      std::vector<float> tmp = {-1.0f,-1.0f, -1.0f,
-				3.0f, -1.0f, -1.0f,
-				-1.0f, 3.0f, -1.0f};
-      glGenBuffers(1, &p->VBO_vertices);
-      glBindBuffer(GL_ARRAY_BUFFER, p->VBO_vertices);
-      glBufferData(GL_ARRAY_BUFFER,
-		   tmp.size() * sizeof(float), tmp.data() , GL_STATIC_DRAW);
-      glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
-      glEnableVertexAttribArray(0);
-
+  if (m_active_scene->shared_sdf_vao != 0) {
+    glDeleteVertexArrays(1, &m_active_scene->shared_sdf_vao);
+    m_active_scene->shared_sdf_vao = 0;
   }
+  if (m_active_scene->shared_sdf_vbo != 0) {
+    glDeleteBuffers(1, &m_active_scene->shared_sdf_vbo);
+    m_active_scene->shared_sdf_vbo = 0;
+  }
+  // Create VAO n load fullscreen tri xd
+  glGenVertexArrays(1, &m_active_scene->shared_sdf_vao);
+  glBindVertexArray(m_active_scene->shared_sdf_vao);
+  std::vector<float> tmp = {-1.0f,-1.0f, -1.0f,
+			    3.0f, -1.0f, -1.0f,
+			    -1.0f, 3.0f, -1.0f};
+  glGenBuffers(1, &m_active_scene->shared_sdf_vbo);
+  glBindBuffer(GL_ARRAY_BUFFER, m_active_scene->shared_sdf_vbo);
+  glBufferData(GL_ARRAY_BUFFER,
+	       tmp.size() * sizeof(float), tmp.data() , GL_STATIC_DRAW);
+  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+  glEnableVertexAttribArray(0);
 
+  //done
+  
   ///////////////////
   // Update Spring VBOs
   ///////////////////
@@ -426,52 +418,6 @@ void Renderer::init_scene_vbos() {
       glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
       glEnableVertexAttribArray(0);
 
-  }
-
-  ///////////////////////////////
-  // Update Entity Hitbox VBOs //
-  ///////////////////////////////
-  for (Entity &entity : m_active_scene->m_loaded_entities) {
-    for (std::shared_ptr<Mesh> &mesh : entity.m_mesh) {
-
-      if(mesh->AABB_visualizer == nullptr)
-	continue;
-      
-      log_debug_sub("Reinitializing VBOs for meshes hitbox (needs refresh)");
-
-      AABB_Box* toadjust = mesh->AABB_visualizer.get();
-      
-      auto delete_vao = [](GLuint& vao_id) {
-	if (vao_id != 0) {
-	  glDeleteVertexArrays(1, &vao_id);
-	  vao_id = 0;
-	}
-      };
-      
-      auto delete_vbo = [](GLuint& vbo_id) {
-	if (vbo_id != 0) {
-	  glDeleteBuffers(1, &vbo_id);
-	  vbo_id = 0;
-	}
-      };
-      
-      delete_vao(toadjust->m_mesh_vao);
-      delete_vbo(toadjust->m_vertices_glid);
-      
-      // Create VAO n load 0es xd
-      glGenVertexArrays(1, &toadjust->m_mesh_vao);
-      glBindVertexArray(toadjust->m_mesh_vao);
-      std::vector<float> tmp = {-1.0f,-1.0f, -1.0f,
-				3.0f, -1.0f, -1.0f,
-				-1.0f, 3.0f, -1.0f};
-      glGenBuffers(1, &toadjust->m_vertices_glid);
-      glBindBuffer(GL_ARRAY_BUFFER, toadjust->m_vertices_glid);
-      glBufferData(GL_ARRAY_BUFFER,
-		   tmp.size() * sizeof(float), tmp.data() , GL_STATIC_DRAW);
-      glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
-      glEnableVertexAttribArray(0);
-      
-    }
   }
   
   m_active_scene->m_scene_vbos_need_refresh = false;

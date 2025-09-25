@@ -363,7 +363,7 @@ void Shadow_Map_Pipeline::render_overlay_pass() {
   ///////////////////////////////
 
   // TODO make render properties
-  if (false) {
+  if (true) {
     for (Entity& entity : m_active_scene->m_loaded_entities) {
       for (std::shared_ptr<Mesh> &mesh : entity.m_mesh) {
 
@@ -381,8 +381,8 @@ void Shadow_Map_Pipeline::render_overlay_pass() {
         glEnable(GL_BLEND);
 
         // bind meshes vao context
-        glBindVertexArray(mesh->AABB_visualizer->m_mesh_vao);
-        if (glIsVertexArray(mesh->AABB_visualizer->m_mesh_vao) == GL_FALSE) {
+        glBindVertexArray(m_active_scene->shared_sdf_vao);
+        if (glIsVertexArray(m_active_scene->shared_sdf_vao) == GL_FALSE) {
           log_error("no valid VAO id! cant render mesh.");
         }
 
@@ -433,11 +433,11 @@ void Shadow_Map_Pipeline::render_overlay_pass() {
       
       m_active_scene->universal_point_shader.use();    
       check_gl_error("after shader use (point cloud)");
-      
+
       // bind meshes vao context
-      glBindVertexArray(p->VAO_id);
-      if (glIsVertexArray(p->VAO_id) == GL_FALSE) {
-        log_error("no valid VAO id! cant render mesh.");
+      glBindVertexArray(m_active_scene->shared_sdf_vao);
+      if (glIsVertexArray(m_active_scene->shared_sdf_vao) == GL_FALSE) {
+        log_error("no valid VAO id! cant render point.");
       }      
       check_gl_error("after vao bind (point cloud)");
 

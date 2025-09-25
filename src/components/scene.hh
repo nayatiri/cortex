@@ -52,6 +52,11 @@ public:
   float m_scene_deltatime = 0;
   float m_scene_abstime = 0;
 
+  //sdf
+  GLuint shared_sdf_vao = 0;
+  unsigned int shared_sdf_vbo = 0;
+
+
   //TODO: make this not be here xd
   int m_scene_framebuffer_width = 0;
   int m_scene_framebuffer_height = 0;

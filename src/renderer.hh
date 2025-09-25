@@ -43,7 +43,7 @@ public:
   bool m_render_mode_wireframe = false;
   int m_viewport_width = 0, m_viewport_height = 0;
   GLFWwindow* associated_window = nullptr;
-
+  
   //abstract render function
   std::unique_ptr<Pipeline> m_pipeline = nullptr;
   
