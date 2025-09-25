@@ -29,8 +29,8 @@ public:
 // drag simulation using linear and exponential components - 0.1 exp, 0.05 lin reccommended 
 class Drag_force_generator : public Force_generator {
 private:
-  float drag_coefficient_1 = 0.1f;
-  float drag_coefficient_2 = 0.01f;
+  float drag_coefficient_1 = 0.05f;
+  float drag_coefficient_2 = 0.008f;
 public:
   Drag_force_generator(float drag_coefficient_1, float drag_coefficient_2);
   glm::vec3 get_force(Point& p, float delta_time);

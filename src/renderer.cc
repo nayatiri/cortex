@@ -386,40 +386,7 @@ void Renderer::init_scene_vbos() {
   glEnableVertexAttribArray(0);
 
   //done
-  
-  ///////////////////
-  // Update Spring VBOs
-  ///////////////////
-  for(std::shared_ptr<Spring> s : m_active_scene->m_loaded_springs) {
-      //if entity is a point, we can simply init a mesh,
-      //and init it with 3 0's as a vbo since we renderb
-      //the dots as signed distance fields anyway and
-      //dont need a vbo with vertex data.      
-
-      if (s->VAO_id != 0) {
-	glDeleteVertexArrays(1, &s->VAO_id);
-	s->VAO_id = 0;
-      }
-      if (s->VBO_vertices != 0) {
-	glDeleteBuffers(1, &s->VBO_vertices);
-	s->VBO_vertices = 0;
-      }
-      
-      // Create VAO n load fullscreen tri xd
-      glGenVertexArrays(1, &s->VAO_id);
-      glBindVertexArray(s->VAO_id);
-      std::vector<float> tmp = {-1.0f,-1.0f, -1.0f,
-				3.0f, -1.0f, -1.0f,
-				-1.0f, 3.0f, -1.0f};
-      glGenBuffers(1, &s->VBO_vertices);
-      glBindBuffer(GL_ARRAY_BUFFER, s->VBO_vertices);
-      glBufferData(GL_ARRAY_BUFFER,
-		   tmp.size() * sizeof(float), tmp.data() , GL_STATIC_DRAW);
-      glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
-      glEnableVertexAttribArray(0);
-
-  }
-  
+    
   m_active_scene->m_scene_vbos_need_refresh = false;
   log_success("Successfully initialized/updated VBOs for all dirty meshes!");
 }

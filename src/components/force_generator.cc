@@ -83,6 +83,7 @@ glm::vec3 Drag_force_generator::get_force(Point &p, float delta_time) {
   glm::vec3 force = -drag_coeff * glm::normalize(velocity);
 
   return force;
+
 };
 
 glm::vec3 Spring_force_generator::get_force(Point &p, float delta_time) {

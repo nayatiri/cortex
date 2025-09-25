@@ -142,8 +142,9 @@ void Input_Manager::process_input(GLFWwindow *window,
   }
 
   if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS) {
-    glm::vec3 point = m_active_scene->m_local_player->m_player_camera->m_cameraPos;
-    std::shared_ptr<Point>to_add = std::make_shared<Point>(point.x,point.y,point.z); 
+    glm::vec3 point_pos = m_active_scene->m_local_player->m_player_camera->m_cameraPos;
+    std::shared_ptr<Point>to_add = std::make_shared<Point>(point_pos.x,point_pos.y-1.0f,point_pos.z);
+    to_add->phys_props.velocity = glm::normalize(m_active_scene->m_local_player->m_player_camera->m_cameraLookAt) * 20.0f;
     m_active_scene->add_point_to_scene(to_add);
 
     std::cout << "number of points in scene:" << m_active_scene->m_loaded_points.size() << std::endl;  

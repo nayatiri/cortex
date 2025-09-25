@@ -490,8 +490,8 @@ void Shadow_Map_Pipeline::render_overlay_pass() {
     glEnable(GL_BLEND);
     
     // bind meshes vao context
-    glBindVertexArray(s->VAO_id);
-    if (glIsVertexArray(s->VAO_id) == GL_FALSE) {
+    glBindVertexArray(m_active_scene->shared_sdf_vao);
+    if (glIsVertexArray(m_active_scene->shared_sdf_vao) == GL_FALSE) {
       log_error("no valid VAO id! cant render mesh.");
     }
     
