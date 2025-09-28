@@ -32,7 +32,7 @@ void Input_Manager::process_input(GLFWwindow *window,
 
   if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS) {
     if (!m_last_wireframe_state) {
-      m_render_mode_wireframe = !m_render_mode_wireframe;
+      m_active_scene->render_properties.render_hitbox = !m_active_scene->render_properties.render_hitbox;
       m_is_wireframe_on_cooldown = true;
       m_last_wireframe_state = true;
     }
@@ -141,7 +141,7 @@ void Input_Manager::process_input(GLFWwindow *window,
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
   }
 
-  if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS) {
+  if (glfwGetKey(window, GLFW_KEY_C) == GLFW_PRESS) {
     glm::vec3 point_pos = m_active_scene->m_local_player->m_player_camera->m_cameraPos;
     std::shared_ptr<Point>to_add = std::make_shared<Point>(point_pos.x,point_pos.y-1.0f,point_pos.z);
     to_add->phys_props.velocity = glm::normalize(m_active_scene->m_local_player->m_player_camera->m_cameraLookAt) * 20.0f;

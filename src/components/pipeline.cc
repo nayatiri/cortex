@@ -3,15 +3,14 @@
 #include "logging.hh"
 #include "material.hh"
 #include "mesh.hh"
+#include "overlay_element.hh"
 
 #include <glm/ext/matrix_clip_space.hpp>
 #include <glm/ext/vector_float3.hpp>
 #include <glm/glm.hpp>
 #include <memory>
-#include <stdexcept>
 
 /// Pipeline util functions
-
 void Pipeline::check_gl_error(const char *context = "") {
   GLenum err;
   while ((err = glGetError()) != GL_NO_ERROR) {
@@ -93,12 +92,6 @@ void Shadow_Map_Pipeline::render_depth_pass() {
   glm::mat4 light_projection_mat =
     glm::ortho(-width, width, -width, width, 0.01f, 50.0f);
   
-  /*  glm::mat4 light_projection_mat =
-    glm::perspective(
-		     glm::radians(90.0f),
-		     (float)m_viewport_width / (float)m_viewport_height,
-		     0.001f, 1000.0f);
-  */
   shared_light_space_matrix = light_projection_mat * light_look_at;
 
   // set viewport to light settings (not fb output for user)
@@ -307,9 +300,6 @@ void Shadow_Map_Pipeline::render_overlay_pass() {
 
   /* TODO rendering:
 
-     - make UBO for springs, points and use a single more convoluted line / point shader
-     to prevent multiple draw calls.
-
      - create SDF depth shader for points + springs to shadow map them
      
    */
@@ -363,7 +353,7 @@ void Shadow_Map_Pipeline::render_overlay_pass() {
   ///////////////////////////////
 
   // TODO make render properties
-  if (true) {
+  if (m_active_scene->render_properties.render_hitbox) {
     for (Entity& entity : m_active_scene->m_loaded_entities) {
       for (std::shared_ptr<Mesh> &mesh : entity.m_mesh) {
 
@@ -468,7 +458,6 @@ void Shadow_Map_Pipeline::render_overlay_pass() {
       upload_to_uniform(m_active_scene->universal_point_shader,"screen_width", (float)m_active_scene->m_scene_framebuffer_width);
       upload_to_uniform(m_active_scene->universal_point_shader,"screen_height", (float)m_active_scene->m_scene_framebuffer_height);
       
-      
       glDrawArrays(GL_TRIANGLES, 0,3);
       check_gl_error("after glDrawArrays (point cloud)");
 
@@ -485,9 +474,6 @@ void Shadow_Map_Pipeline::render_overlay_pass() {
     glEnable(GL_BLEND);
     
     m_active_scene->universal_line_shader.use();
-    
-    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-    glEnable(GL_BLEND);
     
     // bind meshes vao context
     glBindVertexArray(m_active_scene->shared_sdf_vao);
@@ -516,6 +502,35 @@ void Shadow_Map_Pipeline::render_overlay_pass() {
     check_gl_error("after glDrawArrays (overlay pass hitboxes)");
     
   }  
+
+
+  ////////////////////
+  // render text overlay
+  ////////////////////
+
+  for(std::shared_ptr<Overlay_Element> oe : m_active_scene->m_loaded_overlay_elements) {
+
+    // back to solid + blending yippie
+    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+    glEnable(GL_BLEND);
+    
+    m_active_scene->universal_text_shader.use();
+   
+    // bind meshes vao context
+    glBindVertexArray(oe->text_vao);
+    if (glIsVertexArray(oe->text_vao) == GL_FALSE) {
+      log_error("no valid VAO id! cant render mesh.");
+    }
+
+    std::cout << oe->texture_glid << std::endl;
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, oe->texture_glid);
+    upload_to_uniform(m_active_scene->universal_text_shader, "fontAtlas", 0);
+
+    glDrawArrays(GL_TRIANGLES, 0, oe->text_vert_coords_screen_space.size()/2);
+    check_gl_error("after glDrawArrays (overlay pass text)");
+    
+  }
   
 }
 

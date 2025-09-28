@@ -20,13 +20,13 @@
 #include "components/input.hh"
 #include "components/light.hh"
 #include "components/logging.hh"
+#include "components/overlay_element.hh"
 #include "components/point.hh"
 #include "components/mesh.hh"
 #include "components/scene.hh"
 #include "components/animationmanager.hh"
 #include "components/importer.hh"
 #include "components/pipeline.hh"
-#include "components/texture_atlas.hh"
 
 #define DEF_NEAR_CLIP_PLANE 0.01f
 #define DEF_FAR_CLIP_PLANE 10000.0f
@@ -136,9 +136,6 @@ void Renderer::add_model_to_player_hand(const char* filepath) {
 
 
 void Renderer::init_scene(const char *scene_fp) {
-
-  Texture_Atlas tex_atl;
-  tex_atl.load_glyph_table("fonts/dejavu.fnt");
   
   m_pipeline = std::make_unique<Shadow_Map_Pipeline>();
   
@@ -362,6 +359,51 @@ void Renderer::init_scene_vbos() {
   }
 
   ///////////////////
+  // Initialize text vbos
+  ///////////////////
+  for(std::shared_ptr<Overlay_Element>& oe : m_active_scene->m_loaded_overlay_elements) {
+
+    //    if(!oe->element_needs_vbo_update)
+    //  continue;
+
+    if (oe->text_vao != 0) {
+      glDeleteVertexArrays(1, &oe->text_vao);
+      oe->text_vao = 0;
+    }
+    if (oe->text_vertices_vbo != 0) {
+      glDeleteBuffers(1, &oe->text_vertices_vbo);
+      oe->text_vertices_vbo = 0;
+    }
+    if (oe->text_uv_vbo != 0) {
+      glDeleteBuffers(1, &oe->text_uv_vbo);
+      oe->text_uv_vbo = 0;
+    }
+
+    glfwGetFramebufferSize(associated_window,&m_viewport_width,&m_viewport_height);
+    
+    glGenVertexArrays(1, &oe->text_vao);
+    glBindVertexArray(oe->text_vao);
+    oe->uv_coords = m_active_scene->texture_atlas.get_glyph_UV_sequence_for_string(oe->text);
+    oe->text_vert_coords_screen_space = m_active_scene->texture_atlas.get_glyph_vert_cords_for_string(oe->text, m_viewport_width, m_viewport_height, oe);
+    glGenBuffers(1, &oe->text_vertices_vbo);
+    glBindBuffer(GL_ARRAY_BUFFER, oe->text_vertices_vbo);
+    glBufferData(GL_ARRAY_BUFFER,
+		 oe->text_vert_coords_screen_space.size() * sizeof(float), oe->text_vert_coords_screen_space.data() , GL_STATIC_DRAW);
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(0);
+
+    
+    glGenBuffers(1, &oe->text_uv_vbo);
+    glBindBuffer(GL_ARRAY_BUFFER, oe->text_uv_vbo);
+    glBufferData(GL_ARRAY_BUFFER,
+		 oe->uv_coords.size() * sizeof(float), oe->uv_coords.data() , GL_STATIC_DRAW);
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), (void*)0);    
+    glEnableVertexAttribArray(1);
+
+    log_error("INITIALIZEDD TEXT!!");
+  }
+  
+  ///////////////////
   // Update signed distance field shared vbo
   ///////////////////
   if (m_active_scene->shared_sdf_vao != 0) {
@@ -503,5 +545,14 @@ void Renderer::add_player_to_scene(bool make_local_player) {
     int index = m_active_scene->m_player_list.size();
     m_active_scene->m_local_player = m_active_scene->m_player_list[index - 1];
   }
+  
+};
+
+void Renderer::add_text_to_overlay(std::string to_add, unsigned int anchor_x,
+                                   unsigned int anchor_y) {
+
+  glfwGetFramebufferSize(associated_window, &m_active_scene->m_scene_framebuffer_width, &m_active_scene->m_scene_framebuffer_height);
+  
+  m_active_scene->add_text_to_overlay(to_add,anchor_x,anchor_y,num_loaded_textures,m_texture_map);
   
 };

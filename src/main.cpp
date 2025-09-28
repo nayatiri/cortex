@@ -27,6 +27,7 @@ int main () {
   Renderer main_renderer(1920,1080);
   main_renderer.init_scene("models/test_scene/test_scene.gltf");
   //main_renderer.init_scene("models/showroom/showroom.gltf");
+  main_renderer.add_model_to_scene("models/midnight_coup/midnight_coup.gltf");
   //main_renderer.add_model_to_scene("models/cube/cube.gltf");
   //main_renderer.add_model_to_scene("models/pbr_cube/pbr_cube.gltf");
   //main_renderer.add_model_to_scene("models/benz/scene.gltf");
@@ -34,9 +35,10 @@ int main () {
   
   //  spawn_pyramid(main_renderer);
   //  spawn_point_collission(main_renderer);
-  spawn_single_link(main_renderer);
+  //spawn_single_link(main_renderer);
   //  spawn_box(main_renderer);
 
+  main_renderer.add_text_to_overlay("wagwan this shit works!", 50 ,50 );
   
   while(!main_renderer.m_input_manager->m_should_shutdown) {
     main_renderer.render_frame();

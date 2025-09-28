@@ -1,5 +1,7 @@
 #pragma once
 
+#include "overlay_element.hh"
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -22,10 +24,15 @@ public:
   unsigned int glyph_dimension_x = 32;
   unsigned int glyph_dimension_y = 32;
 
-  Glyph get_matching_glyph(const char to_check);
+  unsigned int texture_gluint = 0;
+  
+  std::tuple<float,float> get_matching_glyph_UV(const char to_check);
 
-  void load_glyph_table(const char* filepath);
+  void load_glyph_table(const char* filepath, const char* filepath_tex_atlas, std::atomic<unsigned int> &num_loaded_textures,
+			std::vector<std::tuple<std::string, unsigned int, unsigned int>> &texture_map);
 
-  std::tuple<unsigned int, unsigned int> get_glyph_UV_sequence_for_string(const char* filepath);
+  std::vector<float> get_glyph_UV_sequence_for_string(std::string input);
+
+  std::vector<float> get_glyph_vert_cords_for_string(std::string input, unsigned int viewport_width, unsigned int viewport_height,std::shared_ptr<Overlay_Element> oe);
   
 };

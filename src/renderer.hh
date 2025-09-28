@@ -7,6 +7,7 @@
 #include "./components/animationmanager.hh"
 #include "components/physicsmanager.hh"
 #include "components/pipeline.hh"
+#include "components/texture_atlas.hh"
 
 #include <GLFW/glfw3.h>
 #include <glm/ext/matrix_transform.hpp>
@@ -52,7 +53,7 @@ public:
 
   // texture cache index
   std::atomic<uint32_t> num_loaded_textures = 0;
-  std::vector<std::tuple<std::string, unsigned int, GLuint>> m_texture_map = {};
+  std::vector<std::tuple<std::string, unsigned int, unsigned int>> m_texture_map = {};
   
   /////////////////////
   // CALLBACK FUNCTIONS
@@ -73,12 +74,16 @@ public:
   // SCENE MANAGEMENT
   /////////////////////
   void init_scene(const char* scene_fp);
+  
   void add_model_to_scene( const char* filepath);
   void add_model_to_player_hand( const char* filepath);
   void add_point_to_scene(float x,float y,float z);
   void add_player_to_scene(bool make_local_player);
+  void add_text_to_overlay(std::string to_add, unsigned int anchor_x, unsigned int anchor_y);
+
   void create_spring_constraint(std::shared_ptr<Point> from, std::shared_ptr<Point> to, float strength, float rest_length);
   void create_fixed_constraint(std::shared_ptr<Point> p , bool fixed);
+  
   void setup_render_properties();
 
   /////////////////////
