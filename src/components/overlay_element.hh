@@ -12,6 +12,8 @@ class Overlay_Element {
 public:
 
   Overlay_Element(std::string to_add, float anchor_x_ndc, float anchor_y_ndc);
+
+  void edit_text(std::string new_text);
   
   unsigned int text_vertices_vbo = 0;
   std::vector<float> text_vert_coords_screen_space;

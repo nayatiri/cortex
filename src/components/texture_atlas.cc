@@ -54,24 +54,14 @@ std::vector<float> Texture_Atlas::get_glyph_UV_sequence_for_string(std::string i
         float u1 = u0 + cell_size;
         float v1 = v0 + cell_size;
 
-        // If your atlas is top-left origin, but OpenGL is bottom-left,
-        // you may need to flip V here:
-        // float temp = v0;
-        // v0 = 1.0f - v0 - cell_size; // flip
-        // v1 = 1.0f - temp;           // flip
-
-        // Emit 6 vertices for 2 triangles (match your vertex order!)
-        // Assuming your vertex order is:
-        //   bottom-left, top-left, bottom-right, top-left, top-right, bottom-right
-
         uv_seq.insert(uv_seq.end(), {
-            u0, v1,  // bottom-left
-            u0, v0,  // top-left
-            u1, v1,  // bottom-right
+            u0, v1,
+            u0, v0,
+            u1, v1,
 
-            u0, v0,  // top-left
-            u1, v0,  // top-right
-            u1, v1   // bottom-right
+            u0, v0,
+            u1, v0,
+            u1, v1 
         });
     }
     return uv_seq;

@@ -521,8 +521,7 @@ void Shadow_Map_Pipeline::render_overlay_pass() {
     if (glIsVertexArray(oe->text_vao) == GL_FALSE) {
       log_error("no valid VAO id! cant render mesh.");
     }
-
-    std::cout << oe->texture_glid << std::endl;
+    
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, oe->texture_glid);
     upload_to_uniform(m_active_scene->universal_text_shader, "fontAtlas", 0);

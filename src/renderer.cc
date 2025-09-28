@@ -62,8 +62,10 @@ void Renderer::update_scene_time() {
 }
 
 void Renderer::abstract_render() {
+  //now render frame
   m_pipeline->render_frame();
-}
+
+  }
 
 void Renderer::render_frame() {
   
@@ -92,6 +94,25 @@ void Renderer::render_frame() {
   m_physics_manager->handle_scene_physics();
   m_input_manager->process_input(associated_window, m_application_current_time, m_deltaTime);
 
+  // --- FPS update ---
+  m_frame_count++;
+  double current_time = glfwGetTime();
+  if (current_time - m_last_fps_time >= 1.0) {
+    m_fps = static_cast<float>(m_frame_count) / static_cast<float>(current_time - m_last_fps_time);
+    m_frame_count = 0;
+    m_last_fps_time = current_time;
+    m_fps_dirty = true;
+  }
+  if (m_fps_dirty) {
+    m_fps_display_text = "FPS: " + std::to_string(static_cast<int>(m_fps));
+    m_fps_dirty = false;
+    m_active_scene->m_scene_vbos_need_refresh = true;
+  }
+  if(m_active_scene->m_loaded_overlay_elements.size() > 0)
+    m_active_scene->m_loaded_overlay_elements[0]->edit_text(m_fps_display_text);
+  else
+    log_error("overlay has 0 elements");
+  
   // make sure data changes from anim / get reflected in VRAM
   if(m_active_scene->m_scene_vbos_need_refresh)
     init_scene_vbos();
@@ -143,7 +164,8 @@ void Renderer::init_scene(const char *scene_fp) {
   load_entity.m_mesh = std::move(
 				 Importer::load_all_meshes_from_gltf(scene_fp, num_loaded_textures, m_texture_map));
 
-  //  glDisable(GL_CULL_FACE);
+  // vsync xd
+  glfwSwapInterval(0);
 
   //initialize scene + components
   m_active_scene = std::make_shared<Scene>();
@@ -363,8 +385,8 @@ void Renderer::init_scene_vbos() {
   ///////////////////
   for(std::shared_ptr<Overlay_Element>& oe : m_active_scene->m_loaded_overlay_elements) {
 
-    //    if(!oe->element_needs_vbo_update)
-    //  continue;
+    if(!oe->element_needs_vbo_update)
+      continue;
 
     if (oe->text_vao != 0) {
       glDeleteVertexArrays(1, &oe->text_vao);
@@ -401,6 +423,9 @@ void Renderer::init_scene_vbos() {
     glEnableVertexAttribArray(1);
 
     log_error("INITIALIZEDD TEXT!!");
+
+    oe->element_needs_vbo_update = false;
+    
   }
   
   ///////////////////
