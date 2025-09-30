@@ -224,22 +224,25 @@ void Shadow_Map_Pipeline::render_color_pass() {
         glBindTexture(GL_TEXTURE_2D, window_depth_map);
 	upload_to_uniform(*touse, "uDepthMap", 1);
 
-	if(mesh->m_material->full_pbr) {
+	// do we have normal tex? use it :-)
+	if(mesh->m_material->m_material_normal_glid) {
 	  glActiveTexture(GL_TEXTURE2);
 	  glBindTexture(GL_TEXTURE_2D, mesh->m_material->m_material_normal_glid);
-	  upload_to_uniform(*touse, "uNormalMap", 2);
-
-	  if(mesh->m_material->m_material_metallic_roughness_glid) {
-	    glActiveTexture(GL_TEXTURE3);
-	    glBindTexture(GL_TEXTURE_2D, mesh->m_material->m_material_metallic_roughness_glid);
-	    upload_to_uniform(*touse, "uMetallicRoughnessMap", 3);
-	    upload_to_uniform(*touse, "useMetallicRoughness", 1);
-	  } else { upload_to_uniform(*touse, "useMetallicRoughness", 0); }
-	  upload_to_uniform(*touse, "use_full_pbr", 1);
+	  upload_to_uniform(*touse, "uNormalMap", 2);	  
+	  upload_to_uniform(*touse, "use_normal_map", 1);
 	} else {
-	  upload_to_uniform(*touse, "use_full_pbr", 0);
+	  upload_to_uniform(*touse, "use_normal_map", 0);
 	}
-	
+	// or metalrough?? haha omg cool comments
+	if(mesh->m_material->m_material_metallic_roughness_glid) {
+	  glActiveTexture(GL_TEXTURE3);
+	  glBindTexture(GL_TEXTURE_2D, mesh->m_material->m_material_metallic_roughness_glid);
+	  upload_to_uniform(*touse, "uMetallicRoughnessMap", 3);
+	  upload_to_uniform(*touse, "useMetallicRoughness", 1);
+	} else {
+	  upload_to_uniform(*touse, "useMetallicRoughness", 0);
+	}
+        
         check_gl_error("after uploading textures");
 
 	// set rest of uniforms

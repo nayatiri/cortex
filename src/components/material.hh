@@ -18,7 +18,10 @@ public:
 
   e_mat_type m_material_type = E_PHONG;
   bool transparent = false;
-  bool full_pbr = false;
+
+  bool use_albedo = false;
+  bool use_normal = false;
+  bool use_metallicroughness = false;
   
   //BSDF 
   const char* m_material_albedo_path = "";

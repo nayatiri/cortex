@@ -165,7 +165,7 @@ void Renderer::init_scene(const char *scene_fp) {
 				 Importer::load_all_meshes_from_gltf(scene_fp, num_loaded_textures, m_texture_map));
 
   // vsync xd
-  glfwSwapInterval(0);
+  glfwSwapInterval(1);
 
   //initialize scene + components
   m_active_scene = std::make_shared<Scene>();
@@ -431,29 +431,31 @@ void Renderer::init_scene_vbos() {
   ///////////////////
   // Update signed distance field shared vbo
   ///////////////////
-  if (m_active_scene->shared_sdf_vao != 0) {
-    glDeleteVertexArrays(1, &m_active_scene->shared_sdf_vao);
-    m_active_scene->shared_sdf_vao = 0;
-  }
-  if (m_active_scene->shared_sdf_vbo != 0) {
-    glDeleteBuffers(1, &m_active_scene->shared_sdf_vbo);
-    m_active_scene->shared_sdf_vbo = 0;
-  }
-  // Create VAO n load fullscreen tri xd
-  glGenVertexArrays(1, &m_active_scene->shared_sdf_vao);
-  glBindVertexArray(m_active_scene->shared_sdf_vao);
-  std::vector<float> tmp = {-1.0f,-1.0f, -1.0f,
-			    3.0f, -1.0f, -1.0f,
-			    -1.0f, 3.0f, -1.0f};
-  glGenBuffers(1, &m_active_scene->shared_sdf_vbo);
-  glBindBuffer(GL_ARRAY_BUFFER, m_active_scene->shared_sdf_vbo);
-  glBufferData(GL_ARRAY_BUFFER,
-	       tmp.size() * sizeof(float), tmp.data() , GL_STATIC_DRAW);
-  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
-  glEnableVertexAttribArray(0);
-
+  if(!m_active_scene->shared_sdf_vao_initialized)
+    {
+      if (m_active_scene->shared_sdf_vao != 0) {
+	glDeleteVertexArrays(1, &m_active_scene->shared_sdf_vao);
+	m_active_scene->shared_sdf_vao = 0;
+      }
+      if (m_active_scene->shared_sdf_vbo != 0) {
+	glDeleteBuffers(1, &m_active_scene->shared_sdf_vbo);
+	m_active_scene->shared_sdf_vbo = 0;
+      }
+      // Create VAO n load fullscreen tri xd
+      glGenVertexArrays(1, &m_active_scene->shared_sdf_vao);
+      glBindVertexArray(m_active_scene->shared_sdf_vao);
+      std::vector<float> tmp = {-1.0f,-1.0f, -1.0f,
+				3.0f, -1.0f, -1.0f,
+				-1.0f, 3.0f, -1.0f};
+      glGenBuffers(1, &m_active_scene->shared_sdf_vbo);
+      glBindBuffer(GL_ARRAY_BUFFER, m_active_scene->shared_sdf_vbo);
+      glBufferData(GL_ARRAY_BUFFER,
+		   tmp.size() * sizeof(float), tmp.data() , GL_STATIC_DRAW);
+      glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+      glEnableVertexAttribArray(0);
+      
+    }
   //done
-    
   m_active_scene->m_scene_vbos_need_refresh = false;
   log_success("Successfully initialized/updated VBOs for all dirty meshes!");
 }

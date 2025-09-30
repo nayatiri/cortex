@@ -21,6 +21,7 @@ The only Libraries used are GLFW (xlib is terrible), OpenGL, and STB image to lo
 -  Custom abstraction, making the engine suitable for easy expansion.
 -  Animation system for Camera animations / cutscenes using control points and interpolating between them
 -  Primitive Physics engine consising of: Point physics(gravity, drag, conditional), Spring constraints and more to come soon. 
+-  Text rendering / Overlay rendering with texture atlas support.
 
 ---
 

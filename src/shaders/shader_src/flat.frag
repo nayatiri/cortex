@@ -12,7 +12,7 @@ uniform sampler2D uDepthMap;
 uniform sampler2D uNormalMap;
 uniform sampler2D uMetallicRoughnessMap; 
 
-uniform bool use_full_pbr;
+uniform bool use_normal_map;
 uniform bool useMetallicRoughness;
 uniform vec3 lightPosition;
 uniform float lightIntensity;
@@ -104,12 +104,8 @@ float ShadowCalculation(vec4 fragPosLightSpace)
 
 vec3 getPBRNormal()
 {
-    if (!use_full_pbr) {
-        // Fallback to geometric normal (assuming it's in FragWorldPos.w or derived)
-        // But you don't have it — so let's assume flat normal for now, or pass it in.
-        // Better: pass world normal as 'in vec3 FragNormal' from vertex shader.
-        // For now, approximate:
-        return vec3(0.0, 1.0, 0.0); // fallback upward normal
+    if (!use_normal_map) {
+        return vec3(0.0, 1.0, 0.0); // fallback upward normal ik it shit
     }
 
     vec3 tangentNormal = texture(uNormalMap, TexCoord).rgb;
@@ -126,7 +122,6 @@ void main()
     vec3 lightDir = normalize(lightPosition - FragWorldPos.xyz);
     vec3 viewDir = normalize(cameraPosition - FragWorldPos.xyz);
 
-
     float metallic = 0.0;
     float roughness = 0.0;
     if(useMetallicRoughness) {
@@ -142,7 +137,7 @@ void main()
     vec3 ambientLight = albedo * ambient;
 
     vec3 directLight = vec3(0.0);
-    if (use_full_pbr) {
+    if (use_normal_map) {
         directLight = pbr_lighting(albedo, metallic, roughness, worldNormal, lightDir, viewDir, shadow);
     } else {
     //lambertian diffuse
@@ -151,6 +146,4 @@ void main()
     }
 
     FragColor = ambientLight + directLight;
-
-//    FragColor = clamp(FragColor, 0.0, 1.0);
 }

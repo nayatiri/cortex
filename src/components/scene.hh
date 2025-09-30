@@ -65,6 +65,7 @@ public:
   //sdf
   GLuint shared_sdf_vao = 0;
   unsigned int shared_sdf_vbo = 0;
+  bool shared_sdf_vao_initialized = false;
 
 
   //TODO: make this not be here xd

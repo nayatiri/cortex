@@ -192,14 +192,9 @@ std::vector<std::shared_ptr<Mesh>> Importer::load_all_meshes_from_gltf(
   };
 
   log_debug("starting to load gltf node tree...");
-
-  static int depth = 0;
   
   std::function<void(int, glm::mat4)> process_node;
   process_node = [&](int node_idx, glm::mat4 parent_transform) {
-    depth++;
-    std::cout << depth << " rec depth" << std::endl;
-
     
     const auto &node = model.nodes[node_idx];
     glm::mat4 node_transform = glm::mat4(1.0f);
@@ -224,12 +219,9 @@ std::vector<std::shared_ptr<Mesh>> Importer::load_all_meshes_from_gltf(
     glm::mat4 global_transform = parent_transform * node_transform;
 
     if (node.mesh >= 0) {
-
-      std::cout << "Vector size before node mesh: " << new_meshes.size() << ", capacity: " << new_meshes.capacity() << std::endl;
       const auto &found_mesh = model.meshes[node.mesh];
 
       for (const auto &primitive : found_mesh.primitives) {
-	
 	
 	//buffers (for material properties)
 	glm::vec4 base_color_buffer = glm::vec4(0.0f,0.0f,0.0f,0.0f);
@@ -237,7 +229,8 @@ std::vector<std::shared_ptr<Mesh>> Importer::load_all_meshes_from_gltf(
 	float roughness_factor_buffer = 0.0f;
 	
         log_debug("importing primitive from node tree...");
-	
+
+	// load pos, norm, uv, tan, bitan from file
         const auto &posAccessor =
             model.accessors[primitive.attributes.at("POSITION")];
         const auto &posBufferView = model.bufferViews[posAccessor.bufferView];
@@ -285,8 +278,6 @@ std::vector<std::shared_ptr<Mesh>> Importer::load_all_meshes_from_gltf(
         std::string texture_path_of_albedo = "";
 	std::string texture_path_of_normal = "";
 	std::string texture_path_of_metallic_roughness = "";
-
-	std::cout << "Vector size b4 mat: " << new_meshes.size() << ", capacity: " << new_meshes.capacity() << std::endl;
 	
         if (primitive.material >= 0) {
 
@@ -294,9 +285,7 @@ std::vector<std::shared_ptr<Mesh>> Importer::load_all_meshes_from_gltf(
               model.materials[primitive.material];
           const auto &pbr = material.pbrMetallicRoughness;
 
-          // TMP
-
-          std::cout << "\n--- Material for Primitive ---\n";
+          std::cout << "\n--- Analyzing material for Primitive ---\n";
 
 	  // albedo
           if (auto path = get_texture_path(model, pbr.baseColorTexture)) {
@@ -314,7 +303,8 @@ std::vector<std::shared_ptr<Mesh>> Importer::load_all_meshes_from_gltf(
             std::cout << "Metallic-Roughness Texture: " << *path << "\n";
 	    texture_path_of_metallic_roughness = *path;
 	    shader_type_carry ++; // raise by 1, see if we have all tex later
-          } else {
+            log_success("normal texture present!");
+	  } else {
             std::cout << "No Metallic-Roughness Texture\n";
           }
 
@@ -324,6 +314,7 @@ std::vector<std::shared_ptr<Mesh>> Importer::load_all_meshes_from_gltf(
               std::cout << "Normal Texture: " << *path << "\n";
 	      texture_path_of_normal = *path;
               shader_type_carry ++; // raise by 1, see if we have all tex later
+	      log_success("metalrough texture present!");
             }
           } else {
             std::cout << "No Normal Texture\n";
@@ -361,13 +352,14 @@ std::vector<std::shared_ptr<Mesh>> Importer::load_all_meshes_from_gltf(
 	  base_color_buffer[3] = baseColor[3];
 	  
 	} else {
-          // also need to use fallback if there is 0 materials in mesh
+          // also need to use phong fallback if there is 0 materials in mesh
           shader_type_carry = 1;
         }
 
+	//write all vertex data to export model
         std::vector<float> final_vertices, final_normals, final_tangents,
             final_bitangents, final_texcoords;
-	
+
         size_t vertex_count = posAccessor.count;
         if (primitive.indices >= 0) {
           const auto &indexAccessor = model.accessors[primitive.indices];
@@ -416,13 +408,13 @@ std::vector<std::shared_ptr<Mesh>> Importer::load_all_meshes_from_gltf(
           }
         }
 	
-        log_success("done importing models, loading shaders...");
+        log_success("done importing model vertex data... loading its shaders now...");
 
 	if(shader_type_carry > 3)
 	  log_error("theoretically PBR possible!!!");
 
 	if(final_tangents.size() < 1 || final_normals.size() < 1 || final_texcoords.size() < 1)
-	  log_error("waddafak this shit broken");
+	  log_error("Meshes tangents, normals, texcords arent all of length greater 0");
 	  
 	// TODO turn this into a switch later with all types
         if (shader_type_carry > 1) {
@@ -436,8 +428,12 @@ std::vector<std::shared_ptr<Mesh>> Importer::load_all_meshes_from_gltf(
           if(base_color_buffer[3] < 0.9f)
 	    mat_to_use->transparent = true;
 
-	  if(texture_path_of_albedo != "" && texture_path_of_normal != "")
-	    mat_to_use->full_pbr = true;
+	  if(texture_path_of_albedo != "")
+	    mat_to_use->use_albedo = true;
+	  if(texture_path_of_normal != "")
+	    mat_to_use->use_normal = true;
+	  if(texture_path_of_metallic_roughness != "")
+	    mat_to_use->use_metallicroughness = true;
 
 	  std::shared_ptr<Mesh> primitive_mesh = std::make_shared<Mesh>(mat_to_use);
           primitive_mesh->m_render_mode = E_FILLED;
@@ -485,11 +481,8 @@ std::vector<std::shared_ptr<Mesh>> Importer::load_all_meshes_from_gltf(
           primitive_mesh->m_sca_z = scale_z;
           // endTMP
 
-          // bind tex to num_loaded_tex and increment.
-
-
           // this is garbage hacky shit again TODO: clean shit up lol (ill never
-          // clean this up xd)
+          // clean this up xd) i mean i didnt clean it up but this is defo better than before right? haha pls
           std::filesystem::path cwd = std::filesystem::current_path();
           std::filesystem::path model_path = file_path;
 	  
@@ -499,20 +492,24 @@ std::vector<std::shared_ptr<Mesh>> Importer::load_all_meshes_from_gltf(
 	  primitive_mesh->m_material->m_material_albedo_glid = bind_texture_to_slot(
 										    final_albedo_path, num_loaded_textures.load(), texture_map);
           
-	  if(mat_to_use->full_pbr) {
+	  if(mat_to_use->use_normal) {
+	    log_success("loading normal texture!");
 	    // also upload normal tex
 	    std::filesystem::path full_normal_path =
 	      cwd / model_path.parent_path() / texture_path_of_normal;
 	    std::string final_normal_path = full_normal_path.lexically_normal().string();
 	    primitive_mesh->m_material->m_material_normal_glid = bind_texture_to_slot(
 										      final_normal_path, num_loaded_textures.load(), texture_map);
+	  }
+
+	  if(mat_to_use->use_metallicroughness) {
+	    log_success("loading normal texture!");
 	    // do same for metalrough
 	    std::filesystem::path full_metal_rough_path =
 	      cwd / model_path.parent_path() / texture_path_of_metallic_roughness;
 	    std::string final_metal_rough_path = full_metal_rough_path.lexically_normal().string();
 	    primitive_mesh->m_material->m_material_metallic_roughness_glid = bind_texture_to_slot(
-										      final_metal_rough_path, num_loaded_textures.load(), texture_map);
-
+												  final_metal_rough_path, num_loaded_textures.load(), texture_map);
 	  }
 
 	  primitive_mesh->m_material->m_material_type = E_PBR;

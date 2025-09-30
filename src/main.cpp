@@ -29,16 +29,19 @@ int main () {
   //main_renderer.init_scene("models/showroom/showroom.gltf");
   //main_renderer.add_model_to_scene("models/midnight_coup/midnight_coup.gltf");
   //main_renderer.add_model_to_scene("models/cube/cube.gltf");
+  main_renderer.add_model_to_scene("models/levi/model.gltf");
+  //main_renderer.add_model_to_scene("models/lament/lament.gltf");
   //main_renderer.add_model_to_scene("models/pbr_cube/pbr_cube.gltf");
-  main_renderer.add_model_to_scene("models/benz/scene.gltf");
+  //main_renderer.add_model_to_scene("models/benz/scene.gltf");
 
   
-  //  spawn_pyramid(main_renderer);
+  //    spawn_pyramid(main_renderer);
   //  spawn_point_collission(main_renderer);
   //  spawn_single_link(main_renderer);
   //  spawn_box(main_renderer);
 
-  main_renderer.add_text_to_overlay("cortex engine - build 2", 10 ,20 );
+  main_renderer.add_text_to_overlay("fps:", 10 ,20 );
+  main_renderer.add_text_to_overlay("cortex - dev build", 10 ,40 );
   
   while(!main_renderer.m_input_manager->m_should_shutdown) {
     main_renderer.render_frame();
