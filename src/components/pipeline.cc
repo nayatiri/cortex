@@ -8,6 +8,7 @@
 #include <glm/ext/matrix_clip_space.hpp>
 #include <glm/ext/vector_float3.hpp>
 #include <glm/glm.hpp>
+#include <glm/matrix.hpp>
 #include <memory>
 
 /// Pipeline util functions
@@ -254,6 +255,9 @@ void Shadow_Map_Pipeline::render_color_pass() {
 			  m_active_scene->m_local_player->m_player_camera->m_cameraPos);
 	upload_to_uniform(*touse, "lightIntensity",
 			  m_active_scene->m_loaded_lights[0].m_strength);
+
+	glm::mat3 normalMat = glm::transpose(glm::inverse(glm::mat3(entity.get_model_matrix() * mesh->get_model_matrix())));
+	upload_to_uniform(*touse, "normalMatrix", normalMat);
 	
       }
       

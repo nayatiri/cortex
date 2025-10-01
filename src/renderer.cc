@@ -358,7 +358,7 @@ void Renderer::init_scene_vbos() {
         glBufferData(GL_ARRAY_BUFFER,
                      mesh->m_tangents_array.size() * sizeof(float),
                      mesh->m_tangents_array.data(), GL_STATIC_DRAW);
-        glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+        glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
         glEnableVertexAttribArray(3);
       }
 

@@ -145,5 +145,7 @@ void main()
         directLight = albedo * diff * shadow;
     }
 
-    FragColor = ambientLight + directLight;
+//    FragColor = ambientLight + directLight;
+
+    FragColor = mix(ambientLight + directLight, worldNormal, 0.5);
 }

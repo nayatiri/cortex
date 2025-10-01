@@ -217,7 +217,10 @@ std::vector<std::shared_ptr<Mesh>> Importer::load_all_meshes_from_gltf(
     }
 
     glm::mat4 global_transform = parent_transform * node_transform;
-
+    if (glm::determinant(glm::mat3(global_transform)) < 0.0f) {
+      log_error("Negative scale detected in node !!!");
+    }
+    
     if (node.mesh >= 0) {
       const auto &found_mesh = model.meshes[node.mesh];
 
@@ -373,7 +376,7 @@ std::vector<std::shared_ptr<Mesh>> Importer::load_all_meshes_from_gltf(
                                    &normals[idx * 3 + 3]);
             if (tangents)
               final_tangents.insert(final_tangents.end(), &tangents[idx * 4],
-                                    &tangents[idx * 4 + 3]);
+                                    &tangents[idx * 4 + 4]);
             if (texcoords)
               final_texcoords.insert(final_texcoords.end(), &texcoords[idx * 2],
                                      &texcoords[idx * 2 + 2]);
@@ -388,26 +391,43 @@ std::vector<std::shared_ptr<Mesh>> Importer::load_all_meshes_from_gltf(
                                    &normals[i * 3 + 3]);
             if (tangents)
               final_tangents.insert(final_tangents.end(), &tangents[i * 4],
-                                    &tangents[i * 4 + 3]);
+                                    &tangents[i * 4 + 4]);
             if (texcoords)
               final_texcoords.insert(final_texcoords.end(), &texcoords[i * 2],
                                      &texcoords[i * 2 + 2]);
           }
         }
 
-        if (!final_tangents.empty() && !final_normals.empty()) {
-          for (size_t i = 0; i < final_normals.size(); i += 3) {
-            glm::vec3 N(final_normals[i], final_normals[i + 1],
-                        final_normals[i + 2]);
-            glm::vec3 T(final_tangents[i], final_tangents[i + 1],
-                        final_tangents[i + 2]);
-            glm::vec3 B = glm::normalize(glm::cross(N, T));
-            final_bitangents.push_back(B.x);
-            final_bitangents.push_back(B.y);
-            final_bitangents.push_back(B.z);
-          }
-        }
-	
+	if (!final_tangents.empty() && !final_normals.empty()) {
+	  size_t vertex_count_normals = final_normals.size() / 3;
+	  size_t vertex_count_tangents = final_tangents.size() / 4;
+	  
+	  size_t vertex_count = std::min(vertex_count_normals, vertex_count_tangents);
+	  
+	  final_bitangents.reserve(vertex_count * 3);
+	  
+	  for (size_t v = 0; v < vertex_count; ++v) {
+	    size_t ni = v * 3;
+	    size_t ti = v * 4;
+	    
+	    glm::vec3 N(final_normals[ni], final_normals[ni + 1], final_normals[ni + 2]);
+	    glm::vec3 T(final_tangents[ti], final_tangents[ti + 1], final_tangents[ti + 2]);
+	    float handedness = final_tangents[ti + 3]; 
+
+	    std::cout << handedness << std::endl;
+	    
+	    glm::vec3 B = glm::normalize(glm::cross(N, T) * handedness);
+	    
+	    final_bitangents.push_back(B.x);
+	    final_bitangents.push_back(B.y);
+	    final_bitangents.push_back(B.z);
+	  }
+	  
+	  if (vertex_count_normals != vertex_count_tangents) {
+	    log_error("Mismatch between normals and tangents count — some vertices missing tangents or normals");
+	  }
+	}
+        
         log_success("done importing model vertex data... loading its shaders now...");
 
 	if(shader_type_carry > 3)

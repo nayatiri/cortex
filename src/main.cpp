@@ -29,8 +29,9 @@ int main () {
   //main_renderer.init_scene("models/showroom/showroom.gltf");
   //main_renderer.add_model_to_scene("models/midnight_coup/midnight_coup.gltf");
   //main_renderer.add_model_to_scene("models/cube/cube.gltf");
-  main_renderer.add_model_to_scene("models/levi/model.gltf");
-  //main_renderer.add_model_to_scene("models/lament/lament.gltf");
+  //main_renderer.add_model_to_scene("models/levi/model.gltf");
+  main_renderer.add_model_to_scene("models/normal_ball/normal_ball.gltf");
+  main_renderer.add_model_to_scene("models/lament/lament.gltf");
   //main_renderer.add_model_to_scene("models/pbr_cube/pbr_cube.gltf");
   //main_renderer.add_model_to_scene("models/benz/scene.gltf");
 
