@@ -45,7 +45,6 @@ public:
   std::vector<float> m_tex_coords_array;
   std::vector<float> m_normals_array;
   std::vector<float> m_tangents_array;
-  std::vector<float> m_binormals_array;
 
   GLuint m_mesh_vao = 0;
   std::shared_ptr<Material> m_material = nullptr;

@@ -149,7 +149,8 @@ GLuint Importer::bind_texture_to_slot(
 std::vector<std::shared_ptr<Mesh>> Importer::load_all_meshes_from_gltf(
     const std::string &file_path,
     std::atomic<unsigned int> &num_loaded_textures,
-    std::vector<std::tuple<std::string, unsigned int, GLuint>> &texture_map) {
+    std::vector<std::tuple<std::string, unsigned int, GLuint>> &texture_map,
+    bool flip_normals) {
 
   tinygltf::Model model;
   tinygltf::TinyGLTF loader;
@@ -361,7 +362,7 @@ std::vector<std::shared_ptr<Mesh>> Importer::load_all_meshes_from_gltf(
 
 	//write all vertex data to export model
         std::vector<float> final_vertices, final_normals, final_tangents,
-            final_bitangents, final_texcoords;
+	  final_texcoords;
 
         size_t vertex_count = posAccessor.count;
         if (primitive.indices >= 0) {
@@ -371,10 +372,17 @@ std::vector<std::shared_ptr<Mesh>> Importer::load_all_meshes_from_gltf(
 
             final_vertices.insert(final_vertices.end(), &positions[idx * 3],
                                   &positions[idx * 3 + 3]);
-            if (normals)
-              final_normals.insert(final_normals.end(), &normals[idx * 3],
-                                   &normals[idx * 3 + 3]);
-            if (tangents)
+            if (normals) {
+
+	      if(flip_normals){
+		for (int i = 0; i < 3; ++i) {
+		  final_normals.push_back(-normals[idx * 3 + i]);
+		}
+	      } else 
+		final_normals.insert(final_normals.end(), &normals[idx * 3],
+				     &normals[idx * 3 + 3]);
+	    }
+	    if (tangents)
               final_tangents.insert(final_tangents.end(), &tangents[idx * 4],
                                     &tangents[idx * 4 + 4]);
             if (texcoords)
@@ -397,36 +405,6 @@ std::vector<std::shared_ptr<Mesh>> Importer::load_all_meshes_from_gltf(
                                      &texcoords[i * 2 + 2]);
           }
         }
-
-	if (!final_tangents.empty() && !final_normals.empty()) {
-	  size_t vertex_count_normals = final_normals.size() / 3;
-	  size_t vertex_count_tangents = final_tangents.size() / 4;
-	  
-	  size_t vertex_count = std::min(vertex_count_normals, vertex_count_tangents);
-	  
-	  final_bitangents.reserve(vertex_count * 3);
-	  
-	  for (size_t v = 0; v < vertex_count; ++v) {
-	    size_t ni = v * 3;
-	    size_t ti = v * 4;
-	    
-	    glm::vec3 N(final_normals[ni], final_normals[ni + 1], final_normals[ni + 2]);
-	    glm::vec3 T(final_tangents[ti], final_tangents[ti + 1], final_tangents[ti + 2]);
-	    float handedness = final_tangents[ti + 3]; 
-
-	    std::cout << handedness << std::endl;
-	    
-	    glm::vec3 B = glm::normalize(glm::cross(N, T) * handedness);
-	    
-	    final_bitangents.push_back(B.x);
-	    final_bitangents.push_back(B.y);
-	    final_bitangents.push_back(B.z);
-	  }
-	  
-	  if (vertex_count_normals != vertex_count_tangents) {
-	    log_error("Mismatch between normals and tangents count — some vertices missing tangents or normals");
-	  }
-	}
         
         log_success("done importing model vertex data... loading its shaders now...");
 
@@ -461,7 +439,6 @@ std::vector<std::shared_ptr<Mesh>> Importer::load_all_meshes_from_gltf(
           primitive_mesh->m_vertices_array = std::move(final_vertices);
           primitive_mesh->m_normals_array = std::move(final_normals);
           primitive_mesh->m_tangents_array = std::move(final_tangents);
-          primitive_mesh->m_binormals_array = std::move(final_bitangents);
           primitive_mesh->m_tex_coords_array = std::move(final_texcoords);
 
           // TMP
@@ -554,7 +531,6 @@ std::vector<std::shared_ptr<Mesh>> Importer::load_all_meshes_from_gltf(
           primitive_mesh->m_vertices_array = std::move(final_vertices);
           primitive_mesh->m_normals_array = std::move(final_normals);
           primitive_mesh->m_tangents_array = std::move(final_tangents);
-          primitive_mesh->m_binormals_array = std::move(final_bitangents);
           primitive_mesh->m_tex_coords_array = std::move(final_texcoords);
 
           // TMP
@@ -767,7 +743,8 @@ Importer::calculate_vert_tan_bin(std::vector<float> mesh_vertices,
 std::vector<Mesh> Importer::load_all_meshes_from_gltf_temp(
 							   const std::string &file_path,
 							   std::atomic<unsigned int> &num_loaded_textures,
-							   std::vector<std::tuple<std::string, unsigned int, GLuint>> &texture_map) {
+							   std::vector<std::tuple<std::string, unsigned int, GLuint>> &texture_map,
+							   bool flip_normals) {
 
   //Load the model
   tinygltf::Model model;

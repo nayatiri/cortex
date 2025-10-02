@@ -42,6 +42,9 @@ void Renderer::setup_render_properties() {
   //TMP make light move in a circle
   m_active_scene->m_loaded_lights[0].set_light_look_at(0,0,0);
   m_active_scene->m_loaded_lights[0].set_light_position(10*sin(m_application_current_time/10),10,10*cos(m_application_current_time/10));
+
+  m_active_scene->m_loaded_entities[2].change_rotation(0.0f,glm::radians(m_deltaTime*25.0f), 0.0f);
+  m_active_scene->m_loaded_entities[1].change_rotation(0.0f,glm::radians(m_deltaTime*25.0f), 0.0f);
   
 }
 
@@ -134,10 +137,10 @@ void Renderer::render_frame() {
   glfwPollEvents();
 }
 
-void Renderer::add_model_to_scene(const char* filepath) {
+void Renderer::add_model_to_scene(const char* filepath, bool flip_normals) {
 
   Entity load_entity;
-  load_entity.m_mesh = Importer::load_all_meshes_from_gltf(filepath, num_loaded_textures, m_texture_map);
+  load_entity.m_mesh = Importer::load_all_meshes_from_gltf(filepath, num_loaded_textures, m_texture_map, flip_normals);
   m_active_scene->add_entity_to_scene(load_entity);
 
   m_active_scene->m_scene_vbos_need_refresh = true;
@@ -148,7 +151,7 @@ void Renderer::add_model_to_player_hand(const char* filepath) {
 
   Entity load_entity;
   load_entity.m_mesh = std::move(
-				 Importer::load_all_meshes_from_gltf(filepath, num_loaded_textures, m_texture_map));
+				 Importer::load_all_meshes_from_gltf(filepath, num_loaded_textures, m_texture_map, false));
   load_entity.is_held_by_localplayer = true;
   m_active_scene->add_entity_to_scene(load_entity);
 
@@ -162,7 +165,7 @@ void Renderer::init_scene(const char *scene_fp) {
   
   Entity load_entity;
   load_entity.m_mesh = std::move(
-				 Importer::load_all_meshes_from_gltf(scene_fp, num_loaded_textures, m_texture_map));
+				 Importer::load_all_meshes_from_gltf(scene_fp, num_loaded_textures, m_texture_map, false));
 
   // vsync xd
   glfwSwapInterval(1);
@@ -180,7 +183,7 @@ void Renderer::init_scene(const char *scene_fp) {
   add_player_to_scene(true);
   
   std::vector<std::shared_ptr<Mesh>> light_vec = Importer::load_all_meshes_from_gltf(
-										     "models/light/scene.gltf", num_loaded_textures, m_texture_map);
+										     "models/light/scene.gltf", num_loaded_textures, m_texture_map, false);
   
   
   Light main_light(light_vec[0]);
@@ -301,17 +304,15 @@ void Renderer::init_scene_vbos() {
 
       // Recalculate tangents/binormals if needed and texcoords exist
       if (!mesh->m_tex_coords_array.empty()) {
-        if (mesh->m_tangents_array.empty() || mesh->m_binormals_array.empty()) {
-          log_debug("Missing tangents/binormals, calculating...");
+        if (mesh->m_tangents_array.empty() ) {
+          log_debug("Missing tangents, calculating...");
 	  Importer::tan_bin_glob tb = Importer::calculate_vert_tan_bin(
               mesh->m_vertices_array, mesh->m_normals_array, mesh->m_tex_coords_array);
           mesh->m_tangents_array = tb.vert_tangents;
-          mesh->m_binormals_array = tb.vert_binormals;
         }
       } else {
-        log_error("Mesh has no UVs; using zeroed tangents/binormals");
+        log_error("Mesh has no UVs; using zeroed tangents");
         mesh->m_tangents_array.resize(mesh->m_vertices_array.size(), 0.0f);
-        mesh->m_binormals_array.resize(mesh->m_vertices_array.size(), 0.0f);
       }
 
       // Create VAO
@@ -360,17 +361,6 @@ void Renderer::init_scene_vbos() {
                      mesh->m_tangents_array.data(), GL_STATIC_DRAW);
         glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
         glEnableVertexAttribArray(3);
-      }
-
-      // binormals
-      if (!mesh->m_binormals_array.empty()) {
-        glGenBuffers(1, &mesh->m_binormals_glid);
-        glBindBuffer(GL_ARRAY_BUFFER, mesh->m_binormals_glid);
-        glBufferData(GL_ARRAY_BUFFER,
-                     mesh->m_binormals_array.size() * sizeof(float),
-                     mesh->m_binormals_array.data(), GL_STATIC_DRAW);
-        glVertexAttribPointer(4, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
-        glEnableVertexAttribArray(4);
       }
 
       glBindVertexArray(0);

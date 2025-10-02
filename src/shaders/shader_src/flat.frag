@@ -23,10 +23,8 @@ const float M_PI = 3.14159265359;
 
 vec3 pbr_lighting(vec3 albedo, float metallic, float roughness, vec3 normal, vec3 lightDir, vec3 viewDir, float shadow) {
 
-//skidding sim
     vec3 lightColor = vec3(1.0);
     vec3 halfDir = normalize(lightDir + viewDir);
-
     // Cook-Torrance BRDF components
 
     // Normal Distribution Function (GGX/Trowbridge-Reitz)
@@ -109,6 +107,9 @@ vec3 getPBRNormal()
     }
 
     vec3 tangentNormal = texture(uNormalMap, TexCoord).rgb;
+    //tmp
+    //tangentNormal.y = 1.0 - tangentNormal.y;
+    //tangentNormal.y *= -1.0;
     tangentNormal = normalize(tangentNormal * 2.0 - 1.0);
     return normalize(TBN * tangentNormal);
 }
@@ -145,7 +146,8 @@ void main()
         directLight = albedo * diff * shadow;
     }
 
-//    FragColor = ambientLight + directLight;
+      FragColor = ambientLight + directLight;
 
-    FragColor = mix(ambientLight + directLight, worldNormal, 0.5);
+      //FragColor = mix(ambientLight + directLight, worldNormal, 0.5);
+      //FragColor = mix(ambientLight + directLight, TBN[2], 0.5);
 }
