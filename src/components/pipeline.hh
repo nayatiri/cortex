@@ -43,8 +43,8 @@ private:
 
   // shadow mapping utils
   unsigned int window_depth_map_fbo = 0;
-  const unsigned int shadow_map_width = 4000;
-  const unsigned int shadow_map_height = 4000;
+  const unsigned int shadow_map_width = 16000;
+  const unsigned int shadow_map_height = 16000;
   std::shared_ptr<Shader> depth_shader = nullptr;
   
 public:

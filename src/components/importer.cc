@@ -149,8 +149,7 @@ GLuint Importer::bind_texture_to_slot(
 std::vector<std::shared_ptr<Mesh>> Importer::load_all_meshes_from_gltf(
     const std::string &file_path,
     std::atomic<unsigned int> &num_loaded_textures,
-    std::vector<std::tuple<std::string, unsigned int, GLuint>> &texture_map,
-    bool flip_normals) {
+    std::vector<std::tuple<std::string, unsigned int, GLuint>> &texture_map) {
 
   tinygltf::Model model;
   tinygltf::TinyGLTF loader;
@@ -364,16 +363,27 @@ std::vector<std::shared_ptr<Mesh>> Importer::load_all_meshes_from_gltf(
         std::vector<float> final_vertices, final_normals, final_tangents,
 	  final_texcoords;
 
+	bool flip_normals = false;
+
         size_t vertex_count = posAccessor.count;
+	size_t vert_id = 0;
         if (primitive.indices >= 0) {
           const auto &indexAccessor = model.accessors[primitive.indices];
           for (size_t i = 0; i < indexAccessor.count; ++i) {
             uint32_t idx = get_index(primitive, i);
-
+	    size_t ti = vert_id * 4;
+	    flip_normals = false;
+	    
             final_vertices.insert(final_vertices.end(), &positions[idx * 3],
                                   &positions[idx * 3 + 3]);
-            if (normals) {
-
+	    if (tangents){
+              final_tangents.insert(final_tangents.end(), &tangents[idx * 4],
+                                    &tangents[idx * 4 + 4]);
+	      if(final_tangents[ti + 3]) {
+		flip_normals = true;
+	      }
+	    }
+	    if (normals) {	     
 	      if(flip_normals){
 		for (int i = 0; i < 3; ++i) {
 		  final_normals.push_back(-normals[idx * 3 + i]);
@@ -382,16 +392,15 @@ std::vector<std::shared_ptr<Mesh>> Importer::load_all_meshes_from_gltf(
 		final_normals.insert(final_normals.end(), &normals[idx * 3],
 				     &normals[idx * 3 + 3]);
 	    }
-	    if (tangents)
-              final_tangents.insert(final_tangents.end(), &tangents[idx * 4],
-                                    &tangents[idx * 4 + 4]);
+
             if (texcoords)
               final_texcoords.insert(final_texcoords.end(), &texcoords[idx * 2],
                                      &texcoords[idx * 2 + 2]);
+	    vert_id++;
           }
         } else {
           for (size_t i = 0; i < vertex_count; ++i) {
-
+	    /*
             final_vertices.insert(final_vertices.end(), &positions[i * 3],
                                   &positions[i * 3 + 3]);
             if (normals)
@@ -403,7 +412,10 @@ std::vector<std::shared_ptr<Mesh>> Importer::load_all_meshes_from_gltf(
             if (texcoords)
               final_texcoords.insert(final_texcoords.end(), &texcoords[i * 2],
                                      &texcoords[i * 2 + 2]);
-          }
+
+	    */
+	    log_error("this shouldnt happen");
+	  }
         }
         
         log_success("done importing model vertex data... loading its shaders now...");

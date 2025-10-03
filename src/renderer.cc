@@ -42,10 +42,10 @@ void Renderer::setup_render_properties() {
   //TMP make light move in a circle
   m_active_scene->m_loaded_lights[0].set_light_look_at(0,0,0);
   m_active_scene->m_loaded_lights[0].set_light_position(10*sin(m_application_current_time/10),10,10*cos(m_application_current_time/10));
-
+  /*
   m_active_scene->m_loaded_entities[2].change_rotation(0.0f,glm::radians(m_deltaTime*25.0f), 0.0f);
   m_active_scene->m_loaded_entities[1].change_rotation(0.0f,glm::radians(m_deltaTime*25.0f), 0.0f);
-  
+  */
 }
 
 void Renderer::framebuffer_size_callback(GLFWwindow *window, int width,
@@ -137,10 +137,10 @@ void Renderer::render_frame() {
   glfwPollEvents();
 }
 
-void Renderer::add_model_to_scene(const char* filepath, bool flip_normals) {
+void Renderer::add_model_to_scene(const char* filepath) {
 
   Entity load_entity;
-  load_entity.m_mesh = Importer::load_all_meshes_from_gltf(filepath, num_loaded_textures, m_texture_map, flip_normals);
+  load_entity.m_mesh = Importer::load_all_meshes_from_gltf(filepath, num_loaded_textures, m_texture_map);
   m_active_scene->add_entity_to_scene(load_entity);
 
   m_active_scene->m_scene_vbos_need_refresh = true;
@@ -151,7 +151,7 @@ void Renderer::add_model_to_player_hand(const char* filepath) {
 
   Entity load_entity;
   load_entity.m_mesh = std::move(
-				 Importer::load_all_meshes_from_gltf(filepath, num_loaded_textures, m_texture_map, false));
+				 Importer::load_all_meshes_from_gltf(filepath, num_loaded_textures, m_texture_map));
   load_entity.is_held_by_localplayer = true;
   m_active_scene->add_entity_to_scene(load_entity);
 
@@ -165,7 +165,7 @@ void Renderer::init_scene(const char *scene_fp) {
   
   Entity load_entity;
   load_entity.m_mesh = std::move(
-				 Importer::load_all_meshes_from_gltf(scene_fp, num_loaded_textures, m_texture_map, false));
+				 Importer::load_all_meshes_from_gltf(scene_fp, num_loaded_textures, m_texture_map));
 
   // vsync xd
   glfwSwapInterval(1);
@@ -183,7 +183,7 @@ void Renderer::init_scene(const char *scene_fp) {
   add_player_to_scene(true);
   
   std::vector<std::shared_ptr<Mesh>> light_vec = Importer::load_all_meshes_from_gltf(
-										     "models/light/scene.gltf", num_loaded_textures, m_texture_map, false);
+										     "models/light/scene.gltf", num_loaded_textures, m_texture_map);
   
   
   Light main_light(light_vec[0]);

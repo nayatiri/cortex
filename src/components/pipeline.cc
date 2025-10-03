@@ -9,6 +9,7 @@
 #include <glm/ext/vector_float3.hpp>
 #include <glm/glm.hpp>
 #include <glm/matrix.hpp>
+#include <glm/trigonometric.hpp>
 #include <memory>
 
 /// Pipeline util functions
@@ -132,11 +133,12 @@ void Shadow_Map_Pipeline::render_depth_pass() {
       } else {
 	glm::mat3 rotation = glm::mat3(shared_camera_view_matrix);
 	glm::mat4 inv_rotation = glm::mat4(glm::transpose(glm::mat3(rotation)));
-	inv_rotation[3] = glm::vec4(m_active_scene->m_local_player->get_position(),1.0f);
-        
-	//held by player
-	upload_to_uniform( m_active_scene->universal_depth_shader , "model",
-			  inv_rotation * entity.get_model_matrix() * mesh->get_model_matrix());
+	inv_rotation = glm::rotate(inv_rotation, glm::radians(180.0f), glm::vec3(0,1,0));
+	glm::vec3 pos_offset = m_active_scene->m_local_player->get_position();
+        inv_rotation[3] = glm::vec4(pos_offset,1.0f);
+       	
+	upload_to_uniform(m_active_scene->universal_depth_shader, "model", inv_rotation);       
+
       }
 
       //ENDTMP
@@ -281,17 +283,17 @@ void Shadow_Map_Pipeline::render_color_pass() {
 	upload_to_uniform(*touse, "projection",
 			  shared_camera_projection_matrix);
       } else {
-	
-	glm::mat4 trans_mat = glm::translate(glm::mat4(1.0f), m_active_scene->m_local_player->get_position());
-	
-	glm::mat4 model = trans_mat * entity.get_model_matrix() * mesh->get_model_matrix();
-	
-	upload_to_uniform(*touse, "model", model);
-	
-	upload_to_uniform(*touse, "view",
-			  shared_camera_view_matrix);
-	upload_to_uniform(*touse, "projection",
-			  shared_camera_projection_matrix);      
+	//make shit held
+
+	glm::mat3 rotation = glm::mat3(shared_camera_view_matrix);
+	glm::mat4 inv_rotation = glm::mat4(glm::transpose(glm::mat3(rotation)));
+	inv_rotation = glm::rotate(inv_rotation, glm::radians(180.0f), glm::vec3(0,1,0));
+	glm::vec3 pos_offset = m_active_scene->m_local_player->get_position();
+        inv_rotation[3] = glm::vec4(pos_offset,1.0f);
+       	
+	upload_to_uniform(*touse, "model", inv_rotation);       
+	upload_to_uniform(*touse, "view", shared_camera_view_matrix);
+	upload_to_uniform(*touse, "projection", glm::translate(shared_camera_projection_matrix,glm::vec3(0.25,-0.2,-0.2)));      
       }
       
       check_gl_error("after setting uniforms (shadow map color pass)");
@@ -582,7 +584,9 @@ void Shadow_Map_Pipeline::init_depth_pass() {
   glBindTexture(GL_TEXTURE_2D, window_depth_map);
   glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT32F, shadow_map_width,
                shadow_map_height, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_REF_TO_TEXTURE);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_FUNC, GL_LEQUAL);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
