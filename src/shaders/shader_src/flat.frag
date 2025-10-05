@@ -18,6 +18,7 @@ uniform vec3 lightPosition;
 uniform float lightIntensity;
 uniform vec3 cameraPosition;
 uniform float ambient = 0.1;
+uniform int render_debug_normals;
 
 const float M_PI = 3.14159265359;
 
@@ -146,8 +147,10 @@ void main()
         directLight = albedo * diff * shadow;
     }
 
+if(render_debug_normals < 1) {
       FragColor = ambientLight + directLight;
-
-      //FragColor = mix(ambientLight + directLight, worldNormal, 0.5);
+} else {
+      FragColor = mix(ambientLight + directLight, worldNormal, 0.5);
+      }
       //FragColor = mix(ambientLight + directLight, TBN[2], 0.5);
 }

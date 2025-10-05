@@ -22,6 +22,15 @@ public:
   bool m_last_wireframe_state = false;
   bool m_is_wireframe_on_cooldown = false;
 
+  bool m_render_mode_hitbox = false;
+  bool m_last_hitbox_state = false;
+  bool m_is_hitbox_on_cooldown = false;
+
+  bool m_render_mode_normal_visualizer = false;
+  bool m_last_normal_visualizer_state = false;
+  bool m_is_normal_visualizer_on_cooldown = false;
+
+  
   // Player Position buffers 
   double m_lastX = 0;
   double m_lastY = 0;

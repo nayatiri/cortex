@@ -30,9 +30,10 @@ void Input_Manager::process_input(GLFWwindow *window,
   float cameraSpeed =
       m_active_scene->m_local_player->m_player_camera->m_camera_base_speed * 10.0f * m_delta_time;
 
-  if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS) {
+  // toggle WIREFRAME Q+W
+  if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS && glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
     if (!m_last_wireframe_state) {
-      m_active_scene->render_properties.render_hitbox = !m_active_scene->render_properties.render_hitbox;
+      m_active_scene->render_properties.render_wireframe = !m_active_scene->render_properties.render_wireframe;
       m_is_wireframe_on_cooldown = true;
       m_last_wireframe_state = true;
     }
@@ -40,6 +41,29 @@ void Input_Manager::process_input(GLFWwindow *window,
     m_last_wireframe_state = false;
   }
 
+  //toggle HITBOX Q+H
+  if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS && glfwGetKey(window, GLFW_KEY_H) == GLFW_PRESS) {
+    if (!m_last_hitbox_state) {
+      m_active_scene->render_properties.render_hitbox = !m_active_scene->render_properties.render_hitbox;
+      m_is_hitbox_on_cooldown = true;
+      m_last_hitbox_state = true;
+    }
+  } else {
+    m_last_hitbox_state = false;
+  }
+
+  //toggle Normal visualizer Q+N
+  if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS && glfwGetKey(window, GLFW_KEY_N) == GLFW_PRESS) {
+    if (!m_last_normal_visualizer_state) {
+      m_active_scene->render_properties.render_normal_visualizer = !m_active_scene->render_properties.render_normal_visualizer;
+      m_is_normal_visualizer_on_cooldown = true;
+      m_last_normal_visualizer_state = true;
+    }
+  } else {
+    m_last_normal_visualizer_state = false;
+  }
+
+  
   if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
     m_active_scene->m_local_player->m_player_camera->m_cameraPos +=
         cameraSpeed * glm::normalize(glm::vec3(

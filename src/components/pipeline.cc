@@ -202,7 +202,7 @@ void Shadow_Map_Pipeline::render_color_pass() {
       check_gl_error("after setting shader active");
       
       // change hitbox or flat style
-      if (mesh->m_render_mode == E_WIREFRAME)
+      if (m_active_scene->render_properties.render_wireframe)
         glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
       else
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
@@ -236,6 +236,7 @@ void Shadow_Map_Pipeline::render_color_pass() {
 	} else {
 	  upload_to_uniform(*touse, "use_normal_map", 0);
 	}
+	
 	// or metalrough?? haha omg cool comments
 	if(mesh->m_material->m_material_metallic_roughness_glid) {
 	  glActiveTexture(GL_TEXTURE3);
@@ -258,7 +259,13 @@ void Shadow_Map_Pipeline::render_color_pass() {
 	upload_to_uniform(*touse, "lightIntensity",
 			  m_active_scene->m_loaded_lights[0].m_strength);
 
-	glm::mat3 normalMat = glm::transpose(glm::inverse(glm::mat3(entity.get_model_matrix() * mesh->get_model_matrix())));
+        // set debug uniform
+	if(m_active_scene->render_properties.render_normal_visualizer)
+	  upload_to_uniform(*touse, "render_debug_normals", 2);
+	else 
+	  upload_to_uniform(*touse, "render_debug_normals", 0);
+
+        glm::mat3 normalMat = glm::transpose(glm::inverse(glm::mat3(entity.get_model_matrix() * mesh->get_model_matrix())));
 	upload_to_uniform(*touse, "normalMatrix", normalMat);
 	
       }
