@@ -41,7 +41,6 @@ public:
   //FLAGS / ATTRIBUTE
   bool m_should_shutdown = false;
   bool m_render_mode_wireframe = false;
-  int m_viewport_width = 0, m_viewport_height = 0;
   GLFWwindow* associated_window = nullptr;
 
   //fps counter:
@@ -50,7 +49,7 @@ public:
   int m_frame_count = 0;
   std::string m_fps_display_text;
   bool m_fps_dirty = true;
-  
+
   //abstract render function
   std::unique_ptr<Pipeline> m_pipeline = nullptr;
   

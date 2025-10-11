@@ -161,7 +161,7 @@ void Shadow_Map_Pipeline::render_color_pass() {
   glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
   // clear fb + setup viewport back to the output size
-  glViewport(0, 0, m_viewport_width, m_viewport_height);
+  glViewport(0, 0, m_active_scene->m_scene_framebuffer_width, m_active_scene->m_scene_framebuffer_height);
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
   glClearColor(0.3f, 0.3f, 0.3f, 1.0f);
   glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -177,7 +177,7 @@ void Shadow_Map_Pipeline::render_color_pass() {
   
   shared_camera_projection_matrix = glm::perspective(
 						     glm::radians(m_active_scene->m_local_player->m_player_camera->fov),
-						     (float)m_viewport_width / (float)m_viewport_height,
+						     (float)m_active_scene->m_scene_framebuffer_width / (float)m_active_scene->m_scene_framebuffer_height,
 						     0.001f, 1000.0f);
   
   ///////////////////
@@ -259,9 +259,9 @@ void Shadow_Map_Pipeline::render_color_pass() {
 	upload_to_uniform(*touse, "lightIntensity",
 			  m_active_scene->m_loaded_lights[0].m_strength);
 
-        // set debug uniform
+        // set debug normal uniform
 	if(m_active_scene->render_properties.render_normal_visualizer)
-	  upload_to_uniform(*touse, "render_debug_normals", 2);
+	  upload_to_uniform(*touse, "render_debug_normals", 1);
 	else 
 	  upload_to_uniform(*touse, "render_debug_normals", 0);
 
@@ -617,10 +617,10 @@ void Shadow_Map_Pipeline::init_color_pass() {
 
 void Shadow_Map_Pipeline::handle_pick() {
 
-  float mouse_ndc_x = (2.0f * m_active_scene->m_selectionstate->mouse_pos_x) / m_viewport_width - 1.0f;
-  float mouse_ndc_y = 1.0f - (2.0f * m_active_scene->m_selectionstate->mouse_pos_y) / m_viewport_height;
+  float mouse_ndc_x = (2.0f * m_active_scene->m_selectionstate->mouse_pos_x) / m_active_scene->m_scene_framebuffer_width - 1.0f;
+  float mouse_ndc_y = 1.0f - (2.0f * m_active_scene->m_selectionstate->mouse_pos_y) / m_active_scene->m_scene_framebuffer_height;
 
-  float aspect_ratio = (float)m_viewport_width / (float)m_viewport_height;
+  float aspect_ratio = (float)m_active_scene->m_scene_framebuffer_width / (float)m_active_scene->m_scene_framebuffer_height;
   float fov_rads = glm::radians(m_active_scene->m_local_player->m_player_camera->fov);
   float half_fov = tan(fov_rads / 2.0f);
 

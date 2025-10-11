@@ -49,6 +49,8 @@ public:
 
   void mouse_callback(GLFWwindow *window, double xpos, double ypos);
 
+  void fb_resize_callback(GLFWwindow *window, int width, int height);
+
   void process_input(GLFWwindow *window, float m_application_current_time, float m_delta_time);
 
   bool save_frame_to_png(const char *filename, int width, int height);

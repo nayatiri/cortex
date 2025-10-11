@@ -52,6 +52,9 @@ void Renderer::framebuffer_size_callback(GLFWwindow *window, int width,
                                          int height) {
   log_success("framebuffer resized.");
   glViewport(0, 0, width, height);
+
+  //TODO move all the 15 different locations where i store size of FB to one, that gets updated here
+
 }
 
 void Renderer::update_scene_time() {
@@ -121,13 +124,7 @@ void Renderer::render_frame() {
     init_scene_vbos();
   
   // setup constants for render pass
-  glfwGetWindowSize(associated_window, &m_viewport_width, &m_viewport_height);
-  m_active_scene->m_scene_framebuffer_width = m_viewport_width;
-  m_active_scene->m_scene_framebuffer_height = m_viewport_height;
-
-  //TMP unclean
-  m_pipeline->m_viewport_height = m_viewport_height;
-  m_pipeline->m_viewport_width = m_viewport_width;
+  glfwGetWindowSize(associated_window, &m_active_scene->m_scene_framebuffer_width, &m_active_scene->m_scene_framebuffer_height);
   
   //launch depth render pass impl
   abstract_render();
@@ -375,7 +372,7 @@ void Renderer::init_scene_vbos() {
   ///////////////////
   for(std::shared_ptr<Overlay_Element>& oe : m_active_scene->m_loaded_overlay_elements) {
 
-    if(!oe->element_needs_vbo_update)
+    if(!oe->element_needs_vbo_update && !m_active_scene->reinit_text_vbos)
       continue;
 
     if (oe->text_vao != 0) {
@@ -391,12 +388,11 @@ void Renderer::init_scene_vbos() {
       oe->text_uv_vbo = 0;
     }
 
-    glfwGetFramebufferSize(associated_window,&m_viewport_width,&m_viewport_height);
-    
+    // this is a bit of a mess but itll do
     glGenVertexArrays(1, &oe->text_vao);
     glBindVertexArray(oe->text_vao);
     oe->uv_coords = m_active_scene->texture_atlas.get_glyph_UV_sequence_for_string(oe->text);
-    oe->text_vert_coords_screen_space = m_active_scene->texture_atlas.get_glyph_vert_cords_for_string(oe->text, m_viewport_width, m_viewport_height, oe);
+    oe->text_vert_coords_screen_space = m_active_scene->texture_atlas.get_glyph_vert_cords_for_string(oe->text, m_active_scene->m_scene_framebuffer_width, m_active_scene->m_scene_framebuffer_height, oe);
     glGenBuffers(1, &oe->text_vertices_vbo);
     glBindBuffer(GL_ARRAY_BUFFER, oe->text_vertices_vbo);
     glBufferData(GL_ARRAY_BUFFER,
@@ -404,7 +400,6 @@ void Renderer::init_scene_vbos() {
     glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(0);
 
-    
     glGenBuffers(1, &oe->text_uv_vbo);
     glBindBuffer(GL_ARRAY_BUFFER, oe->text_uv_vbo);
     glBufferData(GL_ARRAY_BUFFER,
@@ -417,6 +412,7 @@ void Renderer::init_scene_vbos() {
     oe->element_needs_vbo_update = false;
     
   }
+  m_active_scene->reinit_text_vbos = false;
   
   ///////////////////
   // Update signed distance field shared vbo
@@ -491,7 +487,7 @@ _/ ___\/  _ \_  __ \   __\/ __ \\  \/  /
   }
 
   // setup
-  glViewport(0, 0, m_viewport_width, m_viewport_height);
+  glViewport(0, 0, 1920, 1080);
   glEnable(GL_DEPTH_TEST);
 
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
@@ -505,7 +501,17 @@ _/ ___\/  _ \_  __ \   __\/ __ \\  \/  /
                                  Renderer::framebuffer_size_callback);
   glfwSetWindowUserPointer(associated_window, m_input_manager.get());
 
-  // set callbacks using lambda functions
+  //FB resize callback
+  glfwSetFramebufferSizeCallback(associated_window, [](GLFWwindow *w, int width,
+                                              int height) {
+    Input_Manager *imanager = static_cast<Input_Manager *>(glfwGetWindowUserPointer(w));
+    
+    if (imanager) {
+      imanager->fb_resize_callback(w, width, height);
+    }
+  });
+  
+  // scroll callback
   glfwSetScrollCallback(associated_window, [](GLFWwindow *w, double xoffset,
                                               double yoffset) {
     Input_Manager *imanager = static_cast<Input_Manager *>(glfwGetWindowUserPointer(w));
@@ -514,7 +520,8 @@ _/ ___\/  _ \_  __ \   __\/ __ \\  \/  /
       imanager->scroll_callback(w, xoffset, yoffset);
     }
   });
-  
+
+  // mouse move callback
   glfwSetCursorPosCallback(associated_window, [](GLFWwindow *w, double xpos,
                                                  double ypos) {
     Input_Manager *imanager = static_cast<Input_Manager *>(glfwGetWindowUserPointer(w));

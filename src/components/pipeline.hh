@@ -22,7 +22,6 @@ public:
   //shared variables between render passes
   std::shared_ptr<Scene> m_active_scene = nullptr;
   unsigned int window_depth_map = 0;
-  int m_viewport_width = 0, m_viewport_height = 0;
   glm::mat4 shared_light_space_matrix = glm::mat4(1.0f);
   glm::mat4 shared_camera_view_matrix = glm::mat4(1.0f);
   glm::mat4 shared_camera_projection_matrix = glm::mat4(1.0f);

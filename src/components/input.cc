@@ -372,3 +372,13 @@ void Input_Manager::mouse_callback(GLFWwindow *window, double xpos,
   m_direction.z = sin(glm::radians(m_yaw)) * cos(glm::radians(m_pitch));
   m_active_scene->m_local_player->m_player_camera->m_cameraLookAt = glm::normalize(m_direction);
 }
+
+void Input_Manager::fb_resize_callback(GLFWwindow *window, int width, int height) {
+
+  m_active_scene->reinit_text_vbos = true;
+
+  m_active_scene->m_scene_framebuffer_width = width;
+
+  m_active_scene->m_scene_framebuffer_height = height;
+  
+}

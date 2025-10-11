@@ -61,6 +61,7 @@ public:
   // overlay
   Texture_Atlas texture_atlas;
   bool tex_atlas_initialized = false;
+  bool reinit_text_vbos = true;
 
   //sdf
   GLuint shared_sdf_vao = 0;
