@@ -4,6 +4,7 @@
 #include "./glad/glad.h"
 #include "./libs/tiny_gltf.h"
 #include <GLFW/glfw3.h>
+#include <chrono>
 #include <glm/glm.hpp>
 
 // stdlib
@@ -11,6 +12,7 @@
 #include <iostream>
 #include <memory>
 #include <string>
+#include <thread>
 #include <vector>
 #include <iostream>
 
@@ -100,7 +102,7 @@ void Renderer::render_frame() {
   m_physics_manager->handle_scene_physics();
   m_input_manager->process_input(associated_window, m_application_current_time, m_deltaTime);
 
-  // --- FPS update ---
+  // handle frametime + fps counter
   m_frame_count++;
   double current_time = glfwGetTime();
   if (current_time - m_last_fps_time >= 1.0) {
@@ -117,7 +119,7 @@ void Renderer::render_frame() {
   if(m_active_scene->m_loaded_overlay_elements.size() > 0)
     m_active_scene->m_loaded_overlay_elements[0]->edit_text(m_fps_display_text);
   else
-    log_error("overlay has 0 elements");
+    log_error("overlay doesnt have fps element");
   
   // make sure data changes from anim / get reflected in VRAM
   if(m_active_scene->m_scene_vbos_need_refresh)
@@ -132,6 +134,10 @@ void Renderer::render_frame() {
   // draw to screen
   glfwSwapBuffers(associated_window);
   glfwPollEvents();
+
+  // hit fps target 
+  if(m_deltaTime < fps_target_ms)
+    std::this_thread::sleep_for(std::chrono::milliseconds((int)(fps_target_ms) - (int)(m_deltaTime)));
 }
 
 void Renderer::add_model_to_scene(const char* filepath) {
@@ -165,7 +171,8 @@ void Renderer::init_scene(const char *scene_fp) {
 				 Importer::load_all_meshes_from_gltf(scene_fp, num_loaded_textures, m_texture_map));
 
   // vsync xd
-  glfwSwapInterval(1);
+  //glfwSwapInterval(1);
+  glfwSwapInterval(0);
 
   //initialize scene + components
   m_active_scene = std::make_shared<Scene>();
@@ -578,5 +585,12 @@ void Renderer::add_text_to_overlay(std::string to_add, unsigned int anchor_x,
   glfwGetFramebufferSize(associated_window, &m_active_scene->m_scene_framebuffer_width, &m_active_scene->m_scene_framebuffer_height);
   
   m_active_scene->add_text_to_overlay(to_add,anchor_x,anchor_y,num_loaded_textures,m_texture_map);
+  
+};
+
+void Renderer::set_fps_target(int new_target) {
+
+  fps_target = new_target;
+  fps_target_ms = 1000.0f/(float)fps_target;
   
 };

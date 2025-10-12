@@ -10,21 +10,22 @@ int main () {
   /*
     NOTES
 
-    TODO write text rendering shader with bitmap texture shader thingy
+    Done  write text rendering shader with bitmap texture shader thingy
 
     TODO make importer more streamline
 
     TODO move more shit into shared_ptr from static member vars
 
-    TODO support transparent materials (detection + rendering)
+    TODO (botched fix atm) support transparent materials (detection + rendering)
 
     TODO add lens simulation (renderbuffer into fsquad w/ projection shader)
 
-    TODO fix leaky animation system 
+    Done fix leaky animation system 
     
    */
   
   Renderer main_renderer(1920,1080);
+  main_renderer.set_fps_target(200);
   main_renderer.init_scene("models/test_scene/test_scene.gltf");
   //main_renderer.init_scene("models/showroom/showroom.gltf");
   //main_renderer.add_model_to_scene("models/midnight_coup/midnight_coup.gltf");
