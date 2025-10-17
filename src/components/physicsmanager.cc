@@ -10,8 +10,6 @@ Physics_Manager::Physics_Manager(std::shared_ptr<Scene> set_scene) {
   m_active_scene = set_scene;
 };
 
-// TODO make entity matrix not ignored. So far we only really import gltf meshes without
-// delta transforms, so its not rly needed but might be in the future
 AABB Physics_Manager::compute_world_space_aabb(Mesh &mesh,
                                                const glm::mat4 &transform) {
   
@@ -36,6 +34,10 @@ AABB Physics_Manager::compute_world_space_aabb(Mesh &mesh,
     bbox.max.z = std::max(bbox.max.z, vertex.z);
   }
 
+  //adjust bbox with entity transform
+  bbox.max = transform * glm::vec4(bbox.max,1.0f);
+  bbox.min = transform * glm::vec4(bbox.min,1.0f);
+  
   return bbox;
 }
 

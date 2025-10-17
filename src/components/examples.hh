@@ -21,8 +21,29 @@ void spawn_pyramid(Renderer& main_renderer) {
   main_renderer.create_spring_constraint(main_renderer.m_active_scene->m_loaded_points[2],main_renderer.m_active_scene->m_loaded_points[3], 100.0f, 4.0f);
 
   main_renderer.create_fixed_constraint(main_renderer.m_active_scene->m_loaded_points[3], true);
-  
 };
+
+void spawn_noodle_loop(Renderer& main_renderer) {
+    const int num_points = 50;
+    const float radius = 3.0f;        
+    const float rest_length = 0.4f;   
+    const float stiffness = 120.0f;   
+
+    for (int i = 0; i < num_points; ++i) {
+        float angle = 2.0f * M_PI * static_cast<float>(i) / num_points;
+        float x = radius * cosf(angle);
+        float z = radius * sinf(angle);
+        main_renderer.add_point_to_scene(x, 5.0f, z);
+    }
+
+    auto& points = main_renderer.m_active_scene->m_loaded_points;
+
+    for (int i = 0; i < num_points; ++i) {
+        int next = (i + 1) % num_points; 
+        main_renderer.create_spring_constraint(points[i], points[next], stiffness, rest_length);
+    }
+
+}
 
 void spawn_point_collission(Renderer& main_renderer) {
   

@@ -398,8 +398,10 @@ void Renderer::init_scene_vbos() {
     // this is a bit of a mess but itll do
     glGenVertexArrays(1, &oe->text_vao);
     glBindVertexArray(oe->text_vao);
+    
     oe->uv_coords = m_active_scene->texture_atlas.get_glyph_UV_sequence_for_string(oe->text);
     oe->text_vert_coords_screen_space = m_active_scene->texture_atlas.get_glyph_vert_cords_for_string(oe->text, m_active_scene->m_scene_framebuffer_width, m_active_scene->m_scene_framebuffer_height, oe);
+
     glGenBuffers(1, &oe->text_vertices_vbo);
     glBindBuffer(GL_ARRAY_BUFFER, oe->text_vertices_vbo);
     glBufferData(GL_ARRAY_BUFFER,
@@ -496,6 +498,7 @@ _/ ___\/  _ \_  __ \   __\/ __ \\  \/  /
   // setup
   glViewport(0, 0, 1920, 1080);
   glEnable(GL_DEPTH_TEST);
+  glEnable(GL_BLEND);
 
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);

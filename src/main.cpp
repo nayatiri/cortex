@@ -1,11 +1,7 @@
 #include "components/examples.hh"
 #include "renderer.hh"
 
-//defines
-#define window_width 1920
-#define window_height 1080
 int main () {
-
 
   /*
     NOTES
@@ -38,11 +34,12 @@ int main () {
   //main_renderer.add_model_to_scene("models/pbr_cube/pbr_cube.gltf");
   //main_renderer.add_model_to_scene("models/benz/scene.gltf");
 
-  
   //    spawn_pyramid(main_renderer);
   //  spawn_point_collission(main_renderer);
   //  spawn_single_link(main_renderer);
   //  spawn_box(main_renderer);
+
+  spawn_noodle_loop(main_renderer);
 
   main_renderer.add_text_to_overlay("fps:", 10 ,20 );
   main_renderer.add_text_to_overlay("cortex - dev build", 10 ,40 );

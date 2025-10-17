@@ -519,7 +519,6 @@ void Shadow_Map_Pipeline::render_overlay_pass() {
     
   }  
 
-
   ////////////////////
   // render text overlay
   ////////////////////
@@ -537,11 +536,14 @@ void Shadow_Map_Pipeline::render_overlay_pass() {
     if (glIsVertexArray(oe->text_vao) == GL_FALSE) {
       log_error("no valid VAO id! cant render mesh.");
     }
+    check_gl_error("after glDrawArrays (overlay pass text b4 everything)");
     
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, oe->texture_glid);
     upload_to_uniform(m_active_scene->universal_text_shader, "fontAtlas", 0);
-
+    upload_to_uniform(m_active_scene->universal_text_shader, "text_color" , oe->element_color);
+    check_gl_error("after glDrawArrays (uniforms overlay pass text)");
+    
     glDrawArrays(GL_TRIANGLES, 0, oe->text_vert_coords_screen_space.size()/2);
     check_gl_error("after glDrawArrays (overlay pass text)");
     

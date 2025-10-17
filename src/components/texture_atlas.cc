@@ -82,40 +82,45 @@ Texture_Atlas::get_matching_glyph_UV(const char to_check) {
   
 }
 
-std::vector<float>
-Texture_Atlas::get_glyph_vert_cords_for_string(std::string input, unsigned int viewport_width, unsigned int viewport_height, std::shared_ptr<Overlay_Element> oe) {
+std::vector<float> Texture_Atlas::get_glyph_vert_cords_for_string(
+    std::string input, unsigned int viewport_width,
+    unsigned int viewport_height, std::shared_ptr<Overlay_Element> oe) {
 
   std::vector<float> vertices;
-  
-  for(size_t i = 1; i < input.length()+1; i++) {
 
-    float ndc_offset = ((float)i * (float)glyph_dimension_x) / (float)viewport_width;
+  float scaled_glyph_w = static_cast<float>(glyph_dimension_x) * oe->size;
+  float scaled_glyph_h = static_cast<float>(glyph_dimension_y) * oe->size;
+
+  float base_x_px = oe->anchor_pos_norm_x * static_cast<float>(viewport_width);
+  float base_y_px = oe->anchor_pos_norm_y * static_cast<float>(viewport_height);
+
+  for (size_t i = 0; i < input.length(); ++i) {
+
+    float x0_px = base_x_px + i * scaled_glyph_w;
+    float y0_px = base_y_px; // top
+    float x1_px = x0_px + scaled_glyph_w;
+    float y1_px = y0_px + scaled_glyph_h; // bottom
+
+    float x0 = x0_px / static_cast<float>(viewport_width);
+    float y0 = y0_px / static_cast<float>(viewport_height);
+    float x1 = x1_px / static_cast<float>(viewport_width);
+    float y1 = y1_px / static_cast<float>(viewport_height);
+
+    vertices.push_back(x0);
+    vertices.push_back(y0); // top-left
+    vertices.push_back(x0);
+    vertices.push_back(y1); // bottom-left
+    vertices.push_back(x1);
+    vertices.push_back(y0); // top-right
     
-    float vert1x = oe->anchor_pos_norm_x + ndc_offset;
-    float vert1y = oe->anchor_pos_norm_y;
-    float vert2x = oe->anchor_pos_norm_x + ndc_offset;
-    float vert2y = oe->anchor_pos_norm_y + ((float)glyph_dimension_y / viewport_height);
-    float vert3x = oe->anchor_pos_norm_x + ndc_offset + ((float)glyph_dimension_x / viewport_width);
-    float vert3y = oe->anchor_pos_norm_y;
-    float vert4x = oe->anchor_pos_norm_x + ndc_offset + ((float)glyph_dimension_x / viewport_width);
-    float vert4y = oe->anchor_pos_norm_y + ((float)glyph_dimension_y / viewport_height);
-    
-    vertices.push_back(vert1x);
-    vertices.push_back(vert1y);
-    vertices.push_back(vert2x);
-    vertices.push_back(vert2y);
-    vertices.push_back(vert3x);
-    vertices.push_back(vert3y);
-
-    vertices.push_back(vert2x);
-    vertices.push_back(vert2y);
-    vertices.push_back(vert4x);
-    vertices.push_back(vert4y);
-    vertices.push_back(vert3x);
-    vertices.push_back(vert3y);
-
-    }
+    vertices.push_back(x0);
+    vertices.push_back(y1); // bottom-left
+    vertices.push_back(x1);
+    vertices.push_back(y1); // bottom-right
+    vertices.push_back(x1);
+    vertices.push_back(y0); // top-right
+  }
 
   return vertices;
-  
+
 }

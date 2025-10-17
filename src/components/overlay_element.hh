@@ -1,4 +1,5 @@
 #pragma once
+#include <glm/ext/vector_float3.hpp>
 #include <string>
 #include <vector>
 
@@ -21,6 +22,8 @@ public:
   std::vector<float> uv_coords;
   unsigned int text_vao = 0;
 
+  glm::vec3 element_color = {0.5f,0.2f,1.0f};
+
   bool element_needs_vbo_update = true;
 
   unsigned int texture_glid;
@@ -29,8 +32,8 @@ public:
 
   std::string text;
 
-  float anchor_pos_norm_x = 50.0f,anchor_pos_norm_y = 50.0f;
+  float anchor_pos_norm_x = 50.0f, anchor_pos_norm_y = 50.0f;
 
-  float size = 1.0f;
+  float size = 2.0f;
   
 };
