@@ -71,6 +71,7 @@ void Renderer::update_scene_time() {
 
 void Renderer::abstract_render() {
   //now render frame
+  m_culling_manager->cull_scene();
   m_pipeline->render_frame();
 
   }
@@ -180,6 +181,7 @@ void Renderer::init_scene(const char *scene_fp) {
   m_animation_manager->m_active_scene = m_active_scene;
   m_physics_manager->m_active_scene = m_active_scene;
   m_pipeline->m_active_scene = m_active_scene;
+  m_culling_manager = std::make_unique<Culler>(m_active_scene);
 
   log_success("set Scene ptr to IM, AM and PM");
 

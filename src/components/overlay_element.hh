@@ -22,7 +22,7 @@ public:
   std::vector<float> uv_coords;
   unsigned int text_vao = 0;
 
-  glm::vec3 element_color = {0.5f,0.2f,1.0f};
+  glm::vec3 element_color = {0.8f,0.8f,1.0f};
 
   bool element_needs_vbo_update = true;
 

@@ -179,6 +179,7 @@ void Shadow_Map_Pipeline::render_color_pass() {
 						     glm::radians(m_active_scene->m_local_player->m_player_camera->fov),
 						     (float)m_active_scene->m_scene_framebuffer_width / (float)m_active_scene->m_scene_framebuffer_height,
 						     0.001f, 1000.0f);
+
   
   ///////////////////
   // render meshes //
@@ -188,7 +189,7 @@ void Shadow_Map_Pipeline::render_color_pass() {
     for (std::shared_ptr<Mesh> &mesh : entity.m_mesh) {
 
       // dont render transparent meshes TODO make this actual proper impl
-      if( mesh->m_material->transparent == true  || mesh->m_type != E_MESH)
+      if( mesh->m_material->transparent == true  || mesh->m_type != E_MESH || mesh->m_mesh_culled)
 	continue;
       
       // use shader of mesh

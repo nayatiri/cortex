@@ -5,6 +5,7 @@
 #include "./components/scene.hh"
 #include "./components/input.hh"
 #include "./components/animationmanager.hh"
+#include "components/culler.hh"
 #include "components/physicsmanager.hh"
 #include "components/pipeline.hh"
 
@@ -33,6 +34,9 @@ public:
 
   // animation handline
   std::unique_ptr<Physics_Manager> m_physics_manager = nullptr;
+
+  // rendering accelerator
+  std::unique_ptr<Culler> m_culling_manager = nullptr;
   
   // bungie employees hate this one simple trick
   float m_deltaTime = 0.0f;
