@@ -383,6 +383,8 @@ std::vector<std::shared_ptr<Mesh>> Importer::load_all_meshes_from_gltf(
 		flip_normals = true;
 	      }
 	    }
+	    //TMP
+	    flip_normals = false;
 	    if (normals) {	     
 	      if(flip_normals){
 		for (int i = 0; i < 3; ++i) {

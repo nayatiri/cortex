@@ -14,8 +14,8 @@ void Culler::cull_scene() {
   
   for(Entity e : m_active_scene->m_loaded_entities) {
     for(std::shared_ptr<Mesh> m : e.m_mesh) {
-      cull_distance(m);
-      cull_behind(m);
+      //cull_distance(m);
+      //cull_behind(m);
     }    
   }  
   
