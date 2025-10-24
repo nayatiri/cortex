@@ -32,7 +32,7 @@ int main () {
   //main_renderer.add_model_to_scene("models/eow/eow.gltf");
   //main_renderer.add_model_to_scene("models/lament/lament.gltf");
   //main_renderer.add_model_to_scene("models/pbr_cube/pbr_cube.gltf");
-  main_renderer.add_model_to_scene("models/benz/scene.gltf");
+  //main_renderer.add_model_to_scene("models/benz/scene.gltf");
 
   //    spawn_pyramid(main_renderer);
   //  spawn_point_collission(main_renderer);

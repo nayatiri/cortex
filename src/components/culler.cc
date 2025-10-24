@@ -16,6 +16,7 @@ void Culler::cull_scene() {
     for(std::shared_ptr<Mesh> m : e.m_mesh) {
       //cull_distance(m);
       //cull_behind(m);
+      cull_viewport(m);
     }    
   }  
   
@@ -42,4 +43,19 @@ void Culler::cull_behind(std::shared_ptr<Mesh> m) {
   else
     m->m_mesh_culled = false;
   
+};
+
+void Culler::cull_viewport(std::shared_ptr<Mesh> m) {
+
+  glm::mat4 VP_mat = m_active_scene->m_local_player->m_player_camera->m_view_matrix *  m_active_scene->m_local_player->m_player_camera->m_projection_matrix;
+  
+  glm::vec2 min_aab_ndc = glm::vec4(m->AABB_visualizer->min_corner,0.0f) * VP_mat;
+  glm::vec2 max_aab_ndc = glm::vec4(m->AABB_visualizer->max_corner,0.0f) * VP_mat;
+
+  if(min_aab_ndc.x > 1.0f)
+    std::cout << "frag out of ndc: " << min_aab_ndc.x << std::endl; 
+
+  if(max_aab_ndc.x > 1.0f)
+    std::cout << "frag out of ndc: " << max_aab_ndc.x << std::endl; 
+
 };

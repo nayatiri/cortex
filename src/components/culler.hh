@@ -11,6 +11,7 @@ public:
 
   void cull_distance(std::shared_ptr<Mesh>);
   void cull_behind(std::shared_ptr<Mesh>);
+  void cull_viewport(std::shared_ptr<Mesh>);
   
   Culler(std::shared_ptr<Scene> new_scene);
   
