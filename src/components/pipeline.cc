@@ -131,7 +131,7 @@ void Shadow_Map_Pipeline::render_depth_pass() {
 	upload_to_uniform( m_active_scene->universal_depth_shader , "model",
 			  entity.get_model_matrix() * mesh->get_model_matrix());
       } else {
-	glm::mat3 rotation = glm::mat3(shared_camera_view_matrix);
+	glm::mat3 rotation = glm::mat3(m_active_scene->m_local_player->m_player_camera->get_view_matrix());
 	glm::mat4 inv_rotation = glm::mat4(glm::transpose(glm::mat3(rotation)));
 	inv_rotation = glm::rotate(inv_rotation, glm::radians(180.0f), glm::vec3(0,1,0));
 	glm::vec3 pos_offset = m_active_scene->m_local_player->get_position();
@@ -169,18 +169,18 @@ void Shadow_Map_Pipeline::render_color_pass() {
   check_gl_error("after clearing frame");
 
   // adjust camera view / projection matrices
-  shared_camera_view_matrix =
-    glm::lookAt(m_active_scene->m_local_player->get_position(),
-		m_active_scene->m_local_player->m_player_camera->m_cameraLookAt +
-		m_active_scene->m_local_player->get_position(),
-		m_active_scene->m_local_player->m_player_camera->m_cameraUp);
-  
-  shared_camera_projection_matrix = glm::perspective(
-						     glm::radians(m_active_scene->m_local_player->m_player_camera->fov),
-						     (float)m_active_scene->m_scene_framebuffer_width / (float)m_active_scene->m_scene_framebuffer_height,
-						     0.001f, 1000.0f);
+  m_active_scene->m_local_player->m_player_camera->set_view_matrix(
+      m_active_scene->m_local_player->get_position(),
+      m_active_scene->m_local_player->m_player_camera->m_cameraLookAt +
+          m_active_scene->m_local_player->get_position(),
+      m_active_scene->m_local_player->m_player_camera->m_cameraUp);
 
-  
+  m_active_scene->m_local_player->m_player_camera->set_projection_matrix(
+      glm::radians(m_active_scene->m_local_player->m_player_camera->fov),
+      (float)m_active_scene->m_scene_framebuffer_width /
+          (float)m_active_scene->m_scene_framebuffer_height,
+      0.001f, 1000.0f);
+
   ///////////////////
   // render meshes //
   ///////////////////
@@ -287,21 +287,21 @@ void Shadow_Map_Pipeline::render_color_pass() {
 	upload_to_uniform(*touse, "model",
 			  entity.get_model_matrix() * mesh->get_model_matrix());
 	upload_to_uniform(*touse, "view",
-			  shared_camera_view_matrix);
+			  m_active_scene->m_local_player->m_player_camera->get_view_matrix());
 	upload_to_uniform(*touse, "projection",
-			  shared_camera_projection_matrix);
+			  m_active_scene->m_local_player->m_player_camera->get_projection_matrix());
       } else {
 	//make shit held
 
-	glm::mat3 rotation = glm::mat3(shared_camera_view_matrix);
+	glm::mat3 rotation = glm::mat3(m_active_scene->m_local_player->m_player_camera->get_view_matrix());
 	glm::mat4 inv_rotation = glm::mat4(glm::transpose(glm::mat3(rotation)));
 	inv_rotation = glm::rotate(inv_rotation, glm::radians(180.0f), glm::vec3(0,1,0));
 	glm::vec3 pos_offset = m_active_scene->m_local_player->get_position();
         inv_rotation[3] = glm::vec4(pos_offset,1.0f);
        	
 	upload_to_uniform(*touse, "model", inv_rotation);       
-	upload_to_uniform(*touse, "view", shared_camera_view_matrix);
-	upload_to_uniform(*touse, "projection", glm::translate(shared_camera_projection_matrix,glm::vec3(0.25,-0.2,-0.2)));      
+	upload_to_uniform(*touse, "view", m_active_scene->m_local_player->m_player_camera->get_view_matrix());
+	upload_to_uniform(*touse, "projection", glm::translate(m_active_scene->m_local_player->m_player_camera->get_projection_matrix(),glm::vec3(0.25,-0.2,-0.2)));      
       }
       
       check_gl_error("after setting uniforms (shadow map color pass)");
@@ -346,9 +346,9 @@ void Shadow_Map_Pipeline::render_overlay_pass() {
     upload_to_uniform(m_active_scene->universal_phong_shader,
                       "model", glm::translate(glm::mat4(1.0f),light_source.get_light_position()) * light_source.get_light_rotation_matrix());
     upload_to_uniform(m_active_scene->universal_phong_shader,
-                      "view", shared_camera_view_matrix);
+                      "view", m_active_scene->m_local_player->m_player_camera->get_view_matrix());
     upload_to_uniform(m_active_scene->universal_phong_shader,
-                      "projection", shared_camera_projection_matrix);    
+                      "projection", m_active_scene->m_local_player->m_player_camera->get_projection_matrix());    
     upload_to_uniform(m_active_scene->universal_phong_shader,
                       "lightPosition", glm::vec3(0.0f));
     upload_to_uniform(m_active_scene->universal_phong_shader,
@@ -369,7 +369,6 @@ void Shadow_Map_Pipeline::render_overlay_pass() {
   // rendering hitbox overlays //
   ///////////////////////////////
 
-  // TODO make render properties
   if (m_active_scene->render_properties.render_hitbox) {
     for (Entity& entity : m_active_scene->m_loaded_entities) {
       for (std::shared_ptr<Mesh> &mesh : entity.m_mesh) {
@@ -405,9 +404,9 @@ void Shadow_Map_Pipeline::render_overlay_pass() {
                           1.0f);
 
         upload_to_uniform(m_active_scene->universal_hitbox_shader, "view",
-                          shared_camera_view_matrix);
+                          m_active_scene->m_local_player->m_player_camera->get_view_matrix());
         upload_to_uniform(m_active_scene->universal_hitbox_shader, "projection",
-                          shared_camera_projection_matrix);
+                          m_active_scene->m_local_player->m_player_camera->get_projection_matrix());
 
         upload_to_uniform(m_active_scene->universal_hitbox_shader,
                           "screen_width",
@@ -424,6 +423,61 @@ void Shadow_Map_Pipeline::render_overlay_pass() {
         // render call
         glDrawArrays(GL_TRIANGLES, 0, 3);
         check_gl_error("after glDrawArrays (overlay pass hitboxes)");
+      }
+    }
+  }
+
+  //////////////////////////////////////
+  // rendering AABB min/max corners   //
+  //////////////////////////////////////
+  if (m_active_scene->render_properties.render_hitbox) {
+    for(Entity e : m_active_scene->m_loaded_entities) {
+      for (std::shared_ptr<Mesh> m : e.m_mesh) {
+
+      // back to solid + blending yippie
+      glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+      glEnable(GL_BLEND);
+
+      m_active_scene->universal_point_shader.use();
+      check_gl_error("after shader use (point cloud)");
+
+      // bind meshes vao context
+      glBindVertexArray(m_active_scene->shared_sdf_vao);
+      if (glIsVertexArray(m_active_scene->shared_sdf_vao) == GL_FALSE) {
+        log_error("no valid VAO id! cant render point.");
+      }
+      check_gl_error("after vao bind (point cloud)");
+
+      upload_to_uniform(m_active_scene->universal_point_shader,
+                        "camera_position",
+                        m_active_scene->m_local_player->get_position());
+      upload_to_uniform(m_active_scene->universal_point_shader,
+                        "point_position", m->AABB_visualizer->min_corner);
+      upload_to_uniform(m_active_scene->universal_point_shader, "radius",
+                        0.2f);
+
+      upload_to_uniform(
+          m_active_scene->universal_point_shader, "view",
+          m_active_scene->m_local_player->m_player_camera->get_view_matrix());
+      upload_to_uniform(m_active_scene->universal_point_shader, "projection",
+                        m_active_scene->m_local_player->m_player_camera
+                            ->get_projection_matrix());
+
+      // color AABB corner yellow
+      glm::vec3 color = {0.9, 0.9, 0.1};
+      upload_to_uniform(m_active_scene->universal_point_shader, "point_color",
+                        color);
+
+      upload_to_uniform(m_active_scene->universal_point_shader, "screen_width",
+                        (float)m_active_scene->m_scene_framebuffer_width);
+      upload_to_uniform(m_active_scene->universal_point_shader, "screen_height",
+                        (float)m_active_scene->m_scene_framebuffer_height);
+
+      glDrawArrays(GL_TRIANGLES, 0, 3);
+      upload_to_uniform(m_active_scene->universal_point_shader,
+                        "point_position", m->AABB_visualizer->max_corner);
+      glDrawArrays(GL_TRIANGLES, 0, 3);
+      check_gl_error("after glDrawArrays (point cloud)");
       }
     }
   }
@@ -454,9 +508,9 @@ void Shadow_Map_Pipeline::render_overlay_pass() {
       upload_to_uniform(m_active_scene->universal_point_shader,"radius", p->phys_props.radius);
 
       upload_to_uniform(m_active_scene->universal_point_shader, "view",
-                        shared_camera_view_matrix);
+                        m_active_scene->m_local_player->m_player_camera->get_view_matrix());
       upload_to_uniform(m_active_scene->universal_point_shader, "projection",
-                        shared_camera_projection_matrix);
+                        m_active_scene->m_local_player->m_player_camera->get_projection_matrix());
 
       // silly gimmich to show particles experiencing a force atm
       glm::vec3 color = {0.5,0.2,0.9};
@@ -505,9 +559,9 @@ void Shadow_Map_Pipeline::render_overlay_pass() {
     upload_to_uniform(m_active_scene->universal_line_shader,"radius", 10.0f);
     
     upload_to_uniform(m_active_scene->universal_line_shader, "view",
-		      shared_camera_view_matrix);
+		      m_active_scene->m_local_player->m_player_camera->get_view_matrix());
     upload_to_uniform(m_active_scene->universal_line_shader, "projection",
-		      shared_camera_projection_matrix);
+		      m_active_scene->m_local_player->m_player_camera->get_projection_matrix());
     
     upload_to_uniform(m_active_scene->universal_line_shader,"screen_width", (float)m_active_scene->m_scene_framebuffer_width);
     upload_to_uniform(m_active_scene->universal_line_shader,"screen_height", (float)m_active_scene->m_scene_framebuffer_height);
@@ -633,7 +687,7 @@ void Shadow_Map_Pipeline::handle_pick() {
 		      mouse_ndc_y * half_fov,
 		      -1.0f
 		      );
-  glm::mat4 inv_view_mat = glm::inverse(shared_camera_view_matrix);
+  glm::mat4 inv_view_mat = glm::inverse(m_active_scene->m_local_player->m_player_camera->get_view_matrix());
   glm::vec4 dir4 = inv_view_mat * glm::vec4(ray_camera_space, 0.0f);
   glm::vec3 ray_world_space = glm::normalize(glm::vec3(dir4));
   

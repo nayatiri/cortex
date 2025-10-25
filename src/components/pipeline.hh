@@ -23,9 +23,6 @@ public:
   std::shared_ptr<Scene> m_active_scene = nullptr;
   unsigned int window_depth_map = 0;
   glm::mat4 shared_light_space_matrix = glm::mat4(1.0f);
-  glm::mat4 shared_camera_view_matrix = glm::mat4(1.0f);
-  glm::mat4 shared_camera_projection_matrix = glm::mat4(1.0f);
-
   
 };
 

@@ -21,17 +21,20 @@ public:
   glm::vec3 m_cameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
   glm::vec3 m_direction = {0.0f, 0.0f, 0.0f};
 
+  glm::mat4 camera_view_matrix = glm::mat4(1.0f);
+  glm::mat4 camera_projection_matrix = glm::mat4(1.0f);
+  
   float fov = 90.0f;
   
-  bool m_view_mat_initialized = false;
-  glm::mat4 m_view_matrix = glm::mat4(1.0f);
-
-  bool m_proj_mat_initialized = false;
-  glm::mat4 m_projection_matrix = glm::mat4(1.0f);
-
   std::vector<animation*>* m_animation_table = nullptr;
   
   Camera();
   void reset();
+
+  void set_view_matrix(glm::vec3 pos, glm::vec3 look_at, glm::vec3 up);
+  void set_projection_matrix(float fov, float aspect_ratio, float clip_near, float clip_far);
+  
+  glm::mat4 get_view_matrix();
+  glm::mat4 get_projection_matrix();
   
 };
