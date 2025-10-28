@@ -15,7 +15,7 @@ AABB Physics_Manager::compute_world_space_aabb(Mesh &mesh,
   
   AABB bbox{{10000.0f, 10000.0f, 10000.0f}, {-10000.0f, -10000.0f, -10000.0f}};
 
-  const glm::mat4 mesh_transform = /*transform * */ mesh.get_model_matrix();
+  const glm::mat4 mesh_transform = transform *   mesh.get_model_matrix();
 
   std::cout << "building bbox with n vertices: " << mesh.m_vertices_array.size()/3 << std::endl;
   
@@ -35,11 +35,22 @@ AABB Physics_Manager::compute_world_space_aabb(Mesh &mesh,
   }
 
   //adjust bbox with entity transform
+  /*
   bbox.max = transform * glm::vec4(bbox.max,1.0f);
   bbox.min = transform * glm::vec4(bbox.min,1.0f);
-  
+  */
   return bbox;
 }
+
+void Physics_Manager::update_phys_box(Mesh &mesh, Entity& parent) {
+
+  // TODO abyssmally inefficient, i know horrendous overhead crazy shit impl, ill fix this when it becomes a problem xd
+  AABB bbox = compute_world_space_aabb(mesh, parent.get_model_matrix());      
+  mesh.AABB_visualizer = std::make_shared<AABB_Box>(bbox.min,bbox.max);
+
+  mesh.phys_box_needs_recalculation = false;
+  
+};
 
 void Physics_Manager::calculate_phys_boxes() {
 
@@ -68,6 +79,7 @@ void Physics_Manager::calculate_phys_boxes() {
       AABB bbox = compute_world_space_aabb(*mesh, entity_transform);
       
       mesh->AABB_visualizer = std::make_shared<AABB_Box>(bbox.min,bbox.max);
+      mesh->phys_box_needs_recalculation = false;
 
       m_active_scene->m_scene_vbos_need_refresh = true;
       
@@ -143,7 +155,21 @@ void debug_particle_movement(std::shared_ptr<Point> p) {
 
 // aka integrator
 void Physics_Manager::run_integrator() {
+
+  // run mesh physics
+  for(Entity e : m_active_scene->m_loaded_entities) {
+    for(std::shared_ptr<Mesh> m : e.m_mesh) {
+
+      //update AABBs 
+      if(m->phys_box_needs_recalculation) {
+	update_phys_box(*m,e);
+	log_debug("recalcing...");
+      }
+
+    }
+  }
   
+  // run point physics
   for(std::shared_ptr<Point> p : m_active_scene->m_loaded_points) {
 
     bool should_override_mass = false;

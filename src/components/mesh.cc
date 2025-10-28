@@ -29,6 +29,7 @@ void Mesh::set_rotation(float x, float y, float z) {
   m_rot_y = y;
   m_rot_z = z;
   model_matrix_deprecated = true;
+  phys_box_needs_recalculation = true;
 }
 
 void Mesh::set_position(float x, float y, float z) {
@@ -36,6 +37,7 @@ void Mesh::set_position(float x, float y, float z) {
   m_pos_y = y;
   m_pos_z = z;
   model_matrix_deprecated = true;
+  phys_box_needs_recalculation = true;
 }
 
 void Mesh::change_rotation(float x, float y, float z) {
@@ -43,6 +45,7 @@ void Mesh::change_rotation(float x, float y, float z) {
   m_rot_y += y;
   m_rot_z += z;
   model_matrix_deprecated = true;
+  phys_box_needs_recalculation = true;
 }
 
 void Mesh::change_position(float x, float y, float z) {
@@ -50,6 +53,7 @@ void Mesh::change_position(float x, float y, float z) {
   m_pos_y += y;
   m_pos_z += z;
   model_matrix_deprecated = true;
+  phys_box_needs_recalculation = true;
 }
 
 void Mesh::exp_overwrite_model_matrix(glm::mat4 new_mat) {

@@ -4,6 +4,7 @@
 #include "material.hh"
 #include "mesh.hh"
 #include "overlay_element.hh"
+#include "physicsmanager.hh"
 
 #include <glm/ext/matrix_clip_space.hpp>
 #include <glm/ext/vector_float3.hpp>
@@ -189,7 +190,7 @@ void Shadow_Map_Pipeline::render_color_pass() {
     for (std::shared_ptr<Mesh> &mesh : entity.m_mesh) {
 
       // dont render transparent meshes TODO make this actual proper impl
-      if( mesh->m_material->transparent == true  || mesh->m_type != E_MESH || mesh->m_mesh_culled)
+      if( mesh->m_material->transparent == true  || mesh->m_type != E_MESH || (mesh->m_mesh_culled && m_active_scene->render_properties.cull_scene))
 	continue;
       
       // use shader of mesh
@@ -472,11 +473,17 @@ void Shadow_Map_Pipeline::render_overlay_pass() {
                         (float)m_active_scene->m_scene_framebuffer_width);
       upload_to_uniform(m_active_scene->universal_point_shader, "screen_height",
                         (float)m_active_scene->m_scene_framebuffer_height);
-
+      //render first dot
       glDrawArrays(GL_TRIANGLES, 0, 3);
+
+      //render second dot with dif color
       upload_to_uniform(m_active_scene->universal_point_shader,
                         "point_position", m->AABB_visualizer->max_corner);
+      color = {0.1, 0.9, 0.9};
+      upload_to_uniform(m_active_scene->universal_point_shader, "point_color",
+                        color); 
       glDrawArrays(GL_TRIANGLES, 0, 3);
+
       check_gl_error("after glDrawArrays (point cloud)");
       }
     }
@@ -614,12 +621,12 @@ void Shadow_Map_Pipeline::render_frame() {
   if(pipeline_is_setup) {
     render_depth_pass();
     render_color_pass();
+    render_overlay_pass();
     
     //TODO move this from here to input need this here atm for updated cam view mat n scene pointer access
     if(m_active_scene->m_selectionstate->launch_picker)
       handle_pick();
     
-    render_overlay_pass();
   } else {
     init_pipeline();
   }

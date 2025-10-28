@@ -3,6 +3,12 @@
 #include <glm/ext/vector_float3.hpp>
 #include <glm/gtc/quaternion.hpp>
 
+void Entity::mark_child_meshes_AABB_for_recalc() {
+  for(std::shared_ptr<Mesh> m : m_mesh) {
+    m->phys_box_needs_recalculation = true;
+  }
+};
+
 glm::mat4 Entity::get_model_matrix() {
 
   if(model_matrix_deprecated) {
@@ -31,6 +37,7 @@ void Entity::set_rotation(float x, float y, float z) {
   m_rot_y = y;
   m_rot_z = z;
   model_matrix_deprecated = true;
+  mark_child_meshes_AABB_for_recalc();
 }
 
 
@@ -39,6 +46,7 @@ void Entity::set_position(float x, float y, float z) {
   m_pos_y = y;
   m_pos_z = z;
   model_matrix_deprecated = true;
+  mark_child_meshes_AABB_for_recalc();
 }
 
 void Entity::change_rotation(float x, float y, float z) {
@@ -46,6 +54,7 @@ void Entity::change_rotation(float x, float y, float z) {
   m_rot_y += y;
   m_rot_z += z;
   model_matrix_deprecated = true;
+  mark_child_meshes_AABB_for_recalc();
 }
 
 void Entity::change_position(float x, float y, float z) {
@@ -53,6 +62,7 @@ void Entity::change_position(float x, float y, float z) {
   m_pos_y += y;
   m_pos_z += z;
   model_matrix_deprecated = true;
+  mark_child_meshes_AABB_for_recalc();
 }
 
 void Entity::change_position(glm::vec3 add_vec) {
@@ -60,6 +70,7 @@ void Entity::change_position(glm::vec3 add_vec) {
   m_pos_y += add_vec.y;
   m_pos_z += add_vec.z;
   model_matrix_deprecated = true;
+  mark_child_meshes_AABB_for_recalc();
 }
 
 

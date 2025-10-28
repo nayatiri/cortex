@@ -23,6 +23,7 @@ int main () {
   Renderer main_renderer(1920,1080);
   main_renderer.set_fps_target(200);
   main_renderer.init_scene("models/test_scene/test_scene.gltf");
+  //main_renderer.init_scene("models/d2/rapture/rapture.gltf");
   //main_renderer.init_scene("models/showroom/showroom.gltf");
   //main_renderer.add_model_to_scene("models/midnight_coup/midnight_coup.gltf");
   //main_renderer.add_model_to_scene("models/cube/cube.gltf");
@@ -33,6 +34,7 @@ int main () {
   //main_renderer.add_model_to_scene("models/lament/lament.gltf");
   //main_renderer.add_model_to_scene("models/pbr_cube/pbr_cube.gltf");
   //main_renderer.add_model_to_scene("models/benz/scene.gltf");
+
 
   //    spawn_pyramid(main_renderer);
   //  spawn_point_collission(main_renderer);

@@ -36,6 +36,8 @@ public:
 
   void calculate_phys_boxes();
 
+  void update_phys_box(Mesh& mesh, Entity& parent);
+
   std::vector<Force_generator> force_generators;
   
 };

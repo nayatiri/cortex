@@ -19,6 +19,8 @@ enum Entity_types {
 class Entity {
 private:
   glm::mat4 m_model_matrix_buffer = glm::mat4(1.0f);
+
+  void mark_child_meshes_AABB_for_recalc();
   
 public:
 

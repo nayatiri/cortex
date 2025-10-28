@@ -44,10 +44,10 @@ void Renderer::setup_render_properties() {
   //TMP make light move in a circle
   m_active_scene->m_loaded_lights[0].set_light_look_at(0,0,0);
   m_active_scene->m_loaded_lights[0].set_light_position(10*sin(m_application_current_time/10),10,10*cos(m_application_current_time/10));
-  /*
-  m_active_scene->m_loaded_entities[2].change_rotation(0.0f,glm::radians(m_deltaTime*25.0f), 0.0f);
-  m_active_scene->m_loaded_entities[1].change_rotation(0.0f,glm::radians(m_deltaTime*25.0f), 0.0f);
-  */
+  
+  //  m_active_scene->m_loaded_entities[0].m_mesh[2]->change_rotation(0.0f,glm::radians(m_deltaTime*500.0f), 0.0f);
+  m_active_scene->m_loaded_entities[0].change_rotation(0.0f,glm::radians(m_deltaTime*25.0f), 0.0f);
+  
 }
 
 void Renderer::framebuffer_size_callback(GLFWwindow *window, int width,
@@ -71,7 +71,9 @@ void Renderer::update_scene_time() {
 
 void Renderer::abstract_render() {
   //now render frame
-  m_culling_manager->cull_scene();
+  if(m_active_scene->render_properties.cull_scene)
+    m_culling_manager->cull_scene();
+  
   m_pipeline->render_frame();
 
   }

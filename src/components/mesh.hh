@@ -20,6 +20,7 @@ private:
 
 public:
   std::shared_ptr<AABB_Box> AABB_visualizer = nullptr;
+  bool phys_box_needs_recalculation = true;
   
   bool model_matrix_deprecated = true;
   float m_pos_x = 0, m_pos_y = 0, m_pos_z = 0;

@@ -26,6 +26,10 @@ public:
   bool m_last_hitbox_state = false;
   bool m_is_hitbox_on_cooldown = false;
 
+  bool m_culling_mode = false;
+  bool m_last_culling_state = false;
+  bool m_is_culling_on_cooldown = false;
+  
   bool m_render_mode_normal_visualizer = false;
   bool m_last_normal_visualizer_state = false;
   bool m_is_normal_visualizer_on_cooldown = false;

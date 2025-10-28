@@ -52,6 +52,20 @@ void Input_Manager::process_input(GLFWwindow *window,
     m_last_hitbox_state = false;
   }
 
+  //toggle culling Q+C
+  if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS && glfwGetKey(window, GLFW_KEY_C) == GLFW_PRESS) {
+    if (!m_last_culling_state) {
+      m_active_scene->render_properties.cull_scene = !m_active_scene->render_properties.cull_scene;
+      m_is_culling_on_cooldown = true;
+      m_last_culling_state = true;
+      log_debug("cull on");
+      std::cout << m_active_scene->render_properties.cull_scene << std::endl;
+    }
+  } else {
+    m_last_culling_state = false;
+  }
+
+  
   //toggle Normal visualizer Q+N
   if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS && glfwGetKey(window, GLFW_KEY_N) == GLFW_PRESS) {
     if (!m_last_normal_visualizer_state) {
@@ -165,7 +179,7 @@ void Input_Manager::process_input(GLFWwindow *window,
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
   }
 
-  if (glfwGetKey(window, GLFW_KEY_C) == GLFW_PRESS) {
+  if (glfwGetKey(window, GLFW_KEY_N) == GLFW_PRESS) {
     glm::vec3 point_pos = m_active_scene->m_local_player->m_player_camera->m_cameraPos;
     std::shared_ptr<Point>to_add = std::make_shared<Point>(point_pos.x,point_pos.y-1.0f,point_pos.z);
     to_add->phys_props.velocity = glm::normalize(m_active_scene->m_local_player->m_player_camera->m_cameraLookAt) * 20.0f;
