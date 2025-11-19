@@ -16,8 +16,6 @@ AABB Physics_Manager::compute_world_space_aabb(Mesh &mesh,
   AABB bbox{{10000.0f, 10000.0f, 10000.0f}, {-10000.0f, -10000.0f, -10000.0f}};
 
   const glm::mat4 mesh_transform = transform *   mesh.get_model_matrix();
-
-  std::cout << "building bbox with n vertices: " << mesh.m_vertices_array.size()/3 << std::endl;
   
   for (size_t i = 0; i + 2 < mesh.m_vertices_array.size(); i += 3) {
     glm::vec4 vertex{mesh.m_vertices_array[i], mesh.m_vertices_array[i + 1],
@@ -49,6 +47,13 @@ void Physics_Manager::update_phys_box(Mesh &mesh, Entity& parent) {
   mesh.AABB_visualizer = std::make_shared<AABB_Box>(bbox.min,bbox.max);
 
   mesh.phys_box_needs_recalculation = false;
+};
+
+void Physics_Manager::resolve_collissions_for_scene_preview() {
+
+  
+  
+  return;
   
 };
 
@@ -65,7 +70,7 @@ void Physics_Manager::calculate_phys_boxes() {
 
     for (std::shared_ptr<Mesh> &mesh : entity.m_mesh) {
       
-      if (mesh->m_type != E_MESH) {
+      if (mesh->m_mesh_type != E_MESH) {
         log_error("Mesh does'nt seem to be a Mesh lol. skipping.");
         continue;
       };
@@ -156,14 +161,13 @@ void debug_particle_movement(std::shared_ptr<Point> p) {
 // aka integrator
 void Physics_Manager::run_integrator() {
 
-  // run mesh physics
+  // update mesh physics
   for(Entity e : m_active_scene->m_loaded_entities) {
     for(std::shared_ptr<Mesh> m : e.m_mesh) {
 
       //update AABBs 
       if(m->phys_box_needs_recalculation) {
 	update_phys_box(*m,e);
-	log_debug("recalcing...");
       }
 
     }
@@ -204,6 +208,9 @@ void Physics_Manager::run_integrator() {
     if(should_override_mass)
       p->phys_props.inverse_mass = old_mass;
   }
+
+  // calculate collissions, adjust buffer integration delta on col 
+  resolve_collissions_for_scene_preview();
   
   // after resolving all positions, write to active point position. (if point isnt fixed)
   for(std::shared_ptr<Point> p : m_active_scene->m_loaded_points) {

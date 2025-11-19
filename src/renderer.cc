@@ -17,6 +17,7 @@
 #include <iostream>
 
 // components
+#include "components/AABB.hh"
 #include "components/entity.hh"
 #include "components/force_generator.hh"
 #include "components/input.hh"
@@ -45,8 +46,8 @@ void Renderer::setup_render_properties() {
   m_active_scene->m_loaded_lights[0].set_light_look_at(0,0,0);
   m_active_scene->m_loaded_lights[0].set_light_position(10*sin(m_application_current_time/10),10,10*cos(m_application_current_time/10));
   
-  //  m_active_scene->m_loaded_entities[0].m_mesh[2]->change_rotation(0.0f,glm::radians(m_deltaTime*500.0f), 0.0f);
-  m_active_scene->m_loaded_entities[0].change_rotation(0.0f,glm::radians(m_deltaTime*25.0f), 0.0f);
+  m_active_scene->m_loaded_entities[0].m_mesh[8]->change_rotation(0.0f,glm::radians(m_deltaTime*500.0f), 0.0f);
+  //m_active_scene->m_loaded_entities[0].change_rotation(0.0f,glm::radians(m_deltaTime*25.0f), 0.0f);
   
 }
 
@@ -147,6 +148,18 @@ void Renderer::add_model_to_scene(const char* filepath) {
 
   Entity load_entity;
   load_entity.m_mesh = Importer::load_all_meshes_from_gltf(filepath, num_loaded_textures, m_texture_map);
+  m_active_scene->add_entity_to_scene(load_entity);
+
+  m_active_scene->m_scene_vbos_need_refresh = true;
+  
+}
+
+void Renderer::add_skybox_to_scene(const char* filepath) {
+
+  Entity load_entity;
+  load_entity.m_mesh = Importer::load_all_meshes_from_gltf(filepath, num_loaded_textures, m_texture_map);
+  for(auto& me : load_entity.m_mesh)
+    me->m_mesh_type = E_SKYBOX;
   m_active_scene->add_entity_to_scene(load_entity);
 
   m_active_scene->m_scene_vbos_need_refresh = true;

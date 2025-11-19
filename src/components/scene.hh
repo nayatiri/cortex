@@ -81,6 +81,7 @@ public:
 
   //universal shaders normal shit
   Shader universal_phong_shader;
+  Shader universal_pbr_shader;
   Shader universal_flat_shader;
   Shader universal_depth_shader;
 

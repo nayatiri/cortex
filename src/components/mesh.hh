@@ -56,7 +56,7 @@ public:
   GLuint m_tangents_glid = 0;
   GLuint m_binormals_glid = 0;
 
-  e_mesh_type m_type = E_MESH;
+  e_mesh_type m_mesh_type = E_MESH;
   e_mesh_render_mode m_render_mode = E_FILLED;
 
   bool m_mesh_culled = false;

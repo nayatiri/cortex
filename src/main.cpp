@@ -23,6 +23,7 @@ int main () {
   Renderer main_renderer(1920,1080);
   main_renderer.set_fps_target(200);
   main_renderer.init_scene("models/test_scene/test_scene.gltf");
+  //main_renderer.init_scene("models/material_test/material_test.gltf");
   //main_renderer.init_scene("models/d2/rapture/rapture.gltf");
   //main_renderer.init_scene("models/showroom/showroom.gltf");
   //main_renderer.add_model_to_scene("models/midnight_coup/midnight_coup.gltf");
@@ -42,6 +43,8 @@ int main () {
   //  spawn_box(main_renderer);
 
   //spawn_noodle_loop(main_renderer);
+
+  main_renderer.add_skybox_to_scene("models/skybox/skybox.gltf");
 
   main_renderer.add_text_to_overlay("fps:", 10 ,40 );
   main_renderer.add_text_to_overlay("cortex - dev build", 10 ,60 );

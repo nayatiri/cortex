@@ -31,6 +31,7 @@ private:
   void render_depth_pass();
   void render_color_pass();
   void render_overlay_pass();
+  void render_skybox(std::shared_ptr<Mesh> &mesh);
 
   void render_color_point_cloud();
   

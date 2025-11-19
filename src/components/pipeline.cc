@@ -1,4 +1,5 @@
 #include "pipeline.hh"
+#include "AABB.hh"
 #include "entity.hh"
 #include "logging.hh"
 #include "material.hh"
@@ -7,6 +8,7 @@
 #include "physicsmanager.hh"
 
 #include <glm/ext/matrix_clip_space.hpp>
+#include <glm/ext/matrix_transform.hpp>
 #include <glm/ext/vector_float3.hpp>
 #include <glm/glm.hpp>
 #include <glm/matrix.hpp>
@@ -112,7 +114,7 @@ void Shadow_Map_Pipeline::render_depth_pass() {
     for (std::shared_ptr<Mesh> mesh : entity.m_mesh) {
 
       //prevent rendering hitboxes / other non solid geometry
-      if(mesh->m_render_mode == E_WIREFRAME)
+      if(mesh->m_render_mode == E_WIREFRAME || mesh->m_mesh_type != E_MESH)
 	return;
 
       // dont render transparent meshes TODO make good
@@ -156,6 +158,36 @@ void Shadow_Map_Pipeline::render_depth_pass() {
 
 void Shadow_Map_Pipeline::render_color_point_cloud() {}
 
+void Shadow_Map_Pipeline::render_skybox(std::shared_ptr<Mesh> &mesh) {
+  
+  Shader* touse = &m_active_scene->universal_flat_shader;
+  touse->use();
+  glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+  
+  // bind meshes vao context
+  glBindVertexArray(mesh->m_mesh_vao);
+  
+  // bind texture to sampler slot + set uniform to texture sampler ID
+  // uploding texture slot ID to shaders sampler. so that uTexture will sample what we wrote into BL_TEXTURE0
+  glActiveTexture(GL_TEXTURE0);
+  glBindTexture(GL_TEXTURE_2D, mesh->m_material->m_material_albedo_glid);
+  upload_to_uniform(*touse, "skyTexture",0);
+  
+  check_gl_error("after uploading textures");
+  
+  upload_to_uniform(*touse, "model",
+		    glm::translate(glm::mat4(1.0f),m_active_scene->m_local_player->get_position()) );
+  upload_to_uniform(*touse, "view",
+		    m_active_scene->m_local_player->m_player_camera->get_view_matrix());
+  upload_to_uniform(*touse, "projection",
+		    m_active_scene->m_local_player->m_player_camera->get_projection_matrix());
+
+  // we renderin
+  glDrawArrays(GL_TRIANGLES, 0, mesh->m_vertices_array.size() / 3);
+  check_gl_error("after glDrawArrays");
+  
+}
+
 void Shadow_Map_Pipeline::render_color_pass() {
 
   // rebind main "visible" fb
@@ -190,13 +222,25 @@ void Shadow_Map_Pipeline::render_color_pass() {
     for (std::shared_ptr<Mesh> &mesh : entity.m_mesh) {
 
       // dont render transparent meshes TODO make this actual proper impl
-      if( mesh->m_material->transparent == true  || mesh->m_type != E_MESH || (mesh->m_mesh_culled && m_active_scene->render_properties.cull_scene))
+      if(mesh->m_material->transparent == true)
+	continue;
+
+      // render fullbright skybox
+      if( mesh->m_mesh_type == E_SKYBOX ) {
+        render_skybox(mesh); continue; }
+
+      // dont render collission boxes either TODO: turn into toggle for col box debug view
+      if( mesh->m_mesh_type == E_COL_BOX )
+	continue;
+
+      // is mesh culled away?
+      if(mesh->m_mesh_culled && m_active_scene->render_properties.cull_scene)
 	continue;
       
       // use shader of mesh
       Shader* touse = nullptr;
       if(mesh->m_material->m_material_type == E_PBR)
-	touse = &m_active_scene->universal_flat_shader;
+	touse = &m_active_scene->universal_pbr_shader;
       else
 	touse = &m_active_scene->universal_phong_shader;
       touse->use();
