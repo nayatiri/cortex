@@ -196,8 +196,8 @@ void Physics_Manager::run_integrator() {
     p->phys_props.velocity += acceleration * m_active_scene->m_scene_deltatime;
 
     //prevent velocity explosion by capping it
-    if(glm::length(p->phys_props.velocity) > 200.0f)
-      p->phys_props.velocity = (glm::normalize(p->phys_props.velocity) * 100.0f);
+    if(glm::length(p->phys_props.velocity) > 500.0f)
+      p->phys_props.velocity = (glm::normalize(p->phys_props.velocity) * 500.0f);
 
     // firstly write forces to buffer
     p->buffer_integration_delta(p->phys_props.velocity * m_active_scene->m_scene_deltatime);
