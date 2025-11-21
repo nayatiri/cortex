@@ -18,6 +18,7 @@ private:
   void handle_scene_physics_book();
   bool check_inside_AABB(Mesh &mesh, glm::vec3 check_position);
   void debug_particle_movement(std::shared_ptr<Point> p);
+  bool check_and_build_collissions();
   
 public:
   

@@ -3,10 +3,11 @@
 
 void Collission::resolve_collission() {}
 
-Point_Point_Collission::Point_Point_Collission() {
+Point_Point_Collission::Point_Point_Collission( std::shared_ptr<Point> a, std::shared_ptr<Point> b, glm::vec3 c_normal ) {
 
-  contact_normal = point_a->get_position() - point_b->get_position();
-  contact_normal = glm::normalize(contact_normal);
+  point_a = a;
+  point_b = b;
+  contact_normal = glm::normalize(c_normal);
   
 }
 

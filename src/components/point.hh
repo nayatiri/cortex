@@ -3,6 +3,7 @@
 #include <cmath>
 #include <glm/ext/matrix_float4x4.hpp>
 #include <glm/ext/vector_float3.hpp>
+#include <memory>
 
 struct Physics_properties {
 
@@ -57,6 +58,8 @@ public:
   void change_position(glm::vec3);
   
   glm::vec3 get_position();
+
+  float get_distance_to_other_point(const std::shared_ptr<Point>& q);
   
   Point(float x, float y, float z);
   

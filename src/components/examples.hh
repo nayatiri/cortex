@@ -47,23 +47,21 @@ void spawn_noodle_loop(Renderer& main_renderer) {
 
 void spawn_point_collission(Renderer& main_renderer) {
   
-  main_renderer.add_point_to_scene(3,5,0);
-  main_renderer.add_point_to_scene(3,0,0);
+  main_renderer.add_point_to_scene(0,5,0);
+  main_renderer.add_point_to_scene(0,3,0);
 
-  main_renderer.m_active_scene->m_loaded_points[0]->phys_props.velocity = {0,0,0};
-  main_renderer.m_active_scene->m_loaded_points[0]->phys_props.set_mass(35.0f);
-  main_renderer.m_active_scene->m_loaded_points[1]->phys_props.velocity = {0,0,0};
-  main_renderer.m_active_scene->m_loaded_points[1]->phys_props.set_mass(10.0f);
+  main_renderer.m_active_scene->m_loaded_points[0]->phys_props.velocity = {0,5.0f,0};
+  main_renderer.m_active_scene->m_loaded_points[1]->phys_props.velocity = {0,8.0f,0};
 }
 
 void spawn_single_link(Renderer& main_renderer) {
 
   //bottom points
-  main_renderer.add_point_to_scene(4,5,0);
+  main_renderer.add_point_to_scene(20,5,0);
   main_renderer.add_point_to_scene(0,5,0);
   
   //bottom triangle constraints
-  main_renderer.create_spring_constraint(main_renderer.m_active_scene->m_loaded_points[0],main_renderer.m_active_scene->m_loaded_points[1], 200.0f, 4.0f);
+  main_renderer.create_spring_constraint(main_renderer.m_active_scene->m_loaded_points[0],main_renderer.m_active_scene->m_loaded_points[1], 200.0f, 20.0f);
 
   main_renderer.create_fixed_constraint(main_renderer.m_active_scene->m_loaded_points[0], true);
   

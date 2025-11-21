@@ -10,6 +10,12 @@ Point::Point(float x, float y, float z) {
   m_pos_z = z;
 };
 
+float Point::get_distance_to_other_point(const std::shared_ptr<Point>& q) {
+
+  return glm::length(get_position() - q->get_position());
+  
+}
+
 glm::mat4 Point::get_model_matrix() {
 
   if(model_matrix_deprecated) {

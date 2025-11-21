@@ -1,5 +1,6 @@
 #pragma once
 
+#include "collission.hh"
 #include "entity.hh"
 #include "force_generator.hh"
 #include "light.hh"
@@ -48,6 +49,7 @@ public:
   // physics containers
   std::vector<std::shared_ptr<Spring>> m_loaded_springs = {};
   std::vector<std::shared_ptr<Point>> m_loaded_points = {};
+  std::vector<std::shared_ptr<Collission>> m_current_collissions = {};
   std::vector<std::shared_ptr<Force_generator>> m_loaded_force_generators = {};
 
   //interaction
