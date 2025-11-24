@@ -71,15 +71,13 @@ public:
 };
 
 // one time force generator, used to apply an impulse to an object
-class Temporary_force_generator : public Force_generator {
+class Impulse_force_generator : public Force_generator {
 private:
-  std::shared_ptr<Point> point;
-  float strength;
-  glm::vec3 direction;
+  glm::vec3 impulse;
 public:
-  
+  std::shared_ptr<Point> point = nullptr;
   bool force_applied = false;
 
-  Temporary_force_generator(std::shared_ptr<Point> to, float strength, glm::vec3 direction);
+  Impulse_force_generator(  std::shared_ptr<Point> to, glm::vec3 impulse );
   glm::vec3 get_force(Point& p, float delta_time);
 };

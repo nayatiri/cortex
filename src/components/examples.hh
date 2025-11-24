@@ -47,11 +47,12 @@ void spawn_noodle_loop(Renderer& main_renderer) {
 
 void spawn_point_collission(Renderer& main_renderer) {
   
-  main_renderer.add_point_to_scene(0,5,0);
-  main_renderer.add_point_to_scene(0,3,0);
+  main_renderer.add_point_to_scene(0,0,0);
+  main_renderer.add_point_to_scene(-3,0,0);
 
-  main_renderer.m_active_scene->m_loaded_points[0]->phys_props.velocity = {0,5.0f,0};
-  main_renderer.m_active_scene->m_loaded_points[1]->phys_props.velocity = {0,8.0f,0};
+  main_renderer.create_fixed_constraint(main_renderer.m_active_scene->m_loaded_points[0],true);
+  main_renderer.create_fixed_constraint(main_renderer.m_active_scene->m_loaded_points[1],true);
+  
 }
 
 void spawn_single_link(Renderer& main_renderer) {

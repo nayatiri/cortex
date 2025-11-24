@@ -196,10 +196,10 @@ void Input_Manager::process_input(GLFWwindow *window,
                           -m_active_scene->m_local_player->m_player_camera->m_cameraLookAt.z));
   }
 
-  // move all particles to 0,5,5 (ik its dumb)
+  // move all particles to 0,5,0 (ik its dumb)
   if (glfwGetKey(window, GLFW_KEY_V) == GLFW_PRESS) {
     for (std::shared_ptr<Point> p : m_active_scene->m_loaded_points) {
-      p->set_position(0, 5, 5);
+      p->set_position(0, 5, 0);
       p->phys_props.velocity = {0, 0, 0};
       p->phys_props.force = {0, 0, 0};
       p->phys_props.acceleration = {0, 0, 0};

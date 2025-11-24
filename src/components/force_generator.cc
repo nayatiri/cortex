@@ -38,10 +38,8 @@ Bouyancy_force_generator::Bouyancy_force_generator(glm::vec3 force,
   medium_density = density;
 }
 
-Temporary_force_generator::Temporary_force_generator(std::shared_ptr<Point> to,
-						     float strength_n,
-                                                     glm::vec3 direction_n)
-  : point(to), strength(strength_n), direction(direction_n) {}
+Impulse_force_generator::Impulse_force_generator(  std::shared_ptr<Point> to, glm::vec3 impulse_n)
+  : impulse(impulse_n), point(to) {}
 
 Stiff_Spring_force_generator::Stiff_Spring_force_generator(
     std::shared_ptr<Point> from, std::shared_ptr<Point> to, float strength,
@@ -170,18 +168,13 @@ glm::vec3 Stiff_Spring_force_generator::get_force(Point &p, float delta_time) {
 };
 
 
-glm::vec3 Temporary_force_generator::get_force(Point &p, float delta_time) {
+glm::vec3 Impulse_force_generator::get_force(Point &p, float delta_time) {
 
-  //TODO make proper impl
-  if (p.phys_props.inverse_mass == 0.0f)
-    return {0.0f, 0.0f, 0.0f};
-  
-  float mass = 1.0f / p.phys_props.inverse_mass;
-
-  //std::cout << "applied force: " << (direction * mass).x << ","  << (direction * mass).y << "," << (direction * mass).z << std::endl;
+  if(point.get() != &p)
+    return {0,0,0};
   
   force_applied = true;
-  
-  return direction * mass;
+  //std::cout << "applied force: " << (impulse / delta_time).x << ","  << (impulse / delta_time).y << "," << (impulse / delta_time).z << " on point: " << p.get_position().x << "\n";
+  return impulse / delta_time;
   
 }

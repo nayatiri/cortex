@@ -128,9 +128,19 @@ void Physics_Manager::resolve_collissions_for_scene_preview() {
       ppc->point_a->change_position( ppc->contact_normal * distance_adjust );
       ppc->point_b->change_position(ppc->contact_normal * -distance_adjust);
 
-      //handle collission force
-      m_active_scene->m_loaded_force_generators.push_back(std::make_shared<Temporary_force_generator>(ppc->point_a, 10.0f, ppc->contact_normal));
-      m_active_scene->m_loaded_force_generators.push_back(std::make_shared<Temporary_force_generator>(ppc->point_b, 10.0f, -ppc->contact_normal));
+
+      // compute relative velocity:
+      glm::vec3 rv = ppc->point_a->phys_props.velocity - ppc->point_b->phys_props.velocity;
+      float velAlongNormal = dot(rv, ppc->contact_normal);
+      
+      // hardcode restitution + impulse scalar 
+      float e = 0.5f;
+      float j = -(1 + e) * velAlongNormal / (ppc->point_a->phys_props.inverse_mass + ppc->point_b->phys_props.inverse_mass);
+      glm::vec3 J = j * ppc->contact_normal;
+      
+      // Add impulse through force generators:
+      m_active_scene->m_loaded_force_generators.push_back(std::make_shared<Impulse_force_generator>(ppc->point_a, J ));
+      m_active_scene->m_loaded_force_generators.push_back(std::make_shared<Impulse_force_generator>(ppc->point_b, -J ));
       
     }
 
@@ -269,10 +279,9 @@ void Physics_Manager::run_integrator() {
   // run point physics
   for (std::shared_ptr<Point> p : m_active_scene->m_loaded_points) {
 
+    // if point is fixed, lock it in place with inverted mass
     bool should_override_mass = false;
     float old_mass = 0.0f;
-
-    // if point is fixed, lock it in place with inverted mass
     if (p->phys_props.fixed) {
       old_mass = p->phys_props.inverse_mass;
       p->phys_props.inverse_mass = 0.0f;
@@ -318,19 +327,16 @@ void Physics_Manager::run_integrator() {
 
   //clear temporary force gens, after their force is applied.
   m_active_scene->m_loaded_force_generators.erase(
-    std::remove_if(
-        m_active_scene->m_loaded_force_generators.begin(),
-        m_active_scene->m_loaded_force_generators.end(),
-        [](const std::shared_ptr<Force_generator>& fg) {
-            // Check if it is a Temporary_force_generator
-            auto* temp = dynamic_cast<Temporary_force_generator*>(fg.get());
-            if (!temp) return false;
-
-            // Then check whether force_applied is true
-            return temp->force_applied;
-        }),
-    m_active_scene->m_loaded_force_generators.end());
-
+						  std::remove_if(
+								 m_active_scene->m_loaded_force_generators.begin(),
+								 m_active_scene->m_loaded_force_generators.end(),
+								 [](const std::shared_ptr<Force_generator>& fg) {
+								   auto* temp = dynamic_cast<Impulse_force_generator*>(fg.get());
+								   if (!temp) return false;
+								   return temp->force_applied;
+								 }),
+						  m_active_scene->m_loaded_force_generators.end());
+  
 }
 
 bool Physics_Manager::check_inside_AABB(Mesh &check_mesh,
