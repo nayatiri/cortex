@@ -69,3 +69,17 @@ public:
   Stiff_Spring_force_generator(std::shared_ptr<Point> to, std::shared_ptr<Point> from, float strength, float rest_length);
   glm::vec3 get_force(Point& p, float delta_time);
 };
+
+// one time force generator, used to apply an impulse to an object
+class Temporary_force_generator : public Force_generator {
+private:
+  std::shared_ptr<Point> point;
+  float strength;
+  glm::vec3 direction;
+public:
+  
+  bool force_applied = false;
+
+  Temporary_force_generator(std::shared_ptr<Point> to, float strength, glm::vec3 direction);
+  glm::vec3 get_force(Point& p, float delta_time);
+};

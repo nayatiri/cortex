@@ -8,6 +8,7 @@
 #include <algorithm>
 #include <glm/geometric.hpp>
 #include <memory>
+#include <random>
 
 Physics_Manager::Physics_Manager(std::shared_ptr<Scene> set_scene) {
   m_active_scene = set_scene;
@@ -53,24 +54,31 @@ bool Physics_Manager::check_and_build_collissions() {
       if (p == q)
         continue;
       
-      //collission?
+      //collission detected?
       if (p->phys_props.radius + q->phys_props.radius >
-          p->get_distance_to_other_point(q)) {
+          p->get_distance_to_other_point(q) + 0.01f) {
 
-        /*	std::cout << "collission detected with pq rad: " <<
+        /*
+	  std::cout << "collission detected with pq rad: " <<
           p->phys_props.radius + q->phys_props.radius <<
           " and dist: " << p->get_distance_to_other_point(q) <<
           " n p q pos " << p->get_position().y <<
           " " << q->get_position().y << "\n";
-        */
+	*/
 
         found_collissions = true;
 
-        m_active_scene->m_current_collissions.push_back(
-            std::make_shared<Point_Point_Collission>(
-                p, q, p->get_position() - q->get_position()));
-
-	
+	if(!p->phys_props.involved_in_collission && !q->phys_props.involved_in_collission) {
+	  m_active_scene->m_current_collissions.push_back(
+							  std::make_shared<Point_Point_Collission>(
+												   p,
+												   q,
+												   glm::normalize(p->get_position() - q->get_position())));
+	  p->phys_props.involved_in_collission = true;
+	  q->phys_props.involved_in_collission = true;
+	} else {
+	  //log_error("tried to create collission for points, that already have a collission... not making a new one.");
+	}
       }
     }
   }
@@ -104,27 +112,34 @@ void Physics_Manager::resolve_collissions_for_scene_preview() {
 
       float distance_adjust = ((distance_should_be - distance_is) / 2) + 0.01;
 
-      std::cout << "adjusting points with offset: " << distance_adjust << "\n";
+      //std::cout << "adjusting points with offset: " << distance_adjust << "\n";
 
-      ppc->point_a->change_position(ppc->contact_normal * distance_adjust);
+      // points in same location? random direction move
+      if(ppc->point_a->get_position() == ppc->point_b->get_position()) {
+	static std::mt19937 rng{std::random_device{}()};
+	static std::uniform_real_distribution<float> dist(-1.0f, 1.0f);
+	glm::vec3 random_force = glm::vec3(dist(rng), dist(rng), dist(rng));
+	ppc->point_a->change_position( random_force * distance_adjust );
+	ppc->point_b->change_position( random_force * -distance_adjust);
+	continue;
+      }
+      
+      //solve collission
+      ppc->point_a->change_position( ppc->contact_normal * distance_adjust );
       ppc->point_b->change_position(ppc->contact_normal * -distance_adjust);
+
+      //handle collission force
+      m_active_scene->m_loaded_force_generators.push_back(std::make_shared<Temporary_force_generator>(ppc->point_a, 10.0f, ppc->contact_normal));
+      m_active_scene->m_loaded_force_generators.push_back(std::make_shared<Temporary_force_generator>(ppc->point_b, 10.0f, -ppc->contact_normal));
       
     }
 
     c->resolved = true;
     
   }
-  
-  /*auto& collisions = m_active_scene->m_current_collissions;
-  collisions.erase(
-		   std::remove_if(collisions.begin(), collisions.end(),
-				  [](const std::shared_ptr<Collission>& c) {
-				    return c->resolved;
-				  }),
-		   collisions.end()
-		   );
-  */
 
+  //clear all collissions
+  for(auto p : m_active_scene->m_loaded_points) {p->phys_props.involved_in_collission = false;}
   m_active_scene->m_current_collissions.clear();
   
 };
@@ -299,9 +314,23 @@ void Physics_Manager::run_integrator() {
   for (std::shared_ptr<Point> p : m_active_scene->m_loaded_points) {
     if (!p->phys_props.fixed)
       p->swap_integration_buffer();
-
-    // check for collission here?
   }
+
+  //clear temporary force gens, after their force is applied.
+  m_active_scene->m_loaded_force_generators.erase(
+    std::remove_if(
+        m_active_scene->m_loaded_force_generators.begin(),
+        m_active_scene->m_loaded_force_generators.end(),
+        [](const std::shared_ptr<Force_generator>& fg) {
+            // Check if it is a Temporary_force_generator
+            auto* temp = dynamic_cast<Temporary_force_generator*>(fg.get());
+            if (!temp) return false;
+
+            // Then check whether force_applied is true
+            return temp->force_applied;
+        }),
+    m_active_scene->m_loaded_force_generators.end());
+
 }
 
 bool Physics_Manager::check_inside_AABB(Mesh &check_mesh,

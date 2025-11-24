@@ -21,6 +21,9 @@ struct Physics_properties {
   //TMP grav here. ForceGenerator ass to access from other force generator
   float gravity = -9.81f;
 
+  //TMP does this have to be here?
+  bool involved_in_collission = false;
+  
   float radius = 0.2f;
   
   //why tf is this valid

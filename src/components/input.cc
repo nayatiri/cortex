@@ -262,6 +262,12 @@ void Input_Manager::process_input(GLFWwindow *window,
     std::shared_ptr<Point> p = m_active_scene->m_selectionstate->selected_point;
     p->phys_props.add_force(0, 50, 0);
   }
+
+  // throw selected particle towards X
+  if (glfwGetKey(window, GLFW_KEY_C) == GLFW_PRESS && m_active_scene->m_selectionstate->selected_point != nullptr) {
+    std::shared_ptr<Point> p = m_active_scene->m_selectionstate->selected_point;
+    p->phys_props.add_force(50, 0, 0);
+  }
   
   return;
 }

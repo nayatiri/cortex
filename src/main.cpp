@@ -39,7 +39,8 @@ int main () {
 
   // spawn_pyramid(main_renderer);
   // spawn_point_collission(main_renderer);
-  spawn_single_link(main_renderer);
+  //spawn_single_link(main_renderer);
+  spawn_newton_cradle(main_renderer);
   // spawn_box(main_renderer);
 
   //spawn_noodle_loop(main_renderer);
