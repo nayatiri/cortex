@@ -61,6 +61,7 @@ public:
   void change_position(glm::vec3);
   
   glm::vec3 get_position();
+  void log_position();
 
   float get_distance_to_other_point(const std::shared_ptr<Point>& q);
   

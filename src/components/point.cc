@@ -2,6 +2,7 @@
 #include "force_generator.hh"
 #include <glm/ext/matrix_float4x4.hpp>
 #include <glm/ext/quaternion_transform.hpp>
+#include <iostream>
 #include <memory>
 
 Point::Point(float x, float y, float z) {
@@ -34,6 +35,12 @@ glm::mat4 Point::get_model_matrix() {
 
   return m_model_matrix_buffer;
 }
+
+void Point::log_position() {
+
+  std::cout << "Point position x,y,z: " << m_pos_x << " , " << m_pos_y << " , " << m_pos_z << std::endl;
+  
+};
 
 void Point::change_position(float x, float y, float z) {
   m_pos_x += x;

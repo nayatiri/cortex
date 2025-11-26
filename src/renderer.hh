@@ -95,6 +95,7 @@ public:
 
   void create_spring_constraint(std::shared_ptr<Point> from, std::shared_ptr<Point> to, float strength, float rest_length);
   void create_fixed_constraint(std::shared_ptr<Point> p , bool fixed);
+  void create_length_constraint(std::shared_ptr<Point> p,std::shared_ptr<Point> q, float distance);
   
   void setup_render_properties();
 

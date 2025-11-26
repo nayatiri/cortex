@@ -1,6 +1,7 @@
 #include "physicsmanager.hh"
 #include "AABB.hh"
 #include "collission.hh"
+#include "constraint.hh"
 #include "entity.hh"
 #include "force_generator.hh"
 #include "logging.hh"
@@ -44,10 +45,84 @@ AABB Physics_Manager::compute_world_space_aabb(Mesh &mesh,
   return bbox;
 }
 
+bool Physics_Manager::check_violated_static_constraints() {
+
+  bool violated = false;
+
+  for(const std::shared_ptr<Constraint>& c : m_active_scene->m_loaded_constraints) {
+    
+    //check which kind of constraint we have.
+    if(const std::shared_ptr<Fix_length_constraint>& lc = std::dynamic_pointer_cast<Fix_length_constraint>(c)){
+
+      //TODO make this shit a function or find better way lol
+      if(lc->point_a->get_position() == lc->point_b->get_position()) {
+	static std::mt19937 rng{std::random_device{}()};
+	static std::uniform_real_distribution<float> dist(-1.0f, 1.0f);
+	glm::vec3 random_force = glm::vec3(dist(rng), dist(rng), dist(rng));
+	lc->point_a->change_position( random_force * 0.1f);
+        lc->point_b->change_position( random_force * -0.1f);
+      }
+
+      float error = glm::distance(lc->point_a->get_position(), lc->point_b->get_position()) - lc->distance;
+      if(error > 0.05f || error < -0.05f){
+	log_debug("length constraint violated...");
+	lc->violated = true;
+	violated = true;
+      }
+    }
+    
+    if(const std::shared_ptr<Fix_angle_constraint>& lc = std::dynamic_pointer_cast<Fix_angle_constraint>(c)){
+      //impl coming soon kekw
+    }
+    
+  }
+  
+  return violated;
+  
+};
+
+void Physics_Manager::solve_violated_static_constraints() {
+
+  for(const std::shared_ptr<Constraint>& c : m_active_scene->m_loaded_constraints) {
+
+    // skip fine constraints
+    if(!c->violated)
+      continue;
+
+    //check which kind of constraint we have.
+    if(const std::shared_ptr<Fix_length_constraint>& lc = std::dynamic_pointer_cast<Fix_length_constraint>(c)){
+
+      float error = glm::distance(lc->point_a->get_position(), lc->point_b->get_position()) - lc->distance;
+
+      std::cout << error << "violated constraint: " << error << "\n";
+      
+      glm::vec3 a_to_b = glm::normalize(lc->point_b->get_position() - lc->point_a->get_position());
+      glm::vec3 b_to_a = glm::normalize(lc->point_a->get_position() - lc->point_b->get_position());
+
+      a_to_b *= (error/2);
+      b_to_a *= (error/2); 
+
+      lc->point_a->change_position(a_to_b);
+      lc->point_b->change_position(b_to_a);
+
+      lc->point_a->log_position();
+      
+      lc->violated = false;
+      
+    }
+    
+    if(const std::shared_ptr<Fix_angle_constraint>& lc = std::dynamic_pointer_cast<Fix_angle_constraint>(c)){
+      //impl coming soon kekw
+    }
+    
+  }
+  
+  };
+
 bool Physics_Manager::check_and_build_collissions() {
-
+  
   bool found_collissions = false;
-
+  
   for (std::shared_ptr<Point> p : m_active_scene->m_loaded_points) {
     for (std::shared_ptr<Point> q : m_active_scene->m_loaded_points) {
 
@@ -311,6 +386,11 @@ void Physics_Manager::run_integrator() {
     // reset mass if point was fixed
     if (should_override_mass)
       p->phys_props.inverse_mass = old_mass;
+  }
+
+  // calc satic constraints n shi
+  while (check_violated_static_constraints()) {
+    solve_violated_static_constraints();
   }
 
   // calculate collissions, adjust buffer integration delta on col

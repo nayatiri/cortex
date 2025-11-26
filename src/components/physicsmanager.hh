@@ -19,6 +19,8 @@ private:
   bool check_inside_AABB(Mesh &mesh, glm::vec3 check_position);
   void debug_particle_movement(std::shared_ptr<Point> p);
   bool check_and_build_collissions();
+  bool check_violated_static_constraints();
+  void solve_violated_static_constraints();
   
 public:
   

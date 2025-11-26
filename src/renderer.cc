@@ -18,6 +18,7 @@
 
 // components
 #include "components/AABB.hh"
+#include "components/constraint.hh"
 #include "components/entity.hh"
 #include "components/force_generator.hh"
 #include "components/input.hh"
@@ -143,6 +144,13 @@ void Renderer::render_frame() {
   if(m_deltaTime < fps_target_ms)
     std::this_thread::sleep_for(std::chrono::milliseconds((int)(fps_target_ms) - (int)(m_deltaTime)));
 }
+
+void Renderer::create_length_constraint(std::shared_ptr<Point> p,
+                              std::shared_ptr<Point> q, float distance) {
+
+  m_active_scene->m_loaded_constraints.push_back(std::make_shared<Fix_length_constraint>(p,q,distance));
+  
+};
 
 void Renderer::add_model_to_scene(const char* filepath) {
 

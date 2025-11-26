@@ -1,6 +1,7 @@
 #pragma once
 
 #include "collission.hh"
+#include "constraint.hh"
 #include "entity.hh"
 #include "force_generator.hh"
 #include "light.hh"
@@ -51,6 +52,7 @@ public:
   std::vector<std::shared_ptr<Point>> m_loaded_points = {};
   std::vector<std::shared_ptr<Collission>> m_current_collissions = {};
   std::vector<std::shared_ptr<Force_generator>> m_loaded_force_generators = {};
+  std::vector<std::shared_ptr<Constraint>> m_loaded_constraints = {};
 
   //interaction
   std::shared_ptr<Selectionstate> m_selectionstate = nullptr;

@@ -57,15 +57,25 @@ void spawn_point_collission(Renderer& main_renderer) {
 
 void spawn_single_link(Renderer& main_renderer) {
 
-  //bottom points
   main_renderer.add_point_to_scene(20,5,0);
   main_renderer.add_point_to_scene(0,5,0);
   
-  //bottom triangle constraints
   main_renderer.create_spring_constraint(main_renderer.m_active_scene->m_loaded_points[0],main_renderer.m_active_scene->m_loaded_points[1], 200.0f, 20.0f);
 
-  main_renderer.create_fixed_constraint(main_renderer.m_active_scene->m_loaded_points[0], true);
 };
+
+void spawn_fix_link(Renderer& main_renderer) {
+
+  //bottom points
+  main_renderer.add_point_to_scene(5,5,0);
+  main_renderer.add_point_to_scene(0,5,0);
+  
+  //main_renderer.create_spring_constraint(main_renderer.m_active_scene->m_loaded_points[0],main_renderer.m_active_scene->m_loaded_points[1], 200.0f, 20.0f);
+
+  main_renderer.create_fixed_constraint(main_renderer.m_active_scene->m_loaded_points[0], true);
+  main_renderer.create_length_constraint(main_renderer.m_active_scene->m_loaded_points[0], main_renderer.m_active_scene->m_loaded_points[1], 5.0f);
+  
+  };
 
 void spawn_newton_cradle(Renderer& main_renderer) {
 
