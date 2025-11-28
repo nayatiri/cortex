@@ -11,6 +11,8 @@
 #include <memory>
 #include <random>
 
+#define STABILITY_THRESHOLD 0.02f
+
 Physics_Manager::Physics_Manager(std::shared_ptr<Scene> set_scene) {
   m_active_scene = set_scene;
 };
@@ -285,8 +287,18 @@ void Physics_Manager::handle_scene_physics() {
       m_force_generators_initialized = false;
   }
 
-  // process physics if everything is setup
-  run_integrator();
+  std::cout << m_active_scene->m_scene_deltatime << "\n";
+
+  // if we have low fps, run smaller integration steps, to prevent numerical instability
+  if(m_active_scene->m_scene_deltatime < STABILITY_THRESHOLD)
+    run_integrator(m_active_scene->m_scene_deltatime);    
+  else {
+    unsigned int num_steps = m_active_scene->m_scene_deltatime / STABILITY_THRESHOLD;
+    for(unsigned int i = 0; i<num_steps; i++) {
+      run_integrator(m_active_scene->m_scene_deltatime/num_steps);
+    }
+  }
+  
 }
 
 void Physics_Manager::handle_scene_physics_book() {}
@@ -338,8 +350,8 @@ void debug_particle_movement(std::shared_ptr<Point> p) {
 }
 
 // aka integrator
-void Physics_Manager::run_integrator() {
-
+void Physics_Manager::run_integrator(float simulation_step_dt) {
+  
   // update mesh physics
   for (Entity e : m_active_scene->m_loaded_entities) {
     for (std::shared_ptr<Mesh> m : e.m_mesh) {
@@ -353,7 +365,7 @@ void Physics_Manager::run_integrator() {
 
   // run point physics
   for (std::shared_ptr<Point> p : m_active_scene->m_loaded_points) {
-
+    
     // if point is fixed, lock it in place with inverted mass
     bool should_override_mass = false;
     float old_mass = 0.0f;
@@ -364,13 +376,13 @@ void Physics_Manager::run_integrator() {
     }
 
     // sumn up all forces on point
-    update_alembert_force(*p, m_active_scene->m_scene_deltatime);
+    update_alembert_force(*p, simulation_step_dt);
 
     // debug_particle_movement(p);
 
     // now take the summed forces and apply em to the points in the scene
     glm::vec3 acceleration = p->phys_props.force * p->phys_props.inverse_mass;
-    p->phys_props.velocity += acceleration * m_active_scene->m_scene_deltatime;
+    p->phys_props.velocity += acceleration * simulation_step_dt;
 
     // prevent velocity explosion by capping it
     if (glm::length(p->phys_props.velocity) > 500.0f)
@@ -379,7 +391,7 @@ void Physics_Manager::run_integrator() {
 
     // firstly write forces to buffer
     p->buffer_integration_delta(p->phys_props.velocity *
-                                m_active_scene->m_scene_deltatime);
+                                simulation_step_dt);
 
     // reset force after applying it successfully
     p->phys_props.force = {0, 0, 0};

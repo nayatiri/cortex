@@ -40,13 +40,13 @@ int main () {
   //  spawn_pyramid(main_renderer);
   //  spawn_point_collission(main_renderer);
   //  spawn_single_link(main_renderer);
-  //  spawn_newton_cradle(main_renderer);
+    spawn_newton_cradle(main_renderer);
   //  spawn_box(main_renderer);
-  spawn_fix_link(main_renderer);
+  // spawn_fix_link(main_renderer);
   
   //spawn_noodle_loop(main_renderer);
 
-  main_renderer.add_skybox_to_scene("models/skybox/skybox.gltf");
+  //main_renderer.add_skybox_to_scene("models/skybox/skybox.gltf");
 
   main_renderer.add_text_to_overlay("FPS_METER_ALWAYS_[0]", 10 ,40 );
   main_renderer.add_text_to_overlay("cortex - dev build", 10 ,60 );
