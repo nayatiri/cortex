@@ -11,6 +11,8 @@ Everything is coded from scratch, trying to implement everything in the way i wo
 
 The only Libraries used are GLFW (xlib is terrible), OpenGL, and STB image to load pngs.
 
+Atm im not happy with the cleanliness of the code cause i havent rly had the time to refactor shit probably. Likely ill just recode the entire engine, with what i learned from this in the future :P
+
 ---
 
 ##  Features
