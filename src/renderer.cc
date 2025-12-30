@@ -145,6 +145,13 @@ void Renderer::render_frame() {
     std::this_thread::sleep_for(std::chrono::milliseconds((int)(fps_target_ms) - (int)(m_deltaTime)));
 }
 
+void Renderer::create_angle_constraint(std::shared_ptr<Point> p, std::shared_ptr<Point> q,
+				       std::shared_ptr<Point> w, float angle) {
+  
+  m_active_scene->m_loaded_constraints.push_back(std::make_shared<Fix_angle_constraint>(p,q,w,angle));
+  
+};
+
 void Renderer::create_length_constraint(std::shared_ptr<Point> p,
                               std::shared_ptr<Point> q, float distance) {
 

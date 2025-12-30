@@ -12,7 +12,8 @@
 #include <random>
 
 #define STABILITY_THRESHOLD 0.02f
-#define WIGGLE_ROOM 0.01f
+#define WIGGLE_ROOM 0.05f
+#define MAX_SOLVER_ITERATIONS = 20
 
 Physics_Manager::Physics_Manager(std::shared_ptr<Scene> set_scene) {
   m_active_scene = set_scene;
@@ -75,8 +76,32 @@ bool Physics_Manager::check_violated_static_constraints() {
       }
     }
     
-    if(const std::shared_ptr<Fix_angle_constraint>& lc = std::dynamic_pointer_cast<Fix_angle_constraint>(c)){
-      //impl coming soon kekw
+    if(const std::shared_ptr<Fix_angle_constraint>& ac = std::dynamic_pointer_cast<Fix_angle_constraint>(c)){
+
+      //TODO mb need on hinge too?
+      if(ac->end_a->get_position() == ac->end_b->get_position()) {
+	static std::mt19937 rng{std::random_device{}()};
+	static std::uniform_real_distribution<float> dist(-1.0f, 1.0f);
+	glm::vec3 random_force = glm::vec3(dist(rng), dist(rng), dist(rng));
+	ac->end_a->change_position( random_force * 0.1f);
+        ac->end_b->change_position( random_force * -0.1f);
+      }
+
+      if(ac->result_length_constraint == nullptr){
+	std::shared_ptr<Fix_length_constraint> new_const = ac->create_length_constraint();
+	m_active_scene->m_loaded_constraints.push_back(new_const);
+	ac->result_length_constraint = new_const;
+      }
+      
+      ac->update_length_constraint();
+      
+      float current_dist = ac->end_a->get_distance_to_other_point(ac->end_b);
+      float error = current_dist - ac->result_length_constraint->distance;
+      if (std::abs(error) > WIGGLE_ROOM) {
+	ac->violated = true;
+	violated = true;
+      }
+      
     }
     
   }
@@ -104,19 +129,19 @@ void Physics_Manager::solve_violated_static_constraints() {
       // both free or both fixed
       if((!lc->point_a->phys_props.fixed && !lc->point_b->phys_props.fixed) || (lc->point_a->phys_props.fixed && lc->point_b->phys_props.fixed)) {
 	a_to_b *= (error/2);
-	b_to_a *= (error/2); 
+	b_to_a *= (error/2);
       }
 
       //a fix b free
-      if(lc->point_a->phys_props.fixed && !lc->point_b->phys_props.fixed) {
+      else if(lc->point_a->phys_props.fixed && !lc->point_b->phys_props.fixed) {
 	a_to_b *= (0);
-	b_to_a *= (error); 
-      }
+	b_to_a *= (error);
+        }
       
       //b fix a free
-      if(!lc->point_a->phys_props.fixed && lc->point_b->phys_props.fixed) {
+      else if(!lc->point_a->phys_props.fixed && lc->point_b->phys_props.fixed) {
 	a_to_b *= (error);
-	b_to_a *= (0); 
+	b_to_a *= (0);
       }
       
       lc->point_a->change_position(a_to_b);
@@ -125,8 +150,41 @@ void Physics_Manager::solve_violated_static_constraints() {
       
     }
     
-    if(const std::shared_ptr<Fix_angle_constraint>& lc = std::dynamic_pointer_cast<Fix_angle_constraint>(c)){
-      //impl coming soon kekw
+    if(const std::shared_ptr<Fix_angle_constraint>& ac = std::dynamic_pointer_cast<Fix_angle_constraint>(c)){
+
+      float dist_h_a = ac->hinge->get_distance_to_other_point(ac->end_a);
+      float dist_h_b = ac->hinge->get_distance_to_other_point(ac->end_b);
+      
+      //ghetto xd
+      float need_distance = sqrt( (dist_h_a * dist_h_a) + (dist_h_b * dist_h_b) - 2*dist_h_a*dist_h_b*cos(glm::radians(ac->angle)) );
+
+      float current_dist = ac->end_a->get_distance_to_other_point(ac->end_b);
+      float error = current_dist - need_distance;
+
+      glm::vec3 fix_dir = glm::normalize(ac->end_a->get_position() - ac->end_b->get_position());
+      fix_dir = error * fix_dir;
+
+
+      // all these correct with a total sumn of <1.0*fix_dir to rather run 2 solver iterations than get stuck in an infinite over correction loop.
+      if(!ac->end_a->phys_props.fixed && !ac->end_a->phys_props.fixed) {
+	ac->end_a->change_position(0.5f * fix_dir);
+	ac->end_b->change_position(0.5f * -fix_dir);
+      }
+
+      if(ac->end_a->phys_props.fixed && !ac->end_a->phys_props.fixed) {
+	ac->end_b->change_position(-fix_dir);
+      }
+
+      if(ac->end_b->phys_props.fixed && !ac->end_a->phys_props.fixed) {
+	ac->end_a->change_position(fix_dir);
+      }
+      
+      
+      log_debug("violated angle constraint :D");
+      std::cout << need_distance << " need dist - " << error << " error";
+      
+      ac->violated = false;
+      
     }
     
   }
@@ -414,13 +472,17 @@ void Physics_Manager::run_integrator(float simulation_step_dt) {
   }
 
   // calc satic constraints n shi
-  while (check_violated_static_constraints()) {
+  int iteration_count = 0;
+  while (check_violated_static_constraints() && (iteration_count < MAX_SOLVER_ITERATIONS)) {
     solve_violated_static_constraints();
+    iteration_count++;
   }
 
   // calculate collissions, adjust buffer integration delta on col
+  iteration_count = 0;
   while (check_and_build_collissions()) {
     resolve_collissions_for_scene_preview();
+    iteration_count++;
   }
 
   // after resolving all positions, write to active point position. (if point
