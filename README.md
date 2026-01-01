@@ -7,24 +7,26 @@ A powerful and lightweight 3D renderer built in C++ and OpenGL, supporting a wid
 
 The focus of this project is to have an agile engine, i can use to develop my own physics engine / showcase various data science concepts like 3d points clouds, map data etc all in my own ecosystem.
 
-Everything is coded from scratch, trying to implement everything in the way i would do as much as possible.
+Everything is coded from scratch, trying to implement everything in the way i would do as much as possible, this means that the code is by no means optimal. But this repo is more of my "learning" path on advanced systems engineering. So the code will get refactored to a cleaner code convention, as soon as i start with performance optimizations.
 
-The only Libraries used are GLFW (xlib is terrible), OpenGL, and STB image to load pngs.
-
-Atm im not happy with the cleanliness of the code cause i havent rly had the time to refactor shit probably. Likely ill just recode the entire engine, with what i learned from this in the future :P
+The only Libraries used are GLFW (xlib is terrible), OpenGL, and STB image to load pngs, the rest is 100% selfmade without usage of AI generated code!
 
 ---
 
 ##  Features
 
--  Foreward rendering
--  Physically Based Rendering (PBR)
--  Support for GLTF/GLB models / full scenes including materials / positioning/
+-  Foreward rendering pipeline
+-  Physically Based Rendering (PBR) for photorealistic meshes
+-  Support for GLTF/GLB models / full scenes including materials / positioning / lighting
 -  Custom abstraction, making the engine suitable for easy expansion.
--  Animation system for Camera animations / cutscenes using control points and interpolating between them
--  Primitive Physics engine consising of: Point physics(gravity, drag, conditional), Spring constraints and more to come soon. 
--  Text rendering / Overlay rendering with texture atlas support.
+-  Animation system for Camera animations / cutscenes using control points and interpolating between them.
+-  Physics engine consising of: Point physics(gravity, drag, conditional forces), Spring constraints, hard length constraints, angular constraints and more to come soon. (this is my current focus of this project, since the graphics part is already pretty feature packed) 
+-  Text rendering / Overlay rendering with texture atlas support for custom font loading.
 
 ---
+
+## Disclaimer
+
+- Hereby i 
 
 ## More readme coming soon :-)
