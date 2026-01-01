@@ -7,13 +7,18 @@
 #include "logging.hh"
 #include "point.hh"
 #include <algorithm>
+#include <cmath>
+#include <glm/ext/matrix_transform.hpp>
+#include <glm/ext/quaternion_transform.hpp>
 #include <glm/geometric.hpp>
 #include <memory>
 #include <random>
 
 #define STABILITY_THRESHOLD 0.02f
 #define WIGGLE_ROOM 0.05f
-#define MAX_SOLVER_ITERATIONS = 20
+#define MAX_SOLVER_ITERATIONS 100
+#define CONVERGENCE_RELAXATION 0.4f
+#define PI_CONST 3.41
 
 Physics_Manager::Physics_Manager(std::shared_ptr<Scene> set_scene) {
   m_active_scene = set_scene;
@@ -69,8 +74,8 @@ bool Physics_Manager::check_violated_static_constraints() {
       }
 
       float error = glm::distance(lc->point_a->get_position(), lc->point_b->get_position()) - lc->distance;
-      if(error > WIGGLE_ROOM || error < -WIGGLE_ROOM){
-	log_debug("length constraint violated...");
+      if(error > WIGGLE_ROOM || error < -WIGGLE_ROOM) {
+	std::cout << "length constraint violated with error:" << error << "\n";
 	lc->violated = true;
 	violated = true;
       }
@@ -83,20 +88,17 @@ bool Physics_Manager::check_violated_static_constraints() {
 	static std::mt19937 rng{std::random_device{}()};
 	static std::uniform_real_distribution<float> dist(-1.0f, 1.0f);
 	glm::vec3 random_force = glm::vec3(dist(rng), dist(rng), dist(rng));
-	ac->end_a->change_position( random_force * 0.1f);
-        ac->end_b->change_position( random_force * -0.1f);
-      }
-
-      if(ac->result_length_constraint == nullptr){
-	std::shared_ptr<Fix_length_constraint> new_const = ac->create_length_constraint();
-	m_active_scene->m_loaded_constraints.push_back(new_const);
-	ac->result_length_constraint = new_const;
+	ac->end_a->change_position( random_force * 0.05f);
+        ac->end_b->change_position( random_force * -0.05f);
       }
       
-      ac->update_length_constraint();
-      
-      float current_dist = ac->end_a->get_distance_to_other_point(ac->end_b);
-      float error = current_dist - ac->result_length_constraint->distance;
+      glm::vec3 h_to_a = ac->end_a->get_position() - ac->hinge->get_position();
+      glm::vec3 h_to_b = ac->end_b->get_position() - ac->hinge->get_position();
+      float current_angle = std::acos(glm::clamp(
+						 glm::dot(glm::normalize(h_to_a), glm::normalize(h_to_b)),
+						 -1.0f, 1.0f
+						 ));
+      float error = current_angle - ( ac->angle / (180.0f / PI_CONST) );
       if (std::abs(error) > WIGGLE_ROOM) {
 	ac->violated = true;
 	violated = true;
@@ -110,6 +112,27 @@ bool Physics_Manager::check_violated_static_constraints() {
   
 };
 
+glm::vec3 Physics_Manager::rotate_around_axis(
+    glm::vec3 point,
+    glm::vec3 pivot,
+    glm::vec3 axis,
+    float angle_rad)
+{
+    glm::vec3 v = point - pivot;
+
+    float cos_t = cos(angle_rad);
+    float sin_t = sin(angle_rad);
+ 
+    // eodrigues rotation formula
+    glm::vec3 axis_normalized = glm::normalize(axis);
+    glm::vec3 v_rot =
+        v * cos_t +
+        glm::cross(axis_normalized, v) * sin_t +
+        axis_normalized * glm::dot(axis_normalized, v) * (1.0f - cos_t);
+
+    return pivot + v_rot;
+  }
+
 void Physics_Manager::solve_violated_static_constraints() {
 
   for(const std::shared_ptr<Constraint>& c : m_active_scene->m_loaded_constraints) {
@@ -117,8 +140,10 @@ void Physics_Manager::solve_violated_static_constraints() {
     // skip fine constraints
     if(!c->violated)
       continue;
-
-    //check which kind of constraint we have.
+    
+    //////////////////
+    //fix length constraints.
+    //////////////////
     if(const std::shared_ptr<Fix_length_constraint>& lc = std::dynamic_pointer_cast<Fix_length_constraint>(c)){
 
       float error = glm::distance(lc->point_a->get_position(), lc->point_b->get_position()) - lc->distance;
@@ -130,66 +155,66 @@ void Physics_Manager::solve_violated_static_constraints() {
       if((!lc->point_a->phys_props.fixed && !lc->point_b->phys_props.fixed) || (lc->point_a->phys_props.fixed && lc->point_b->phys_props.fixed)) {
 	a_to_b *= (error/2);
 	b_to_a *= (error/2);
-      }
-
-      //a fix b free
-      else if(lc->point_a->phys_props.fixed && !lc->point_b->phys_props.fixed) {
-	a_to_b *= (0);
-	b_to_a *= (error);
-        }
+      } else
+	if(lc->point_a->phys_props.fixed && !lc->point_b->phys_props.fixed) {
+	  a_to_b *= (0);
+	  b_to_a *= (error);
+        } else
+	  if(!lc->point_a->phys_props.fixed && lc->point_b->phys_props.fixed) {
+	    a_to_b *= (error);
+	    b_to_a *= (0);
+	  }
       
-      //b fix a free
-      else if(!lc->point_a->phys_props.fixed && lc->point_b->phys_props.fixed) {
-	a_to_b *= (error);
-	b_to_a *= (0);
-      }
-      
-      lc->point_a->change_position(a_to_b);
-      lc->point_b->change_position(b_to_a);
+      lc->point_a->change_position(a_to_b * CONVERGENCE_RELAXATION);
+      lc->point_b->change_position(b_to_a * CONVERGENCE_RELAXATION);
       lc->violated = false;
       
     }
     
+    //////////////////
+    // fix angle constraints
+    //////////////////
     if(const std::shared_ptr<Fix_angle_constraint>& ac = std::dynamic_pointer_cast<Fix_angle_constraint>(c)){
 
-      float dist_h_a = ac->hinge->get_distance_to_other_point(ac->end_a);
-      float dist_h_b = ac->hinge->get_distance_to_other_point(ac->end_b);
+      glm::vec3 h_to_a = ac->end_a->get_position() - ac->hinge->get_position();
+      glm::vec3 h_to_b = ac->end_b->get_position() - ac->hinge->get_position();
+      float ac_angle_rad = ac->angle / (180.0f / PI_CONST);
+      float current_angle = std::acos(glm::clamp(
+						 glm::dot(glm::normalize(h_to_a), glm::normalize(h_to_b)),
+						 -1.0f, 1.0f
+						 ));
+      glm::vec3 hinge_normal = glm::normalize(glm::cross(h_to_b, h_to_a));
+
+      float correct_rad = current_angle - ac_angle_rad;
+      if(std::abs(correct_rad) > WIGGLE_ROOM) {
+      float correct_a = correct_rad;
+      float correct_b = correct_rad;
+
+      // check which end is fixe
+      if(!ac->end_a->phys_props.fixed && !ac->end_b->phys_props.fixed) {
+	correct_a *= 0.5f;
+	correct_b *= 0.5f;
+      } else
+	if(ac->end_a->phys_props.fixed && !ac->end_b->phys_props.fixed) {
+	  correct_a = 0.0f;
+	} else
+	  if(!ac->end_a->phys_props.fixed && ac->end_b->phys_props.fixed) {
+	    correct_b = 0.0f;
+	  }
       
-      //ghetto xd
-      float need_distance = sqrt( (dist_h_a * dist_h_a) + (dist_h_b * dist_h_b) - 2*dist_h_a*dist_h_b*cos(glm::radians(ac->angle)) );
-
-      float current_dist = ac->end_a->get_distance_to_other_point(ac->end_b);
-      float error = current_dist - need_distance;
-
-      glm::vec3 fix_dir = glm::normalize(ac->end_a->get_position() - ac->end_b->get_position());
-      fix_dir = error * fix_dir;
-
-
-      // all these correct with a total sumn of <1.0*fix_dir to rather run 2 solver iterations than get stuck in an infinite over correction loop.
-      if(!ac->end_a->phys_props.fixed && !ac->end_a->phys_props.fixed) {
-	ac->end_a->change_position(0.5f * fix_dir);
-	ac->end_b->change_position(0.5f * -fix_dir);
+      // write positions to points
+      glm::vec3 new_pos_a = rotate_around_axis(ac->end_a->get_position(),ac->hinge->get_position(), hinge_normal, -correct_rad * CONVERGENCE_RELAXATION);
+      ac->end_a->set_position(new_pos_a.x, new_pos_a.y, new_pos_a.z);    
+      glm::vec3 new_pos_b = rotate_around_axis(ac->end_b->get_position(),ac->hinge->get_position(), hinge_normal, correct_rad * CONVERGENCE_RELAXATION);
+      ac->end_b->set_position(new_pos_b.x, new_pos_b.y, new_pos_b.z);
+      
       }
-
-      if(ac->end_a->phys_props.fixed && !ac->end_a->phys_props.fixed) {
-	ac->end_b->change_position(-fix_dir);
-      }
-
-      if(ac->end_b->phys_props.fixed && !ac->end_a->phys_props.fixed) {
-	ac->end_a->change_position(fix_dir);
-      }
-      
-      
-      log_debug("violated angle constraint :D");
-      std::cout << need_distance << " need dist - " << error << " error";
-      
       ac->violated = false;
       
     }
-    
   }
   
-  };
+};
 
 bool Physics_Manager::check_and_build_collissions() {
   
@@ -473,7 +498,11 @@ void Physics_Manager::run_integrator(float simulation_step_dt) {
 
   // calc satic constraints n shi
   int iteration_count = 0;
-  while (check_violated_static_constraints() && (iteration_count < MAX_SOLVER_ITERATIONS)) {
+  while (check_violated_static_constraints()) {
+    if(iteration_count > MAX_SOLVER_ITERATIONS) {
+      log_error("reached solver threshold. exiting solver with potentially inconsistent physics state!");
+      break;
+    }
     solve_violated_static_constraints();
     iteration_count++;
   }

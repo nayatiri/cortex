@@ -19,8 +19,6 @@ struct Fix_angle_constraint : public Constraint {
   std::shared_ptr<Point> end_a;
   std::shared_ptr<Point> end_b;
   std::shared_ptr<Point> hinge;
-
-  std::shared_ptr<Fix_length_constraint> result_length_constraint = nullptr;
   
   float angle = 90.0f;
 

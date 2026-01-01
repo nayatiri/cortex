@@ -146,9 +146,9 @@ void Renderer::render_frame() {
 }
 
 void Renderer::create_angle_constraint(std::shared_ptr<Point> p, std::shared_ptr<Point> q,
-				       std::shared_ptr<Point> w, float angle) {
+				       std::shared_ptr<Point> hinge, float angle) {
   
-  m_active_scene->m_loaded_constraints.push_back(std::make_shared<Fix_angle_constraint>(p,q,w,angle));
+  m_active_scene->m_loaded_constraints.push_back(std::make_shared<Fix_angle_constraint>(p,q,hinge,angle));
   
 };
 

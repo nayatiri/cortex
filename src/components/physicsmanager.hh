@@ -21,6 +21,12 @@ private:
   bool check_and_build_collissions();
   bool check_violated_static_constraints();
   void solve_violated_static_constraints();
+  glm::vec3 rotate_around_axis(
+    glm::vec3 point,
+    glm::vec3 pivot,
+    glm::vec3 axis,
+    float angle_rad);
+
   
 public:
   
