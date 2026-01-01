@@ -51,7 +51,7 @@ AABB Physics_Manager::compute_world_space_aabb(Mesh &mesh,
   bbox.max = transform * glm::vec4(bbox.max,1.0f);
   bbox.min = transform * glm::vec4(bbox.min,1.0f);
   */
-  
+
   return bbox;
 }
 
@@ -59,204 +59,208 @@ bool Physics_Manager::check_violated_static_constraints() {
 
   bool violated = false;
 
-  for(const std::shared_ptr<Constraint>& c : m_active_scene->m_loaded_constraints) {
-    
-    //check which kind of constraint we have.
-    if(const std::shared_ptr<Fix_length_constraint>& lc = std::dynamic_pointer_cast<Fix_length_constraint>(c)){
+  for (const std::shared_ptr<Constraint> &c :
+       m_active_scene->m_loaded_constraints) {
 
-      //TODO make this shit a function or find better way lol actually just run this in a for loop for all points in scene at start of run_integrator ngl...
-      if(lc->point_a->get_position() == lc->point_b->get_position()) {
-	static std::mt19937 rng{std::random_device{}()};
-	static std::uniform_real_distribution<float> dist(-1.0f, 1.0f);
-	glm::vec3 random_force = glm::vec3(dist(rng), dist(rng), dist(rng));
-	lc->point_a->change_position( random_force * 0.1f);
-        lc->point_b->change_position( random_force * -0.1f);
+    // check which kind of constraint we have.
+    if (const std::shared_ptr<Fix_length_constraint> &lc =
+            std::dynamic_pointer_cast<Fix_length_constraint>(c)) {
+
+      // TODO make this shit a function or find better way lol actually just run
+      // this in a for loop for all points in scene at start of run_integrator
+      // ngl...
+      if (lc->point_a->get_position() == lc->point_b->get_position()) {
+        static std::mt19937 rng{std::random_device{}()};
+        static std::uniform_real_distribution<float> dist(-1.0f, 1.0f);
+        glm::vec3 random_force = glm::vec3(dist(rng), dist(rng), dist(rng));
+        lc->point_a->change_position(random_force * 0.1f);
+        lc->point_b->change_position(random_force * -0.1f);
       }
 
-      float error = glm::distance(lc->point_a->get_position(), lc->point_b->get_position()) - lc->distance;
-      if(error > WIGGLE_ROOM || error < -WIGGLE_ROOM) {
-	std::cout << "length constraint violated with error:" << error << "\n";
-	lc->violated = true;
-	violated = true;
+      float error = glm::distance(lc->point_a->get_position(),
+                                  lc->point_b->get_position()) -
+                    lc->distance;
+      if (error > WIGGLE_ROOM || error < -WIGGLE_ROOM) {
+        std::cout << "length constraint violated with error:" << error << "\n";
+        lc->violated = true;
+        violated = true;
       }
     }
-    
-    if(const std::shared_ptr<Fix_angle_constraint>& ac = std::dynamic_pointer_cast<Fix_angle_constraint>(c)){
 
-      //TODO mb need on hinge too?
-      if(ac->end_a->get_position() == ac->end_b->get_position()) {
-	static std::mt19937 rng{std::random_device{}()};
-	static std::uniform_real_distribution<float> dist(-1.0f, 1.0f);
-	glm::vec3 random_force = glm::vec3(dist(rng), dist(rng), dist(rng));
-	ac->end_a->change_position( random_force * 0.05f);
-        ac->end_b->change_position( random_force * -0.05f);
+    if (const std::shared_ptr<Fix_angle_constraint> &ac =
+            std::dynamic_pointer_cast<Fix_angle_constraint>(c)) {
+
+      // TODO mb need on hinge too?
+      if (ac->end_a->get_position() == ac->end_b->get_position()) {
+        static std::mt19937 rng{std::random_device{}()};
+        static std::uniform_real_distribution<float> dist(-1.0f, 1.0f);
+        glm::vec3 random_force = glm::vec3(dist(rng), dist(rng), dist(rng));
+        ac->end_a->change_position(random_force * 0.05f);
+        ac->end_b->change_position(random_force * -0.05f);
       }
-      
+
       glm::vec3 h_to_a = ac->end_a->get_position() - ac->hinge->get_position();
       glm::vec3 h_to_b = ac->end_b->get_position() - ac->hinge->get_position();
-      float current_angle = std::acos(glm::clamp(
-						 glm::dot(glm::normalize(h_to_a), glm::normalize(h_to_b)),
-						 -1.0f, 1.0f
-						 ));
-      float error = current_angle - ( ac->angle / (180.0f / PI_CONST) );
+      float current_angle = std::acos(
+          glm::clamp(glm::dot(glm::normalize(h_to_a), glm::normalize(h_to_b)),
+                     -1.0f, 1.0f));
+      float error = current_angle - (ac->angle / (180.0f / PI_CONST));
       if (std::abs(error) > WIGGLE_ROOM) {
-	ac->violated = true;
-	violated = true;
+        ac->violated = true;
+        violated = true;
       }
-      
     }
-    
   }
-  
+
   return violated;
-  
 };
 
-glm::vec3 Physics_Manager::rotate_around_axis(
-    glm::vec3 point,
-    glm::vec3 pivot,
-    glm::vec3 axis,
-    float angle_rad)
-{
-    glm::vec3 v = point - pivot;
+glm::vec3 Physics_Manager::rotate_around_axis(glm::vec3 point, glm::vec3 pivot,
+                                              glm::vec3 axis, float angle_rad) {
+  glm::vec3 v = point - pivot;
 
-    float cos_t = cos(angle_rad);
-    float sin_t = sin(angle_rad);
- 
-    // eodrigues rotation formula
-    glm::vec3 axis_normalized = glm::normalize(axis);
-    glm::vec3 v_rot =
-        v * cos_t +
-        glm::cross(axis_normalized, v) * sin_t +
-        axis_normalized * glm::dot(axis_normalized, v) * (1.0f - cos_t);
+  float cos_t = cos(angle_rad);
+  float sin_t = sin(angle_rad);
 
-    return pivot + v_rot;
-  }
+  // eodrigues rotation formula
+  glm::vec3 axis_normalized = glm::normalize(axis);
+  glm::vec3 v_rot =
+      v * cos_t + glm::cross(axis_normalized, v) * sin_t +
+      axis_normalized * glm::dot(axis_normalized, v) * (1.0f - cos_t);
+
+  return pivot + v_rot;
+}
 
 void Physics_Manager::solve_violated_static_constraints() {
 
-  for(const std::shared_ptr<Constraint>& c : m_active_scene->m_loaded_constraints) {
+  for (const std::shared_ptr<Constraint> &c :
+       m_active_scene->m_loaded_constraints) {
 
     // skip fine constraints
-    if(!c->violated)
+    if (!c->violated)
       continue;
-    
-    //////////////////
-    //fix length constraints.
-    //////////////////
-    if(const std::shared_ptr<Fix_length_constraint>& lc = std::dynamic_pointer_cast<Fix_length_constraint>(c)){
 
-      float error = glm::distance(lc->point_a->get_position(), lc->point_b->get_position()) - lc->distance;
-      
-      glm::vec3 a_to_b = glm::normalize(lc->point_b->get_position() - lc->point_a->get_position());
-      glm::vec3 b_to_a = glm::normalize(lc->point_a->get_position() - lc->point_b->get_position());
-      
+    //////////////////
+    // fix length constraints.
+    //////////////////
+    if (const std::shared_ptr<Fix_length_constraint> &lc =
+            std::dynamic_pointer_cast<Fix_length_constraint>(c)) {
+
+      float error = glm::distance(lc->point_a->get_position(),
+                                  lc->point_b->get_position()) -
+                    lc->distance;
+
+      glm::vec3 a_to_b = glm::normalize(lc->point_b->get_position() -
+                                        lc->point_a->get_position());
+      glm::vec3 b_to_a = glm::normalize(lc->point_a->get_position() -
+                                        lc->point_b->get_position());
+
       // both free or both fixed
-      if((!lc->point_a->phys_props.fixed && !lc->point_b->phys_props.fixed) || (lc->point_a->phys_props.fixed && lc->point_b->phys_props.fixed)) {
-	a_to_b *= (error/2);
-	b_to_a *= (error/2);
-      } else
-	if(lc->point_a->phys_props.fixed && !lc->point_b->phys_props.fixed) {
-	  a_to_b *= (0);
-	  b_to_a *= (error);
-        } else
-	  if(!lc->point_a->phys_props.fixed && lc->point_b->phys_props.fixed) {
-	    a_to_b *= (error);
-	    b_to_a *= (0);
-	  }
-      
+      if ((!lc->point_a->phys_props.fixed && !lc->point_b->phys_props.fixed) ||
+          (lc->point_a->phys_props.fixed && lc->point_b->phys_props.fixed)) {
+        a_to_b *= (error / 2);
+        b_to_a *= (error / 2);
+      } else if (lc->point_a->phys_props.fixed &&
+                 !lc->point_b->phys_props.fixed) {
+        a_to_b *= (0);
+        b_to_a *= (error);
+      } else if (!lc->point_a->phys_props.fixed &&
+                 lc->point_b->phys_props.fixed) {
+        a_to_b *= (error);
+        b_to_a *= (0);
+      }
+
       lc->point_a->change_position(a_to_b * CONVERGENCE_RELAXATION);
       lc->point_b->change_position(b_to_a * CONVERGENCE_RELAXATION);
       lc->violated = false;
-      
     }
-    
+
     //////////////////
     // fix angle constraints
     //////////////////
-    if(const std::shared_ptr<Fix_angle_constraint>& ac = std::dynamic_pointer_cast<Fix_angle_constraint>(c)){
+    if (const std::shared_ptr<Fix_angle_constraint> &ac =
+            std::dynamic_pointer_cast<Fix_angle_constraint>(c)) {
 
       glm::vec3 h_to_a = ac->end_a->get_position() - ac->hinge->get_position();
       glm::vec3 h_to_b = ac->end_b->get_position() - ac->hinge->get_position();
       float ac_angle_rad = ac->angle / (180.0f / PI_CONST);
-      float current_angle = std::acos(glm::clamp(
-						 glm::dot(glm::normalize(h_to_a), glm::normalize(h_to_b)),
-						 -1.0f, 1.0f
-						 ));
+      float current_angle = std::acos(
+          glm::clamp(glm::dot(glm::normalize(h_to_a), glm::normalize(h_to_b)),
+                     -1.0f, 1.0f));
       glm::vec3 hinge_normal = glm::normalize(glm::cross(h_to_b, h_to_a));
 
       float correct_rad = current_angle - ac_angle_rad;
-      if(std::abs(correct_rad) > WIGGLE_ROOM) {
-      float correct_a = correct_rad;
-      float correct_b = correct_rad;
+      if (std::abs(correct_rad) > WIGGLE_ROOM) {
+        float correct_a = -correct_rad;
+        float correct_b = correct_rad;
 
-      // check which end is fixe
-      if(!ac->end_a->phys_props.fixed && !ac->end_b->phys_props.fixed) {
-	correct_a *= 0.5f;
-	correct_b *= 0.5f;
-      } else
-	if(ac->end_a->phys_props.fixed && !ac->end_b->phys_props.fixed) {
-	  correct_a = 0.0f;
-	} else
-	  if(!ac->end_a->phys_props.fixed && ac->end_b->phys_props.fixed) {
-	    correct_b = 0.0f;
-	  }
-      
-      // write positions to points
-      glm::vec3 new_pos_a = rotate_around_axis(ac->end_a->get_position(),ac->hinge->get_position(), hinge_normal, -correct_rad * CONVERGENCE_RELAXATION);
-      ac->end_a->set_position(new_pos_a.x, new_pos_a.y, new_pos_a.z);    
-      glm::vec3 new_pos_b = rotate_around_axis(ac->end_b->get_position(),ac->hinge->get_position(), hinge_normal, correct_rad * CONVERGENCE_RELAXATION);
-      ac->end_b->set_position(new_pos_b.x, new_pos_b.y, new_pos_b.z);
-      
+        // check which end is fixe
+        if (!ac->end_a->phys_props.fixed && !ac->end_b->phys_props.fixed) {
+          correct_a *= 0.5f;
+          correct_b *= 0.5f;
+        } else if (ac->end_a->phys_props.fixed &&
+                   !ac->end_b->phys_props.fixed) {
+          correct_a = 0.0f;
+        } else if (!ac->end_a->phys_props.fixed &&
+                   ac->end_b->phys_props.fixed) {
+          correct_b = 0.0f;
+        }
+
+        // write positions to points
+        glm::vec3 new_pos_a = rotate_around_axis(
+            ac->end_a->get_position(), ac->hinge->get_position(), hinge_normal,
+            correct_a * CONVERGENCE_RELAXATION);
+        ac->end_a->set_position(new_pos_a.x, new_pos_a.y, new_pos_a.z);
+        glm::vec3 new_pos_b = rotate_around_axis(
+            ac->end_b->get_position(), ac->hinge->get_position(), hinge_normal,
+            correct_b * CONVERGENCE_RELAXATION);
+        ac->end_b->set_position(new_pos_b.x, new_pos_b.y, new_pos_b.z);
       }
       ac->violated = false;
-      
     }
   }
-  
 };
 
 bool Physics_Manager::check_and_build_collissions() {
-  
+
   bool found_collissions = false;
-  
+
   for (std::shared_ptr<Point> p : m_active_scene->m_loaded_points) {
     for (std::shared_ptr<Point> q : m_active_scene->m_loaded_points) {
 
       if (p == q)
         continue;
-      
-      //collission detected?
+
+      // collission detected?
       if (p->phys_props.radius + q->phys_props.radius >
           p->get_distance_to_other_point(q) + WIGGLE_ROOM) {
 
         /*
-	  std::cout << "collission detected with pq rad: " <<
+          std::cout << "collission detected with pq rad: " <<
           p->phys_props.radius + q->phys_props.radius <<
           " and dist: " << p->get_distance_to_other_point(q) <<
           " n p q pos " << p->get_position().y <<
           " " << q->get_position().y << "\n";
-	*/
+        */
 
         found_collissions = true;
 
-	if(!p->phys_props.involved_in_collission && !q->phys_props.involved_in_collission) {
-	  m_active_scene->m_current_collissions.push_back(
-							  std::make_shared<Point_Point_Collission>(
-												   p,
-												   q,
-												   glm::normalize(p->get_position() - q->get_position())));
-	  p->phys_props.involved_in_collission = true;
-	  q->phys_props.involved_in_collission = true;
-	} else {
-	  //log_error("tried to create collission for points, that already have a collission... not making a new one.");
-	}
+        if (!p->phys_props.involved_in_collission &&
+            !q->phys_props.involved_in_collission) {
+          m_active_scene->m_current_collissions.push_back(
+              std::make_shared<Point_Point_Collission>(
+                  p, q, glm::normalize(p->get_position() - q->get_position())));
+          p->phys_props.involved_in_collission = true;
+          q->phys_props.involved_in_collission = true;
+        } else {
+          // log_error("tried to create collission for points, that already have
+          // a collission... not making a new one.");
+        }
       }
     }
   }
 
   return found_collissions;
-  
 }
 
 void Physics_Manager::update_phys_box(Mesh &mesh, Entity &parent) {
@@ -267,64 +271,70 @@ void Physics_Manager::update_phys_box(Mesh &mesh, Entity &parent) {
   mesh.AABB_visualizer = std::make_shared<AABB_Box>(bbox.min, bbox.max);
 
   mesh.phys_box_needs_recalculation = false;
-  
 };
 
 void Physics_Manager::resolve_collissions_for_scene_preview() {
-  if(m_active_scene->m_current_collissions.empty())
+  if (m_active_scene->m_current_collissions.empty())
     return;
 
-  for(std::shared_ptr<Collission> c : m_active_scene->m_current_collissions) {
+  for (std::shared_ptr<Collission> c : m_active_scene->m_current_collissions) {
 
     // handle point point cols
-    std::shared_ptr<Point_Point_Collission> ppc = std::dynamic_pointer_cast<Point_Point_Collission>(c);
-    
-    if(ppc) {
-      float distance_should_be = ppc->point_a->phys_props.radius + ppc->point_b->phys_props.radius;
-      float distance_is = ppc->point_a->get_distance_to_other_point(ppc->point_b);
+    std::shared_ptr<Point_Point_Collission> ppc =
+        std::dynamic_pointer_cast<Point_Point_Collission>(c);
+
+    if (ppc) {
+      float distance_should_be =
+          ppc->point_a->phys_props.radius + ppc->point_b->phys_props.radius;
+      float distance_is =
+          ppc->point_a->get_distance_to_other_point(ppc->point_b);
 
       float distance_adjust = ((distance_should_be - distance_is) / 2);
 
-      //std::cout << "adjusting points with offset: " << distance_adjust << "\n";
+      // std::cout << "adjusting points with offset: " << distance_adjust <<
+      // "\n";
 
       // points in same location? random direction move
-      if(ppc->point_a->get_position() == ppc->point_b->get_position()) {
-	static std::mt19937 rng{std::random_device{}()};
-	static std::uniform_real_distribution<float> dist(-1.0f, 1.0f);
-	glm::vec3 random_force = glm::vec3(dist(rng), dist(rng), dist(rng));
-	ppc->point_a->change_position( random_force * distance_adjust );
-	ppc->point_b->change_position( random_force * -distance_adjust);
-	continue;
+      if (ppc->point_a->get_position() == ppc->point_b->get_position()) {
+        static std::mt19937 rng{std::random_device{}()};
+        static std::uniform_real_distribution<float> dist(-1.0f, 1.0f);
+        glm::vec3 random_force = glm::vec3(dist(rng), dist(rng), dist(rng));
+        ppc->point_a->change_position(random_force * distance_adjust);
+        ppc->point_b->change_position(random_force * -distance_adjust);
+        continue;
       }
-      
-      //solve collission
-      ppc->point_a->change_position( ppc->contact_normal * distance_adjust );
-      ppc->point_b->change_position( ppc->contact_normal * -distance_adjust );
 
+      // solve collission
+      ppc->point_a->change_position(ppc->contact_normal * distance_adjust);
+      ppc->point_b->change_position(ppc->contact_normal * -distance_adjust);
 
       // compute relative velocity:
-      glm::vec3 rv = ppc->point_a->phys_props.velocity - ppc->point_b->phys_props.velocity;
+      glm::vec3 rv =
+          ppc->point_a->phys_props.velocity - ppc->point_b->phys_props.velocity;
       float velAlongNormal = dot(rv, ppc->contact_normal);
-      
-      // hardcode restitution + impulse scalar 
+
+      // hardcode restitution + impulse scalar
       float e = 0.5f;
-      float j = -(1 + e) * velAlongNormal / (ppc->point_a->phys_props.inverse_mass + ppc->point_b->phys_props.inverse_mass);
+      float j = -(1 + e) * velAlongNormal /
+                (ppc->point_a->phys_props.inverse_mass +
+                 ppc->point_b->phys_props.inverse_mass);
       glm::vec3 J = j * ppc->contact_normal;
-      
+
       // Add impulse through force generators:
-      m_active_scene->m_loaded_force_generators.push_back(std::make_shared<Impulse_force_generator>( ppc->point_a, J ));
-      m_active_scene->m_loaded_force_generators.push_back(std::make_shared<Impulse_force_generator>( ppc->point_b, -J ));
-      
+      m_active_scene->m_loaded_force_generators.push_back(
+          std::make_shared<Impulse_force_generator>(ppc->point_a, J));
+      m_active_scene->m_loaded_force_generators.push_back(
+          std::make_shared<Impulse_force_generator>(ppc->point_b, -J));
     }
 
     c->resolved = true;
-    
   }
 
-  //clear all collissions
-  for(auto p : m_active_scene->m_loaded_points) {p->phys_props.involved_in_collission = false;}
+  // clear all collissions
+  for (auto p : m_active_scene->m_loaded_points) {
+    p->phys_props.involved_in_collission = false;
+  }
   m_active_scene->m_current_collissions.clear();
-  
 };
 
 void Physics_Manager::calculate_phys_boxes() {
@@ -385,16 +395,17 @@ void Physics_Manager::handle_scene_physics() {
 
   std::cout << m_active_scene->m_scene_deltatime << "\n";
 
-  // if we have low fps, run smaller integration steps, to prevent numerical instability
-  if(m_active_scene->m_scene_deltatime < STABILITY_THRESHOLD)
-    run_integrator(m_active_scene->m_scene_deltatime);    
+  // if we have low fps, run smaller integration steps, to prevent numerical
+  // instability
+  if (m_active_scene->m_scene_deltatime < STABILITY_THRESHOLD)
+    run_integrator(m_active_scene->m_scene_deltatime);
   else {
-    unsigned int num_steps = m_active_scene->m_scene_deltatime / STABILITY_THRESHOLD;
-    for(unsigned int i = 0; i<num_steps; i++) {
-      run_integrator(m_active_scene->m_scene_deltatime/num_steps);
+    unsigned int num_steps =
+        m_active_scene->m_scene_deltatime / STABILITY_THRESHOLD;
+    for (unsigned int i = 0; i < num_steps; i++) {
+      run_integrator(m_active_scene->m_scene_deltatime / num_steps);
     }
   }
-  
 }
 
 void Physics_Manager::handle_scene_physics_book() {}
@@ -447,7 +458,7 @@ void debug_particle_movement(std::shared_ptr<Point> p) {
 
 // aka integrator
 void Physics_Manager::run_integrator(float simulation_step_dt) {
-  
+
   // update mesh physics
   for (Entity e : m_active_scene->m_loaded_entities) {
     for (std::shared_ptr<Mesh> m : e.m_mesh) {
@@ -461,7 +472,7 @@ void Physics_Manager::run_integrator(float simulation_step_dt) {
 
   // run point physics
   for (std::shared_ptr<Point> p : m_active_scene->m_loaded_points) {
-    
+
     // if point is fixed, lock it in place with inverted mass
     bool should_override_mass = false;
     float old_mass = 0.0f;
@@ -486,8 +497,7 @@ void Physics_Manager::run_integrator(float simulation_step_dt) {
           (glm::normalize(p->phys_props.velocity) * 500.0f);
 
     // firstly write forces to buffer
-    p->buffer_integration_delta(p->phys_props.velocity *
-                                simulation_step_dt);
+    p->buffer_integration_delta(p->phys_props.velocity * simulation_step_dt);
 
     // reset force after applying it successfully
     p->phys_props.force = {0, 0, 0};
@@ -499,8 +509,9 @@ void Physics_Manager::run_integrator(float simulation_step_dt) {
   // calc satic constraints n shi
   int iteration_count = 0;
   while (check_violated_static_constraints()) {
-    if(iteration_count > MAX_SOLVER_ITERATIONS) {
-      log_error("reached solver threshold. exiting solver with potentially inconsistent physics state!");
+    if (iteration_count > MAX_SOLVER_ITERATIONS) {
+      log_error("reached solver threshold. exiting solver with potentially "
+                "inconsistent physics state!");
       break;
     }
     solve_violated_static_constraints();
@@ -521,18 +532,18 @@ void Physics_Manager::run_integrator(float simulation_step_dt) {
       p->swap_integration_buffer();
   }
 
-  //clear temporary force gens, after their force is applied.
+  // clear temporary force gens, after their force is applied.
   m_active_scene->m_loaded_force_generators.erase(
-						  std::remove_if(
-								 m_active_scene->m_loaded_force_generators.begin(),
-								 m_active_scene->m_loaded_force_generators.end(),
-								 [](const std::shared_ptr<Force_generator>& fg) {
-								   auto* temp = dynamic_cast<Impulse_force_generator*>(fg.get());
-								   if (!temp) return false;
-								   return temp->force_applied;
-								 }),
-						  m_active_scene->m_loaded_force_generators.end());
-  
+      std::remove_if(m_active_scene->m_loaded_force_generators.begin(),
+                     m_active_scene->m_loaded_force_generators.end(),
+                     [](const std::shared_ptr<Force_generator> &fg) {
+                       auto *temp =
+                           dynamic_cast<Impulse_force_generator *>(fg.get());
+                       if (!temp)
+                         return false;
+                       return temp->force_applied;
+                     }),
+      m_active_scene->m_loaded_force_generators.end());
 }
 
 bool Physics_Manager::check_inside_AABB(Mesh &check_mesh,
