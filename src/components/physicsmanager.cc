@@ -18,7 +18,7 @@
 #define WIGGLE_ROOM 0.05f
 #define MAX_SOLVER_ITERATIONS 100
 #define CONVERGENCE_RELAXATION 0.4f
-#define PI_CONST 3.41
+#define PI_CONST 3.14159265358979323846f
 
 Physics_Manager::Physics_Manager(std::shared_ptr<Scene> set_scene) {
   m_active_scene = set_scene;
