@@ -79,6 +79,52 @@ void spawn_angle_link(Renderer& main_renderer) {
   
   };
 
+void spawn_constraint_box(Renderer& main_renderer) {
+    main_renderer.add_point_to_scene(0, 0, 0); // 0
+    main_renderer.add_point_to_scene(5, 0, 0); // 1
+    main_renderer.add_point_to_scene(5, 0, 5); // 2
+    main_renderer.add_point_to_scene(0, 0, 5); // 3
+
+    main_renderer.add_point_to_scene(0, 5, 0); // 4
+    main_renderer.add_point_to_scene(5, 5, 0); // 5
+    main_renderer.add_point_to_scene(5, 5, 5); // 6
+    main_renderer.add_point_to_scene(0, 5, 5); // 7
+
+    auto& p = main_renderer.m_active_scene->m_loaded_points;
+    main_renderer.create_fixed_constraint(p[0], true);
+    float L = 5.0f;
+
+    // Bottom square
+    main_renderer.create_length_constraint(p[0], p[1], L);
+    main_renderer.create_length_constraint(p[1], p[2], L);
+    main_renderer.create_length_constraint(p[2], p[3], L);
+    main_renderer.create_length_constraint(p[3], p[0], L);
+
+    // Top square
+    main_renderer.create_length_constraint(p[4], p[5], L);
+    main_renderer.create_length_constraint(p[5], p[6], L);
+    main_renderer.create_length_constraint(p[6], p[7], L);
+    main_renderer.create_length_constraint(p[7], p[4], L);
+
+    // Vertical edges
+    main_renderer.create_length_constraint(p[0], p[4], L);
+    main_renderer.create_length_constraint(p[1], p[5], L);
+    main_renderer.create_length_constraint(p[2], p[6], L);
+    main_renderer.create_length_constraint(p[3], p[7], L);
+
+    // Bottom face
+    main_renderer.create_angle_constraint(p[0], p[1], p[2], 90.0f);
+    main_renderer.create_angle_constraint(p[1], p[2], p[3], 90.0f);
+    main_renderer.create_angle_constraint(p[2], p[3], p[0], 90.0f);
+    main_renderer.create_angle_constraint(p[3], p[0], p[1], 90.0f);
+
+    // Vertical orthogonality (edges ⟂ base)
+    main_renderer.create_angle_constraint(p[1], p[0], p[4], 90.0f);
+    main_renderer.create_angle_constraint(p[2], p[1], p[5], 90.0f);
+    main_renderer.create_angle_constraint(p[3], p[2], p[6], 90.0f);
+    main_renderer.create_angle_constraint(p[0], p[3], p[7], 90.0f);
+}
+
 
 void spawn_fix_link(Renderer& main_renderer) {
 

@@ -1,5 +1,6 @@
 #include "pipeline.hh"
 #include "AABB.hh"
+#include "constraint.hh"
 #include "entity.hh"
 #include "logging.hh"
 #include "material.hh"
@@ -625,6 +626,52 @@ void Shadow_Map_Pipeline::render_overlay_pass() {
     
   }  
 
+  //////////////////////////////////////////////////////
+  // rendering fixed ength constraint visualizers     //
+  //////////////////////////////////////////////////////
+  
+  for (std::shared_ptr<Constraint>& c : m_active_scene->m_loaded_constraints) {
+
+    //check wether constraint is a length one
+    if (const std::shared_ptr<Fix_length_constraint> &lc =
+	std::dynamic_pointer_cast<Fix_length_constraint>(c)) {
+
+      m_active_scene->universal_dotted_line_shader.use();
+      
+      // bind meshes vao context
+      glBindVertexArray(m_active_scene->shared_sdf_vao);
+      if (glIsVertexArray(m_active_scene->shared_sdf_vao) == GL_FALSE) {
+	log_error("no valid VAO id! cant render mesh.");
+    }
+      
+      // set uniforms
+      upload_to_uniform(m_active_scene->universal_dotted_line_shader,"camera_position", m_active_scene->m_local_player->get_position());
+      upload_to_uniform(m_active_scene->universal_dotted_line_shader,"line_position_min", lc->point_a->get_position());
+      upload_to_uniform(m_active_scene->universal_dotted_line_shader,"line_position_max", lc->point_b->get_position());
+      upload_to_uniform(m_active_scene->universal_dotted_line_shader,"radius", 10.0f);
+      
+      upload_to_uniform(m_active_scene->universal_dotted_line_shader, "view",
+			m_active_scene->m_local_player->m_player_camera->get_view_matrix());
+      upload_to_uniform(m_active_scene->universal_dotted_line_shader, "projection",
+			m_active_scene->m_local_player->m_player_camera->get_projection_matrix());
+      
+      upload_to_uniform(m_active_scene->universal_dotted_line_shader,"screen_width", (float)m_active_scene->m_scene_framebuffer_width);
+      upload_to_uniform(m_active_scene->universal_dotted_line_shader,"screen_height", (float)m_active_scene->m_scene_framebuffer_height);
+      
+      upload_to_uniform(m_active_scene->universal_dotted_line_shader,"line_color", glm::vec3(0.6,0.3,0.3));
+
+      upload_to_uniform(m_active_scene->universal_dotted_line_shader,"dot_spacing_px", 20.0f);
+      upload_to_uniform(m_active_scene->universal_dotted_line_shader,"dot_radius_px", 20.0f);
+
+      
+      // render call
+      glDrawArrays(GL_TRIANGLES, 0, 3);
+      check_gl_error("after glDrawArrays (overlay pass hitboxes)");
+      
+    }
+  }  
+  
+  
   ////////////////////
   // render text overlay
   ////////////////////

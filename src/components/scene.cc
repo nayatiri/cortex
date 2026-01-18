@@ -23,6 +23,8 @@ Scene::Scene()
                               "src/shaders/shader_src/hitbox_fragment.glsl"),
       universal_line_shader("src/shaders/shader_src/line_vertex.glsl",
                             "src/shaders/shader_src/line_fragment.glsl"),
+      universal_dotted_line_shader("src/shaders/shader_src/dotted_vertex.glsl",
+                            "src/shaders/shader_src/dotted_fragment.glsl"),
       universal_point_shader("src/shaders/shader_src/point_vertex.glsl",
                              "src/shaders/shader_src/point_fragment.glsl"),
       universal_text_shader("src/shaders/shader_src/text_vertex.glsl",

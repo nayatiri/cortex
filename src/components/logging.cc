@@ -1,6 +1,7 @@
 #include "logging.hh"
 #include <iostream>
 #include <glm/matrix.hpp>
+#include <sstream>
 
 void log_success(const std::string& input) {
   std::cout << "\033[1;32m[S] " << input << "\033[0m" << std::endl;
@@ -26,4 +27,22 @@ void log_mat_4(glm::mat4 mat) {
         }
         std::cout << "|" << std::endl;
     }
+}
+
+template <class... Args>
+void Logger::log(Level lvl, Args&&... args) {
+  std::ostringstream oss;
+  
+    (oss << ... << std::forward<Args>(args));
+
+    std::cout << "[" << to_string(lvl) << "] " << oss.str() << "\n";
+}
+
+
+inline const char* Logger::to_string(Level lvl) {
+    switch (lvl) {
+        case Level::Debug: return "DEBUG";
+        case Level::Error: return "ERROR";
+    }
+    return "UNKNOWN";
 }

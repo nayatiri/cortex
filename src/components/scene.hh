@@ -80,6 +80,7 @@ public:
   //universal shaders (sdf magic) :)
   Shader universal_hitbox_shader;
   Shader universal_line_shader;
+  Shader universal_dotted_line_shader;
   Shader universal_point_shader;
   Shader universal_text_shader;
 

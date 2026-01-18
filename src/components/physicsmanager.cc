@@ -16,7 +16,7 @@
 
 #define STABILITY_THRESHOLD 0.02f
 #define WIGGLE_ROOM 0.05f
-#define MAX_SOLVER_ITERATIONS 100
+#define MAX_SOLVER_ITERATIONS 1000
 #define CONVERGENCE_RELAXATION 0.4f
 #define PI_CONST 3.14159265358979323846f
 
@@ -81,7 +81,6 @@ bool Physics_Manager::check_violated_static_constraints() {
                                   lc->point_b->get_position()) -
                     lc->distance;
       if (error > WIGGLE_ROOM || error < -WIGGLE_ROOM) {
-        std::cout << "length constraint violated with error:" << error << "\n";
         lc->violated = true;
         violated = true;
       }
@@ -392,8 +391,6 @@ void Physics_Manager::handle_scene_physics() {
     else
       m_force_generators_initialized = false;
   }
-
-  std::cout << m_active_scene->m_scene_deltatime << "\n";
 
   // if we have low fps, run smaller integration steps, to prevent numerical
   // instability
