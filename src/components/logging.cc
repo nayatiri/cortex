@@ -3,23 +3,23 @@
 #include <glm/matrix.hpp>
 #include <sstream>
 
-void log_success(const std::string& input) {
+void Logger::log_success(const std::string& input) {
   std::cout << "\033[1;32m[S] " << input << "\033[0m" << std::endl;
 }
 
-void log_debug(const std::string& input) {
+void Logger::log_debug(const std::string& input) {
   std::cout << "\033[1;37m[D] " << input << "\033[0m" << std::endl;
 }
 
-void log_debug_sub(const std::string& input) {
+void Logger::log_debug_sub(const std::string& input) {
   std::cout << "\033[1;90m[D] - " << input << "\033[0m" << std::endl;
 }
 
-void log_error(const std::string& input) {
+void Logger::log_error(const std::string& input) {
   std::cout << "\033[1;31m[E] " << input << "\033[0m" << std::endl;
 }
 
-void log_mat_4(glm::mat4 mat) {
+void Logger::log_mat_4(glm::mat4 mat) {
     for (int i = 0; i < 4; ++i) {
         std::cout << "| ";
         for (int j = 0; j < 4; ++j) {
@@ -41,8 +41,11 @@ void Logger::log(Level lvl, Args&&... args) {
 
 inline const char* Logger::to_string(Level lvl) {
     switch (lvl) {
-        case Level::Debug: return "DEBUG";
-        case Level::Error: return "ERROR";
+    case Level::Debug: return "DEBUG";
+    case Level::Error: return "ERROR";
+    case Level::Warning: return "WARNING";
+    case Level::Success: return "SUCCESS";
+    case Level::Critical: return "CRITICAL";
     }
     return "UNKNOWN";
 }

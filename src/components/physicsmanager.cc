@@ -252,7 +252,7 @@ bool Physics_Manager::check_and_build_collissions() {
           p->phys_props.involved_in_collission = true;
           q->phys_props.involved_in_collission = true;
         } else {
-          // log_error("tried to create collission for points, that already have
+          // Logger::log_error("tried to create collission for points, that already have
           // a collission... not making a new one.");
         }
       }
@@ -350,12 +350,12 @@ void Physics_Manager::calculate_phys_boxes() {
     for (std::shared_ptr<Mesh> &mesh : entity.m_mesh) {
 
       if (mesh->m_mesh_type != E_MESH) {
-        log_error("Mesh does'nt seem to be a Mesh lol. skipping.");
+        Logger::log_error("Mesh does'nt seem to be a Mesh lol. skipping.");
         continue;
       };
 
       if (mesh->m_vertices_array.size() < 3) {
-        log_error("Attempted to create hitbox for mesh with insufficient "
+        Logger::log_error("Attempted to create hitbox for mesh with insufficient "
                   "vertices (less than 3). Skipping.");
         continue;
       }
@@ -367,7 +367,7 @@ void Physics_Manager::calculate_phys_boxes() {
 
       m_active_scene->m_scene_vbos_need_refresh = true;
 
-      log_success("Calculated hitbox for mesh, and added it to Mesh!");
+      Logger::log_success("Calculated hitbox for mesh, and added it to Mesh!");
     }
   }
 
@@ -431,7 +431,7 @@ bool Physics_Manager::initialize_force_generators() {
     return true;
   }
 
-  log_error("initializing force generators requested but no points in scene, "
+  Logger::log_error("initializing force generators requested but no points in scene, "
             "aborting!!!");
 
   return false;
@@ -507,7 +507,7 @@ void Physics_Manager::run_integrator(float simulation_step_dt) {
   int iteration_count = 0;
   while (check_violated_static_constraints()) {
     if (iteration_count > MAX_SOLVER_ITERATIONS) {
-      log_error("reached solver threshold. exiting solver with potentially "
+      Logger::log_error("reached solver threshold. exiting solver with potentially "
                 "inconsistent physics state!");
       break;
     }

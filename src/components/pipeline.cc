@@ -79,7 +79,7 @@ void Pipeline::upload_to_uniform(Shader bound_shader, std::string uniform_name,
 	  if constexpr (std::is_same<T, glm::mat3>::value) {
 	    glUniformMatrix3fv(loc, 1, GL_FALSE, glm::value_ptr(upload_data));
 	  } else {
-	    log_error("unknown datatype passed to uniform!");
+	    Logger::log_error("unknown datatype passed to uniform!");
 	  }
   
 };
@@ -125,7 +125,7 @@ void Shadow_Map_Pipeline::render_depth_pass() {
       // bind meshes vao context
       glBindVertexArray(mesh->m_mesh_vao);
       if (glIsVertexArray(mesh->m_mesh_vao) == GL_FALSE) {
-        log_error("no valid VAO id! cant render mesh.");
+        Logger::log_error("no valid VAO id! cant render mesh.");
       }
       check_gl_error("after settin VAO (depth)");
 
@@ -257,7 +257,7 @@ void Shadow_Map_Pipeline::render_color_pass() {
       // bind meshes vao context
       glBindVertexArray(mesh->m_mesh_vao);
       if (glIsVertexArray(mesh->m_mesh_vao) == GL_FALSE) {
-        log_error("no valid VAO id! cant render mesh.");
+        Logger::log_error("no valid VAO id! cant render mesh.");
       }
       check_gl_error("after binding vao");
 
@@ -382,7 +382,7 @@ void Shadow_Map_Pipeline::render_overlay_pass() {
     glBindVertexArray(light_source.m_light_visualizer_mesh->m_mesh_vao);
     if (glIsVertexArray(light_source.m_light_visualizer_mesh->m_mesh_vao) ==
         GL_FALSE) {
-      log_error("no valid VAO id! cant render mesh.");
+      Logger::log_error("no valid VAO id! cant render mesh.");
     }
     check_gl_error("after binding vao (lights)");
     
@@ -435,7 +435,7 @@ void Shadow_Map_Pipeline::render_overlay_pass() {
         // bind meshes vao context
         glBindVertexArray(m_active_scene->shared_sdf_vao);
         if (glIsVertexArray(m_active_scene->shared_sdf_vao) == GL_FALSE) {
-          log_error("no valid VAO id! cant render mesh.");
+          Logger::log_error("no valid VAO id! cant render mesh.");
         }
 
         // set uniforms
@@ -490,7 +490,7 @@ void Shadow_Map_Pipeline::render_overlay_pass() {
       // bind meshes vao context
       glBindVertexArray(m_active_scene->shared_sdf_vao);
       if (glIsVertexArray(m_active_scene->shared_sdf_vao) == GL_FALSE) {
-        log_error("no valid VAO id! cant render point.");
+        Logger::log_error("no valid VAO id! cant render point.");
       }
       check_gl_error("after vao bind (point cloud)");
 
@@ -550,7 +550,7 @@ void Shadow_Map_Pipeline::render_overlay_pass() {
       // bind meshes vao context
       glBindVertexArray(m_active_scene->shared_sdf_vao);
       if (glIsVertexArray(m_active_scene->shared_sdf_vao) == GL_FALSE) {
-        log_error("no valid VAO id! cant render point.");
+        Logger::log_error("no valid VAO id! cant render point.");
       }      
       check_gl_error("after vao bind (point cloud)");
 
@@ -601,7 +601,7 @@ void Shadow_Map_Pipeline::render_overlay_pass() {
     // bind meshes vao context
     glBindVertexArray(m_active_scene->shared_sdf_vao);
     if (glIsVertexArray(m_active_scene->shared_sdf_vao) == GL_FALSE) {
-      log_error("no valid VAO id! cant render mesh.");
+      Logger::log_error("no valid VAO id! cant render mesh.");
     }
     
     // set uniforms
@@ -641,7 +641,7 @@ void Shadow_Map_Pipeline::render_overlay_pass() {
       // bind meshes vao context
       glBindVertexArray(m_active_scene->shared_sdf_vao);
       if (glIsVertexArray(m_active_scene->shared_sdf_vao) == GL_FALSE) {
-	log_error("no valid VAO id! cant render mesh.");
+	Logger::log_error("no valid VAO id! cant render mesh.");
     }
       
       // set uniforms
@@ -687,7 +687,7 @@ void Shadow_Map_Pipeline::render_overlay_pass() {
     // bind meshes vao context
     glBindVertexArray(oe->text_vao);
     if (glIsVertexArray(oe->text_vao) == GL_FALSE) {
-      log_error("no valid VAO id! cant render mesh.");
+      Logger::log_error("no valid VAO id! cant render mesh.");
     }
     check_gl_error("after glDrawArrays (overlay pass text b4 everything)");
     

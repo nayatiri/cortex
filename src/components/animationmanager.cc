@@ -14,7 +14,7 @@ void Animation_Manager::handle_scene_animations(float m_application_current_time
   if (m_active_scene->m_local_player->m_player_camera->m_animation_table &&
       m_active_scene->m_local_player->m_player_camera->m_animation_table->at(0)->m_trigger_animation) {
 
-    log_error("animation has been marked to triggered -> trying to animate it rn!");
+    Logger::log_error("animation has been marked to triggered -> trying to animate it rn!");
 
     if (m_active_scene->m_local_player->m_player_camera->m_animation_table->at(0)->m_start_time <
             m_application_current_time &&
@@ -36,11 +36,11 @@ void Animation_Manager::handle_scene_animations(float m_application_current_time
       if (tomove_check > num_checkpoints - 1) {
         // done animating? reset.
         tomove_check = num_checkpoints - 1;
-        log_error("end of anim reached?");
+        Logger::log_error("end of anim reached?");
         m_active_scene->m_local_player->m_player_camera->m_animation_table->at(0)
             ->m_trigger_animation = false;
         m_active_scene->m_local_player->m_player_camera->m_animation_table->at(0)->m_start_time = 0;
-        log_success("animation done!");
+        Logger::log_success("animation done!");
       }
 
       unsigned int tomove_next = tomove_check + 1;
@@ -69,10 +69,10 @@ void Animation_Manager::handle_scene_animations(float m_application_current_time
       m_active_scene->m_local_player->m_player_camera->m_cameraPos = interpolated_camera_pos;
       m_active_scene->m_local_player->m_player_camera->m_cameraLookAt = interpolated_camera_rot;
 
-      log_success("anim step done!");
+      Logger::log_success("anim step done!");
 
     } else {
-      log_error("no animation running");
+      Logger::log_error("no animation running");
       std::cout << "times are - st - ct : " << m_active_scene->m_local_player->m_player_camera->m_animation_table->at(0)->m_start_time << " " << m_application_current_time << std::endl;
       }
   }

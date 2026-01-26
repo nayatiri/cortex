@@ -18,7 +18,7 @@
 
 Camera::Camera() {
 
-  log_success("camera initialized");
+  Logger::log_success("camera initialized");
   
 }
 

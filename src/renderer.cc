@@ -54,7 +54,7 @@ void Renderer::setup_render_properties() {
 
 void Renderer::framebuffer_size_callback(GLFWwindow *window, int width,
                                          int height) {
-  log_success("framebuffer resized.");
+  Logger::log_success("framebuffer resized.");
   glViewport(0, 0, width, height);
 
   //TODO move all the 15 different locations where i store size of FB to one, that gets updated here
@@ -83,16 +83,16 @@ void Renderer::abstract_render() {
 void Renderer::render_frame() {
   
   if (!m_active_scene->m_local_player) {
-    log_error("no local player with camera in scene! stopping render!");
+    Logger::log_error("no local player with camera in scene! stopping render!");
     return;
   }
   if (m_active_scene->m_loaded_lights.size() < 1) {
-    log_error(
+    Logger::log_error(
         "not enough lights loaded for shader to function. stopping render.");
     return;
   }
   if (m_active_scene->m_loaded_entities.size() < 1) {
-    log_error(
+    Logger::log_error(
         "not enough lights loaded for shader to function. stopping render.");
     return;
   }
@@ -124,7 +124,7 @@ void Renderer::render_frame() {
   if(m_active_scene->m_loaded_overlay_elements.size() > 0)
     m_active_scene->m_loaded_overlay_elements[0]->edit_text(m_fps_display_text);
   else
-    log_error("overlay doesnt have fps element");
+    Logger::log_error("overlay doesnt have fps element");
   
   // make sure data changes from anim / get reflected in VRAM
   if(m_active_scene->m_scene_vbos_need_refresh)
@@ -213,7 +213,7 @@ void Renderer::init_scene(const char *scene_fp) {
   m_pipeline->m_active_scene = m_active_scene;
   m_culling_manager = std::make_unique<Culler>(m_active_scene);
 
-  log_success("set Scene ptr to IM, AM and PM");
+  Logger::log_success("set Scene ptr to IM, AM and PM");
 
   //make player (localplayer) their camera
   add_player_to_scene(true);
@@ -237,12 +237,12 @@ void Renderer::init_scene(const char *scene_fp) {
   init_scene_vbos();
 
   // TODO check if init scenes shader programs needed?
-  log_success("Finished initialization for Shader Programs");
+  Logger::log_success("Finished initialization for Shader Programs");
 
   //TMP setup vbos n shi
   m_pipeline->init_pipeline();
   
-  log_success("done initializing renderer.");
+  Logger::log_success("done initializing renderer.");
 }
 
 void Renderer::cleanup_mesh_vbos(Mesh& mesh) {
@@ -268,11 +268,11 @@ void Renderer::cleanup_mesh_vbos(Mesh& mesh) {
 void Renderer::init_scene_vbos() {
   if (m_active_scene->m_loaded_entities.empty() ||
       m_active_scene->m_loaded_lights.empty()) {
-    log_error("Scene doesn't contain at least one light + entity, not initializing VBOs");
+    Logger::log_error("Scene doesn't contain at least one light + entity, not initializing VBOs");
     return;
   }
 
-  log_debug("Initializing/Updating VBOs for scene...");
+  Logger::log_debug("Initializing/Updating VBOs for scene...");
 
   /////////////////////////////////////////
   // Update Light VBOs (for visualizers) //
@@ -334,20 +334,20 @@ void Renderer::init_scene_vbos() {
 
       // Recalculate normals if missing
       if (mesh->m_normals_array.empty()) {
-        log_debug("Mesh missing normals, recalculating...");
+        Logger::log_debug("Mesh missing normals, recalculating...");
         mesh->m_normals_array = Importer::calculate_vert_normals(mesh->m_vertices_array);
       }
 
       // Recalculate tangents/binormals if needed and texcoords exist
       if (!mesh->m_tex_coords_array.empty()) {
         if (mesh->m_tangents_array.empty() ) {
-          log_debug("Missing tangents, calculating...");
+          Logger::log_debug("Missing tangents, calculating...");
 	  Importer::tan_bin_glob tb = Importer::calculate_vert_tan_bin(
               mesh->m_vertices_array, mesh->m_normals_array, mesh->m_tex_coords_array);
           mesh->m_tangents_array = tb.vert_tangents;
         }
       } else {
-        log_error("Mesh has no UVs; using zeroed tangents");
+        Logger::log_error("Mesh has no UVs; using zeroed tangents");
         mesh->m_tangents_array.resize(mesh->m_vertices_array.size(), 0.0f);
       }
 
@@ -448,7 +448,7 @@ void Renderer::init_scene_vbos() {
     glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), (void*)0);    
     glEnableVertexAttribArray(1);
 
-    log_error("INITIALIZEDD TEXT!!");
+    Logger::log_error("INITIALIZEDD TEXT!!");
 
     oe->element_needs_vbo_update = false;
     
@@ -484,7 +484,7 @@ void Renderer::init_scene_vbos() {
     }
   //done
   m_active_scene->m_scene_vbos_need_refresh = false;
-  log_success("Successfully initialized/updated VBOs for all dirty meshes!");
+  Logger::log_success("Successfully initialized/updated VBOs for all dirty meshes!");
 }
 
 Renderer::Renderer(uint window_width, uint window_height) {
@@ -500,10 +500,10 @@ _/ ___\/  _ \_  __ \   __\/ __ \\  \/  /
 ========================================
 )";
 
-  log_debug("initializing window");
+  Logger::log_debug("initializing window");
 
   // create input manager
-  log_error("init IM with broken pointer");
+  Logger::log_error("init IM with broken pointer");
   std::cout << "w" << m_active_scene << std::endl;
   m_input_manager = std::move(std::make_unique<Input_Manager>(nullptr));
   m_animation_manager = std::move(std::make_unique<Animation_Manager>(nullptr));
@@ -518,7 +518,7 @@ _/ ___\/  _ \_  __ \   __\/ __ \\  \/  /
   associated_window = glfwCreateWindow(window_width, window_height,
                                        "cortex - dev build", NULL, NULL);
   if (associated_window == NULL) {
-    log_error("failed to create glfw window!");
+    Logger::log_error("failed to create glfw window!");
     glfwTerminate();
     return;
   }
@@ -526,7 +526,7 @@ _/ ___\/  _ \_  __ \   __\/ __ \\  \/  /
 
   // initiate glad
   if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
-    log_error("failed to load glad!");
+    Logger::log_error("failed to load glad!");
     return;
   }
 

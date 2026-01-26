@@ -125,6 +125,22 @@ void spawn_constraint_box(Renderer& main_renderer) {
     main_renderer.create_angle_constraint(p[0], p[3], p[7], 90.0f);
 }
 
+void spawn_constraint_square(Renderer &main_renderer) {
+
+  main_renderer.add_point_to_scene(0, 0, 0); // 0
+  main_renderer.add_point_to_scene(5, 0, 0); // 1
+  main_renderer.add_point_to_scene(5, 0, 5); // 2
+  main_renderer.add_point_to_scene(0, 0, 5); // 3
+  auto& p = main_renderer.m_active_scene->m_loaded_points;
+  float L = 5.0f;
+  
+  main_renderer.create_fixed_constraint(main_renderer.m_active_scene->m_loaded_points[0],true);
+  main_renderer.create_length_constraint(p[0], p[1], L);
+  main_renderer.create_length_constraint(p[1], p[2], L);
+  main_renderer.create_length_constraint(p[2], p[3], L);
+  main_renderer.create_length_constraint(p[3], p[0], L);
+  
+}
 
 void spawn_fix_link(Renderer& main_renderer) {
 

@@ -14,17 +14,17 @@ void Input_Manager::process_input(GLFWwindow *window,
                                   float m_delta_time) {
 
   if (m_active_scene == nullptr || m_active_scene->m_local_player->m_player_camera == nullptr) {
-    log_error("active scene is fucked. cant process inputs");
+    Logger::log_error("active scene is fucked. cant process inputs");
     return;
   }
 
   if (window == nullptr)
-    log_error("window is null, cannot process input.");
+    Logger::log_error("window is null, cannot process input.");
 
   if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
     glfwSetWindowShouldClose(window, true);
     m_should_shutdown = true;
-    log_success("shutting down window.");
+    Logger::log_success("shutting down window.");
   }
 
   float cameraSpeed =
@@ -58,7 +58,7 @@ void Input_Manager::process_input(GLFWwindow *window,
       m_active_scene->render_properties.cull_scene = !m_active_scene->render_properties.cull_scene;
       m_is_culling_on_cooldown = true;
       m_last_culling_state = true;
-      log_debug("cull on");
+      Logger::log_debug("cull on");
       std::cout << m_active_scene->render_properties.cull_scene << std::endl;
     }
   } else {
@@ -108,7 +108,7 @@ void Input_Manager::process_input(GLFWwindow *window,
       m_active_scene->m_local_player->m_player_camera->m_animation_table->at(0)
           ->m_checkpoints_rot->push_back(
               m_active_scene->m_local_player->m_player_camera->m_cameraLookAt);
-      log_debug("saved animation point");
+      Logger::log_debug("saved animation point");
       //      std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
   }
@@ -136,7 +136,7 @@ void Input_Manager::process_input(GLFWwindow *window,
               0) {
         m_active_scene->m_local_player->m_player_camera->m_animation_table->at(0)
             ->m_trigger_animation = true;
-        log_success("queuing animation");
+        Logger::log_success("queuing animation");
       }
     }
 
@@ -158,7 +158,7 @@ void Input_Manager::process_input(GLFWwindow *window,
         step_smoothed /= 2;
         m_active_scene->m_local_player->m_player_camera->m_animation_table->at(0)->m_checkpoints->at(
             i) = step_smoothed;
-        log_error("smooting in progress");
+        Logger::log_error("smooting in progress");
       }
       m_active_scene->m_local_player->m_player_camera->m_animation_table->at(0)->m_has_been_smoothed =
           true;
@@ -170,7 +170,7 @@ void Input_Manager::process_input(GLFWwindow *window,
       m_active_scene->m_local_player->m_player_camera->m_animation_table->at(0)->m_start_time =
           m_application_current_time;
       m_active_scene->m_local_player->m_player_camera->m_animation_table->at(0)->m_last_checkpoint = 0;
-      log_success("initizlizing animation");
+      Logger::log_success("initizlizing animation");
     }
   }
 
@@ -274,7 +274,7 @@ void Input_Manager::process_input(GLFWwindow *window,
 
 Input_Manager::Input_Manager(std::shared_ptr<Scene> m_scene_ptr) {
 
-  log_success("input manger online");
+  Logger::log_success("input manger online");
 
   m_active_scene = m_scene_ptr;
 }

@@ -155,11 +155,11 @@ std::vector<std::shared_ptr<Mesh>> Importer::load_all_meshes_from_gltf(
   tinygltf::TinyGLTF loader;
   std::string err, warn;
 
-  log_success("importing a gltf file... loading ascii file...");
+  Logger::log_success("importing a gltf file... loading ascii file...");
 
   bool ret = loader.LoadASCIIFromFile(&model, &err, &warn, file_path);
   if (!ret)
-    log_error("couldnt load ASCII gltf file!!!");
+    Logger::log_error("couldnt load ascii file!");
   if (!warn.empty())
     printf("Warn: %s\n", warn.c_str());
   if (!err.empty())
@@ -191,7 +191,7 @@ std::vector<std::shared_ptr<Mesh>> Importer::load_all_meshes_from_gltf(
     }
   };
 
-  log_debug("starting to load gltf node tree...");
+  Logger::log_debug("starting to load gltf node tree...");
   
   std::function<void(int, glm::mat4)> process_node;
   process_node = [&](int node_idx, glm::mat4 parent_transform) {
@@ -218,7 +218,7 @@ std::vector<std::shared_ptr<Mesh>> Importer::load_all_meshes_from_gltf(
 
     glm::mat4 global_transform = parent_transform * node_transform;
     if (glm::determinant(glm::mat3(global_transform)) < 0.0f) {
-      log_error("Negative scale detected in node !!!");
+      Logger::log_error("Negative scale detected in node !!!");
     }
     
     if (node.mesh >= 0) {
@@ -231,7 +231,7 @@ std::vector<std::shared_ptr<Mesh>> Importer::load_all_meshes_from_gltf(
 	float metallic_factor_buffer = 0.0f;
 	float roughness_factor_buffer = 0.0f;
 	
-        log_debug("importing primitive from node tree...");
+        Logger::log_debug("importing primitive from node tree...");
 
 	// load pos, norm, uv, tan, bitan from file
         const auto &posAccessor =
@@ -249,7 +249,7 @@ std::vector<std::shared_ptr<Mesh>> Importer::load_all_meshes_from_gltf(
           normals = reinterpret_cast<const float *>(
               &model.buffers[view.buffer]
                    .data[view.byteOffset + accessor.byteOffset]);
-        } else {log_error("mesh contains NO FUCKING NORMALS");}
+        } else {Logger::log_error("mesh contains NO FUCKING NORMALS");}
 
         const float *tangents = nullptr;
         if (primitive.attributes.count("TANGENT")) {
@@ -259,7 +259,7 @@ std::vector<std::shared_ptr<Mesh>> Importer::load_all_meshes_from_gltf(
           tangents = reinterpret_cast<const float *>(
               &model.buffers[view.buffer]
                    .data[view.byteOffset + accessor.byteOffset]);
-        } else {log_error("mesh contains NO FUCKING TANGENTS");} 
+        } else {Logger::log_error("mesh contains NO FUCKING TANGENTS");} 
 
         const float *texcoords = nullptr;
         if (primitive.attributes.count("TEXCOORD_0")) {
@@ -271,7 +271,7 @@ std::vector<std::shared_ptr<Mesh>> Importer::load_all_meshes_from_gltf(
                    .data[view.byteOffset + accessor.byteOffset]);
         }
 
-        log_debug("checking material type to resolve render mode...");
+        Logger::log_debug("checking material type to resolve render mode...");
 
         // 0 invalid
         // 1 phong (fallback - always possible if we have a mesh)
@@ -295,7 +295,7 @@ std::vector<std::shared_ptr<Mesh>> Importer::load_all_meshes_from_gltf(
             std::cout << "Base Color Texture: " << *path << "\n";
             texture_path_of_albedo = *path;
             shader_type_carry = 2; // flat shading is possible
-            log_success("albedo texture present!");
+            Logger::log_success("albedo texture present!");
           } else {
             std::cout << "No Base Color Texture\n";
           }
@@ -306,7 +306,7 @@ std::vector<std::shared_ptr<Mesh>> Importer::load_all_meshes_from_gltf(
             std::cout << "Metallic-Roughness Texture: " << *path << "\n";
 	    texture_path_of_metallic_roughness = *path;
 	    shader_type_carry ++; // raise by 1, see if we have all tex later
-            log_success("normal texture present!");
+            Logger::log_success("normal texture present!");
 	  } else {
             std::cout << "No Metallic-Roughness Texture\n";
           }
@@ -317,7 +317,7 @@ std::vector<std::shared_ptr<Mesh>> Importer::load_all_meshes_from_gltf(
               std::cout << "Normal Texture: " << *path << "\n";
 	      texture_path_of_normal = *path;
               shader_type_carry ++; // raise by 1, see if we have all tex later
-	      log_success("metalrough texture present!");
+	      Logger::log_success("metalrough texture present!");
             }
           } else {
             std::cout << "No Normal Texture\n";
@@ -416,17 +416,17 @@ std::vector<std::shared_ptr<Mesh>> Importer::load_all_meshes_from_gltf(
                                      &texcoords[i * 2 + 2]);
 
 	    */
-	    log_error("this shouldnt happen");
+	    Logger::log_error("this shouldnt happen");
 	  }
         }
         
-        log_success("done importing model vertex data... loading its shaders now...");
+        Logger::log_success("done importing model vertex data... loading its shaders now...");
 
 	if(shader_type_carry > 3)
-	  log_error("theoretically PBR possible!!!");
+	  Logger::log_error("theoretically PBR possible!!!");
 
 	if(final_tangents.size() < 1 || final_normals.size() < 1 || final_texcoords.size() < 1)
-	  log_error("Meshes tangents, normals, texcords arent all of length greater 0");
+	  Logger::log_error("Meshes tangents, normals, texcords arent all of length greater 0");
 	  
 	// TODO turn this into a switch later with all types
         if (shader_type_carry > 1) {
@@ -504,7 +504,7 @@ std::vector<std::shared_ptr<Mesh>> Importer::load_all_meshes_from_gltf(
 										    final_albedo_path, num_loaded_textures.load(), texture_map);
           
 	  if(mat_to_use->use_normal) {
-	    log_success("loading normal texture!");
+	    Logger::log_success("loading normal texture!");
 	    // also upload normal tex
 	    std::filesystem::path full_normal_path =
 	      cwd / model_path.parent_path() / texture_path_of_normal;
@@ -514,7 +514,7 @@ std::vector<std::shared_ptr<Mesh>> Importer::load_all_meshes_from_gltf(
 	  }
 
 	  if(mat_to_use->use_metallicroughness) {
-	    log_success("loading normal texture!");
+	    Logger::log_success("loading normal texture!");
 	    // do same for metalrough
 	    std::filesystem::path full_metal_rough_path =
 	      cwd / model_path.parent_path() / texture_path_of_metallic_roughness;
@@ -528,7 +528,7 @@ std::vector<std::shared_ptr<Mesh>> Importer::load_all_meshes_from_gltf(
 
           new_meshes.push_back(primitive_mesh);
 
-          log_success("texture shaded mesh successfully imported.");
+          Logger::log_success("texture shaded mesh successfully imported.");
 
         } else {
           // use phong shading (fallback)
@@ -588,7 +588,7 @@ std::vector<std::shared_ptr<Mesh>> Importer::load_all_meshes_from_gltf(
 
           new_meshes.push_back(primitive_mesh);
 
-          log_success("fallback phong shaded mesh successfully imported.");
+          Logger::log_success("fallback phong shaded mesh successfully imported.");
         }
       }
     }
@@ -606,7 +606,7 @@ std::vector<std::shared_ptr<Mesh>> Importer::load_all_meshes_from_gltf(
     process_node(node_idx, identity);
   }
 
-  log_success("GLTF scene fully loaded with multiple meshes!");
+  Logger::log_success("GLTF scene fully loaded with multiple meshes!");
 
   return new_meshes;
 }
@@ -765,10 +765,10 @@ std::vector<Mesh> Importer::load_all_meshes_from_gltf_temp(
   tinygltf::TinyGLTF loader;
   std::string err, warn;
   
-  log_success("importing a gltf file... loading ascii file...");
+  Logger::log_success("importing a gltf file... loading ascii file...");
   bool ret = loader.LoadASCIIFromFile(&model, &err, &warn, file_path);
   if (!ret)
-    log_error("couldnt load ASCII gltf file!!!");
+    Logger::log_error("couldnt load ASCII gltf file!!!");
   if (!warn.empty())
     printf("Warn: %s\n", warn.c_str());
   if (!err.empty())
@@ -779,7 +779,7 @@ std::vector<Mesh> Importer::load_all_meshes_from_gltf_temp(
 
   for(tinygltf::Mesh mesh : model.meshes) {
     for(tinygltf::Primitive prim : mesh.primitives) {
-      if (prim.mode != TINYGLTF_MODE_TRIANGLES) {log_error("this mesh isnt made from tris?? not importing");};
+      if (prim.mode != TINYGLTF_MODE_TRIANGLES) {Logger::log_error("this mesh isnt made from tris?? not importing");};
 
       
       

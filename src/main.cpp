@@ -45,7 +45,8 @@ int main () {
   // spawn_fix_link(main_renderer);
   // spawn_angle_link(main_renderer);
 
-  spawn_constraint_box(main_renderer);
+  spawn_constraint_square(main_renderer);
+  //spawn_constraint_box(main_renderer);
   //spawn_noodle_loop(main_renderer);
 
   main_renderer.add_skybox_to_scene("models/skybox/skybox.gltf");
@@ -57,7 +58,7 @@ int main () {
     main_renderer.render_frame();
   }
 
-  log_success("shutdown signal recieved, ended gracefully.");
+  Logger::log_success("shutdown signal recieved, ended gracefully.");
   glfwTerminate();
   
 }
