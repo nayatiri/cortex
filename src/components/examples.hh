@@ -55,6 +55,15 @@ void spawn_point_collission(Renderer& main_renderer) {
   
 }
 
+void spawn_single_link_afghanistan(Renderer& main_renderer) {
+
+  main_renderer.add_point_to_scene(10000,5,0);
+  main_renderer.add_point_to_scene(10000,5,0);
+  
+  main_renderer.create_spring_constraint(main_renderer.m_active_scene->m_loaded_points[0],main_renderer.m_active_scene->m_loaded_points[1], 200.0f, 20.0f);
+
+};
+
 void spawn_single_link(Renderer& main_renderer) {
 
   main_renderer.add_point_to_scene(20,5,0);

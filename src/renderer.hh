@@ -48,7 +48,7 @@ public:
   GLFWwindow* associated_window = nullptr;
 
   //fps counter:
-  int fps_target = 200;
+  int fps_target = 10000;
   float fps_target_ms = 0.0f;
   float m_fps = 0.0f;
   double m_last_fps_time = 0.0;

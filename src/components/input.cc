@@ -1,5 +1,6 @@
 #include "input.hh"
 #include "logging.hh"
+#include <GLFW/glfw3.h>
 #include <chrono>
 #include <thread>
 
@@ -125,6 +126,15 @@ void Input_Manager::process_input(GLFWwindow *window,
           false;
     }
   }
+
+  //FOV
+  if (glfwGetKey(window, GLFW_KEY_P) == GLFW_PRESS) {
+    m_active_scene->m_local_player->m_player_camera->fov += 1.0f;
+  }
+  if (glfwGetKey(window, GLFW_KEY_O) == GLFW_PRESS) {
+    m_active_scene->m_local_player->m_player_camera->fov -= 1.0f;
+  }
+
 
   if (glfwGetKey(window, GLFW_KEY_R) == GLFW_PRESS) {
 

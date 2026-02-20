@@ -5,6 +5,7 @@
 #include "./libs/tiny_gltf.h"
 #include <GLFW/glfw3.h>
 #include <chrono>
+#include <cstdint>
 #include <glm/glm.hpp>
 
 // stdlib
@@ -75,7 +76,7 @@ void Renderer::abstract_render() {
   //now render frame
   if(m_active_scene->render_properties.cull_scene)
     m_culling_manager->cull_scene();
-  
+
   m_pipeline->render_frame();
 
   }
@@ -141,9 +142,9 @@ void Renderer::render_frame() {
   glfwPollEvents();
 
   // hit fps target 
-  if(m_deltaTime < fps_target_ms)
+  /* if(m_deltaTime < fps_target_ms)
     std::this_thread::sleep_for(std::chrono::milliseconds((int)(fps_target_ms) - (int)(m_deltaTime)));
-}
+  */}
 
 void Renderer::create_angle_constraint(std::shared_ptr<Point> p, std::shared_ptr<Point> q,
 				       std::shared_ptr<Point> hinge, float angle) {

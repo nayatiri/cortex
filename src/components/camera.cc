@@ -1,5 +1,6 @@
 #include "camera.hh"
 #include "logging.hh"
+#include "panini.hh"
 
 #include <glm/ext/matrix_clip_space.hpp>
 #include <glm/ext/matrix_float4x4.hpp>
@@ -17,9 +18,7 @@
 #include <string>
 
 Camera::Camera() {
-
   Logger::log_success("camera initialized");
-  
 }
 
 void Camera::reset() {}
@@ -31,13 +30,14 @@ glm::mat4 Camera::get_projection_matrix() { return camera_projection_matrix; };
 void Camera::set_view_matrix(glm::vec3 pos, glm::vec3 look_at, glm::vec3 up) {
 
   camera_view_matrix = glm::lookAt(pos,look_at,up);
-
+  
 };
 
 void Camera::set_projection_matrix(float fov, float aspect_ratio,
                                    float clip_near, float clip_far) {
 
-  camera_projection_matrix = glm::perspective(fov,aspect_ratio,clip_near,clip_far);
+  //camera_projection_matrix = glm::perspective(fov,aspect_ratio,clip_near,clip_far);
+  camera_projection_matrix = panini::get_panini_projection_matrix(fov,aspect_ratio,clip_near,clip_far,0.5f);
   
 };
 
