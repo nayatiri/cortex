@@ -26,13 +26,7 @@ int main () {
   main_renderer.set_fps_target(200);
 
   main_renderer.init_scene("models/test_scene/test_scene.gltf");
-  //main_renderer.init_scene("models/showroom/showroom.gltf");
-
-  //spawn_single_link_afghanistan(main_renderer);
-  
-  // main_renderer.m_active_scene->m_local_player->m_player_camera->m_cameraPos = {10000.0f,0,0};
-  // main_renderer.m_active_scene->m_loaded_entities[0].set_position(10000.0f,0,0);
-  
+  //main_renderer.init_scene("models/showroom/showroom.gltf");  
   //main_renderer.init_scene("models/material_test/material_test.gltf");
   //main_renderer.init_scene("models/d2/rapture/rapture.gltf");
   
@@ -47,13 +41,13 @@ int main () {
   //main_renderer.add_model_to_scene("models/benz/scene.gltf");
 
 
-  //  spawn_pyramid(main_renderer);
-  //  spawn_point_collission(main_renderer);
-  //  spawn_single_link(main_renderer);
-  //  spawn_newton_cradle(main_renderer);
-  spawn_box(main_renderer);
+  // spawn_pyramid(main_renderer);
+  // spawn_point_collission(main_renderer);
+  // spawn_single_link(main_renderer);
+  // spawn_newton_cradle(main_renderer);
+  // spawn_box(main_renderer);
   // spawn_fix_link(main_renderer);
-  // spawn_angle_link(main_renderer);
+   spawn_angle_link(main_renderer);
 
   //spawn_constraint_square(main_renderer);
   //spawn_constraint_box(main_renderer);

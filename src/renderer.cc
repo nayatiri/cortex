@@ -4,8 +4,6 @@
 #include "./glad/glad.h"
 #include "./libs/tiny_gltf.h"
 #include <GLFW/glfw3.h>
-#include <chrono>
-#include <cstdint>
 #include <glm/glm.hpp>
 
 // stdlib
@@ -13,7 +11,6 @@
 #include <iostream>
 #include <memory>
 #include <string>
-#include <thread>
 #include <vector>
 #include <iostream>
 

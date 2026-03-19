@@ -101,8 +101,13 @@ bool Physics_Manager::check_violated_static_constraints() {
       glm::vec3 h_to_a = ac->end_a->get_position() - ac->hinge->get_position();
       glm::vec3 h_to_b = ac->end_b->get_position() - ac->hinge->get_position();
       float current_angle = std::acos(
-          glm::clamp(glm::dot(glm::normalize(h_to_a), glm::normalize(h_to_b)),
-                     -1.0f, 1.0f));
+				      glm::clamp(glm::dot(glm::normalize(h_to_a), glm::normalize(h_to_b)),
+						 -1.0f, 1.0f));
+
+      // glm::vec3 a = ac->end_a->get_position();
+      // glm::vec3 b = ac->end_b->get_position();
+      // float current_angle = atan2(glm::length(glm::cross(a,b)), glm::dot(a,b));
+      
       float error = current_angle - (ac->angle / (180.0f / PI_CONST));
       if (std::abs(error) > WIGGLE_ROOM) {
         ac->violated = true;
@@ -184,10 +189,17 @@ void Physics_Manager::solve_violated_static_constraints() {
       glm::vec3 h_to_b = ac->end_b->get_position() - ac->hinge->get_position();
       float ac_angle_rad = ac->angle / (180.0f / PI_CONST);
       float current_angle = std::acos(
-          glm::clamp(glm::dot(glm::normalize(h_to_a), glm::normalize(h_to_b)),
-                     -1.0f, 1.0f));
+				      glm::clamp(glm::dot(glm::normalize(h_to_a), glm::normalize(h_to_b)),
+						 -1.0f, 1.0f));
+      
+      // glm::vec3 a = ac->end_a->get_position();
+      // glm::vec3 b = ac->end_b->get_position();
+      // float current_angle = atan2(glm::length(glm::cross(a,b)), glm::dot(a,b));
+      
       glm::vec3 hinge_normal = glm::normalize(glm::cross(h_to_b, h_to_a));
-
+      if(glm::length(hinge_normal) < 1e-6f) return;
+      hinge_normal = glm::normalize(hinge_normal);
+      
       float correct_rad = current_angle - ac_angle_rad;
       if (std::abs(correct_rad) > WIGGLE_ROOM) {
         float correct_a = -correct_rad;
@@ -518,10 +530,15 @@ void Physics_Manager::run_integrator(float simulation_step_dt) {
   // calculate collissions, adjust buffer integration delta on col
   iteration_count = 0;
   while (check_and_build_collissions()) {
+    if (iteration_count > MAX_SOLVER_ITERATIONS) {
+      Logger::log_error("reached collission solver threshold. exiting solver with potentially "
+			"inconsistent physics state!");      
+      break;
+    }
     resolve_collissions_for_scene_preview();
-    iteration_count++;
+    iteration_count++;    
   }
-
+  
   // after resolving all positions, write to active point position. (if point
   // isnt fixed)
   for (std::shared_ptr<Point> p : m_active_scene->m_loaded_points) {
