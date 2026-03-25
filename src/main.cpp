@@ -1,4 +1,5 @@
 #include "components/examples.hh"
+#include "components/logging.hh"
 #include "renderer.hh"
 #include <bits/floatn-common.h>
 #include <limits>
@@ -59,6 +60,7 @@ int main () {
   main_renderer.add_text_to_overlay("cortex - dev build", 10 ,60 );
   
   while(!main_renderer.m_input_manager->m_should_shutdown) {
+    Logger::log_success("rendering frame :D");
     main_renderer.render_frame();
   }
 

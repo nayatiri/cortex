@@ -2,7 +2,9 @@
 #include "logging.hh"
 #include <GLFW/glfw3.h>
 #include <chrono>
+#include <memory>
 #include <thread>
+#include <type_traits>
 
 /*TODO
 
@@ -10,14 +12,44 @@
 
  */
 
+void Input_Manager::init_key_states() {
+  
+  for(const auto key : COMMON_KEYS) {
+    std::unique_ptr<KeyState> ks = std::make_unique<KeyState>();
+    ks->keysym = key;
+    ks->last_keystate.store(ks->keystate.load());
+    ks->keystate.store(glfwGetKey(window_ptr, key) == GLFW_PRESS);
+    key_map.push_back(std::move(ks));
+  }
+  
+  return;
+}
+
+void Input_Manager::update_key_syms() {
+
+  int ctr = 0;
+  for(const auto key : COMMON_KEYS) {
+    KeyState& ks = *key_map[ctr];
+    ks.last_keystate.store(ks.keystate.load());
+    ks.keystate.store(glfwGetKey(window_ptr, key) == GLFW_PRESS);
+    ctr++;
+  }
+  
+  return;
+}
+
+
 void Input_Manager::process_input(GLFWwindow *window,
                                   float m_application_current_time,
                                   float m_delta_time) {
 
-  if (m_active_scene == nullptr || m_active_scene->m_local_player->m_player_camera == nullptr) {
-    Logger::log_error("active scene is fucked. cant process inputs");
-    return;
-  }
+if (m_active_scene == nullptr ||
+    m_active_scene->m_local_player == nullptr ||
+    m_active_scene->m_local_player->m_player_camera == nullptr) {
+
+  Logger::log_error("active scene / player / camera is null. cannot process inputs");
+  return;
+}
 
   if (window == nullptr)
     Logger::log_error("window is null, cannot process input.");
@@ -286,6 +318,8 @@ Input_Manager::Input_Manager(std::shared_ptr<Scene> m_scene_ptr) {
 
   Logger::log_success("input manger online");
 
+  static_assert(std::is_trivially_copyable<KeyState>(), "key state not trivially copyable");
+  
   m_active_scene = m_scene_ptr;
 }
 
