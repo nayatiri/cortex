@@ -1,5 +1,5 @@
 CXX = g++
-CXXFLAGS = -std=c++20 -O0 -g -Wall -Werror 
+CXXFLAGS = -std=c++20 -O0 -g -Wall -Werror -fsanitize=address
 LDFLAGS = -lglfw -ldl -lpthread -lX11 -lXxf86vm -lXrandr -lXi -lGL
 
 # Source files

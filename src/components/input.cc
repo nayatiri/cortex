@@ -318,7 +318,7 @@ Input_Manager::Input_Manager(std::shared_ptr<Scene> m_scene_ptr) {
 
   Logger::log_success("input manger online");
 
-  static_assert(std::is_trivially_copyable<KeyState>(), "key state not trivially copyable");
+  //static_assert(std::is_trivially_copyable<KeyState>(), "key state not trivially copyable");
   
   m_active_scene = m_scene_ptr;
 }

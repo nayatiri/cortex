@@ -26,8 +26,9 @@ int main () {
   Renderer main_renderer(1920,1080);
   main_renderer.set_fps_target(200);
 
-  main_renderer.init_scene("models/test_scene/test_scene.gltf");
-  //main_renderer.init_scene("models/showroom/showroom.gltf");  
+  //main_renderer.init_scene("models/test_scene/test_scene.gltf");
+
+  main_renderer.init_scene("models/showroom/showroom.gltf");  
   //main_renderer.init_scene("models/material_test/material_test.gltf");
   //main_renderer.init_scene("models/d2/rapture/rapture.gltf");
   
@@ -48,7 +49,7 @@ int main () {
   // spawn_newton_cradle(main_renderer);
   // spawn_box(main_renderer);
   // spawn_fix_link(main_renderer);
-   spawn_angle_link(main_renderer);
+  //spawn_angle_link(main_renderer);
 
   //spawn_constraint_square(main_renderer);
   //spawn_constraint_box(main_renderer);
