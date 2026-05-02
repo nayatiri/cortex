@@ -4,7 +4,6 @@
 #include <chrono>
 #include <memory>
 #include <thread>
-#include <type_traits>
 
 /*TODO
 
@@ -13,7 +12,6 @@
  */
 
 void Input_Manager::init_key_states() {
-  
   for(const auto key : COMMON_KEYS) {
     std::unique_ptr<KeyState> ks = std::make_unique<KeyState>();
     ks->keysym = key;
@@ -26,7 +24,6 @@ void Input_Manager::init_key_states() {
 }
 
 void Input_Manager::update_key_syms() {
-
   int ctr = 0;
   for(const auto key : COMMON_KEYS) {
     KeyState& ks = *key_map[ctr];
@@ -36,6 +33,19 @@ void Input_Manager::update_key_syms() {
   }
   
   return;
+}
+
+void Input_Manager::start_input_manager(GLFWwindow* window) {
+
+  window_ptr = window;
+  
+  init_key_states();
+  
+  while (true) {
+    update_key_syms();
+    std::this_thread::sleep_for(std::chrono::milliseconds(10));
+  }
+  
 }
 
 

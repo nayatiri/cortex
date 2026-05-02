@@ -5,6 +5,7 @@
 #include "./components/scene.hh"
 #include "./components/input.hh"
 #include "./components/animationmanager.hh"
+#include "components/cli.hh"
 #include "components/culler.hh"
 #include "components/physicsmanager.hh"
 #include "components/pipeline.hh"
@@ -20,6 +21,7 @@
 // stdlib
 #include <memory>
 #include <string>
+#include <thread>
 #include <vector>
 #include <cstdint>
 #include <atomic>
@@ -28,7 +30,13 @@ class Renderer {
 public:
   // new input handling
   std::unique_ptr<Input_Manager> m_input_manager = nullptr;
-
+  std::unique_ptr<Cortex_CLI> m_cortex_cli = nullptr;
+  
+  //tj even newer input handling + cli
+  std::thread* m_async_key_listener;
+  std::thread* m_async_cortex_cli;
+  
+  
   // animation handline
   std::unique_ptr<Animation_Manager> m_animation_manager = nullptr;
 

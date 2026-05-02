@@ -11,11 +11,13 @@
 #include <iostream>
 #include <memory>
 #include <string>
+#include <thread>
 #include <vector>
 #include <iostream>
 
 // components
 #include "components/AABB.hh"
+#include "components/cli.hh"
 #include "components/constraint.hh"
 #include "components/entity.hh"
 #include "components/force_generator.hh"
@@ -211,6 +213,14 @@ void Renderer::init_scene(const char *scene_fp) {
   m_pipeline->m_active_scene = m_active_scene;
   m_culling_manager = std::make_unique<Culler>(m_active_scene);
 
+  //tj init cli  cause it  needs scene access...
+  m_cortex_cli = std::make_unique<Cortex_CLI>();
+  m_cortex_cli->init_cli(m_active_scene);
+  m_async_cortex_cli = new std::thread([this]() {
+    m_cortex_cli->start_cli();
+  });
+
+  
   Logger::log_success("set Scene ptr to IM, AM and PM");
 
   //make player (localplayer) their camera
@@ -527,7 +537,7 @@ _/ ___\/  _ \_  __ \   __\/ __ \\  \/  /
     Logger::log_error("failed to load glad!");
     return;
   }
-
+    
   // setup
   glViewport(0, 0, 1920, 1080);
   glEnable(GL_DEPTH_TEST);
@@ -581,6 +591,12 @@ _/ ___\/  _ \_  __ \   __\/ __ \\  \/  /
   });
   
   glfwSetInputMode(associated_window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+
+  //TJ  start new input handler
+  m_async_key_listener = new std::thread([this]() {
+    m_input_manager->start_input_manager(this->associated_window);
+  });
+  
   return;
   
 }

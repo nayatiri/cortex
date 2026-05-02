@@ -84,6 +84,7 @@ public:
   
   void init_key_states();
   void update_key_syms();
+  void start_input_manager(GLFWwindow*);
   
   ///////////
   

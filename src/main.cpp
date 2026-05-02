@@ -26,9 +26,9 @@ int main () {
   Renderer main_renderer(1920,1080);
   main_renderer.set_fps_target(200);
 
-  //main_renderer.init_scene("models/test_scene/test_scene.gltf");
+  main_renderer.init_scene("models/test_scene/test_scene.gltf");
 
-  main_renderer.init_scene("models/showroom/showroom.gltf");  
+  //main_renderer.init_scene("models/showroom/showroom.gltf");  
   //main_renderer.init_scene("models/material_test/material_test.gltf");
   //main_renderer.init_scene("models/d2/rapture/rapture.gltf");
   
@@ -61,7 +61,6 @@ int main () {
   main_renderer.add_text_to_overlay("cortex - dev build", 10 ,60 );
   
   while(!main_renderer.m_input_manager->m_should_shutdown) {
-    Logger::log_success("rendering frame :D");
     main_renderer.render_frame();
   }
 
