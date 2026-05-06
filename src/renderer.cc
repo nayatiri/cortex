@@ -280,8 +280,6 @@ void Renderer::init_scene_vbos() {
     return;
   }
 
-  Logger::log_debug("Initializing/Updating VBOs for scene...");
-
   /////////////////////////////////////////
   // Update Light VBOs (for visualizers) //
   /////////////////////////////////////////
@@ -456,8 +454,6 @@ void Renderer::init_scene_vbos() {
     glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), (void*)0);    
     glEnableVertexAttribArray(1);
 
-    Logger::log_error("INITIALIZEDD TEXT!!");
-
     oe->element_needs_vbo_update = false;
     
   }
@@ -492,7 +488,6 @@ void Renderer::init_scene_vbos() {
     }
   //done
   m_active_scene->m_scene_vbos_need_refresh = false;
-  Logger::log_success("Successfully initialized/updated VBOs for all dirty meshes!");
 }
 
 Renderer::Renderer(uint window_width, uint window_height) {

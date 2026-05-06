@@ -16,17 +16,18 @@ The only Libraries used are GLFW (xlib is terrible), OpenGL, and STB image to lo
 ##  Features
 
 -  Foreward rendering pipeline
--  Physically Based Rendering (PBR) for photorealistic meshes
+-  Physically Based Rendering (PBR) for photorealistic rendering
 -  Support for GLTF/GLB models / full scenes including materials / positioning / lighting
 -  Custom abstraction, making the engine suitable for easy expansion.
 -  Animation system for Camera animations / cutscenes using control points and interpolating between them.
 -  Physics engine consising of: Point physics(gravity, drag, conditional forces), Spring constraints, hard length constraints, angular constraints and more to come soon. (this is my current focus of this project, since the graphics part is already pretty feature packed) 
--  Text rendering / Overlay rendering with texture atlas support for custom font loading.
+-  Text rendering made from scratch / Overlay rendering with texture atlas support for easy custom font loading.
+-  Commandline interface for interacting with elements in the scene in a script-esque way.
 
 ---
 
 ## Disclaimer
 
-- Hereby i 
+- Basically everything in this repo is made from scratch without AI, therefore some areas are not optimized and are just a best effort to  get the job done in time. Still, even on more complex scenes the engine still averages well above one thousand FPS even on my mediocre hardware.
 
 ## More readme coming soon :-)

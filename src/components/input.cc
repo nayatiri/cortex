@@ -1,4 +1,5 @@
 #include "input.hh"
+#include "input_defines.hh"
 #include "logging.hh"
 #include <GLFW/glfw3.h>
 #include <chrono>
@@ -19,11 +20,17 @@ void Input_Manager::init_key_states() {
     ks->keystate.store(glfwGetKey(window_ptr, key) == GLFW_PRESS);
     key_map.push_back(std::move(ks));
   }
+
+  // set up all callbacks
+  InputDefinitions::register_input_definitions(*this);
   
   return;
 }
 
 void Input_Manager::update_key_syms() {
+  
+  Logger::log_debug("updating keystates...");
+
   int ctr = 0;
   for(const auto key : COMMON_KEYS) {
     KeyState& ks = *key_map[ctr];
@@ -31,9 +38,50 @@ void Input_Manager::update_key_syms() {
     ks.keystate.store(glfwGetKey(window_ptr, key) == GLFW_PRESS);
     ctr++;
   }
+
+  for(std::unique_ptr<KeyState> &ks : key_map) {
+    for(std::shared_ptr<RegisteredInputCallback> ric : registered_callbacks) {
+
+      if(ric->key_sym == ks->keysym) {
+
+	if(ric->edge_state == E_FALLING_EDGE && ks->keystate == true && ks->last_keystate == false) {
+	  ric->fun();
+	}
+
+	if(ric->edge_state == E_RISING_EDGE && ks->keystate == false && ks->last_keystate == true) {
+	  ric->fun();
+	}
+	
+      } else {
+	continue;
+      } 
+    }
+  }
   
   return;
 }
+
+void Input_Manager::register_falling_edge(std::function<void()> fun, int key_sym) {
+
+  std::shared_ptr<RegisteredInputCallback> ric = std::make_shared<RegisteredInputCallback>();
+  ric->fun = fun;
+  ric->key_sym = key_sym;
+  ric->edge_state = E_FALLING_EDGE;
+  registered_callbacks.push_back(ric);
+  
+  return;
+}
+
+void Input_Manager::register_rising_edge(std::function<void()> fun, int key_sym) {
+
+  std::shared_ptr<RegisteredInputCallback> ric = std::make_shared<RegisteredInputCallback>();
+  ric->fun = fun;
+  ric->key_sym = key_sym;
+  ric->edge_state = E_RISING_EDGE;
+  registered_callbacks.push_back(ric);
+  
+  return;
+} 
 
 void Input_Manager::start_input_manager(GLFWwindow* window) {
 

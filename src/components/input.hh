@@ -78,13 +78,29 @@ public:
     std::atomic<bool> keystate = false;
     std::atomic<bool> last_keystate = false;
   };
-  
+
+  enum EdgeState {
+    E_RISING_EDGE,
+    E_FALLING_EDGE
+  };
+    
+  struct RegisteredInputCallback {
+    std::function<void()> fun;
+    int key_sym;
+    EdgeState edge_state;
+  };
+
+  std::vector<std::shared_ptr<RegisteredInputCallback>> registered_callbacks;
   std::vector<std::unique_ptr<KeyState>> key_map;
   GLFWwindow *window_ptr;
   
   void init_key_states();
   void update_key_syms();
   void start_input_manager(GLFWwindow*);
+
+  // link a function callback to a GLFW int KeySym
+  void register_falling_edge(std::function<void()> fun, int key_sym); 
+  void register_rising_edge(std::function<void()> fun, int key_sym); 
   
   ///////////
   
@@ -97,7 +113,7 @@ public:
   int m_viewport_height = 1080;
 
   std::shared_ptr<Scene> m_active_scene = nullptr;
-
+ 
   bool m_should_shutdown = false;
   
   bool m_render_mode_wireframe = false;

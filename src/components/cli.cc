@@ -17,6 +17,8 @@ void Cortex_CLI::start_cli() {
     std::string to_process;
     std::cin >> to_process;
 
+    std::cout << to_process << " - processing...\n";
+    
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
     
     }
