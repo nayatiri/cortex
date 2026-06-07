@@ -29,8 +29,7 @@ void Input_Manager::init_key_states() {
 
 void Input_Manager::update_key_syms() {
   
-  Logger::log_debug("updating keystates...");
-
+  // update keymap and buffer last keystrokes
   int ctr = 0;
   for(const auto key : COMMON_KEYS) {
     KeyState& ks = *key_map[ctr];
@@ -39,18 +38,24 @@ void Input_Manager::update_key_syms() {
     ctr++;
   }
 
+  // check and execute callbacks
   for(std::unique_ptr<KeyState> &ks : key_map) {
     for(std::shared_ptr<RegisteredInputCallback> ric : registered_callbacks) {
 
       if(ric->key_sym == ks->keysym) {
 
+	if(ric->edge_state == E_PRESSED && ks->keystate == true) {
+	  ric->fun();
+	}
+        if(ric->edge_state == E_UNPRESSED && ks->keystate == false) {
+	  ric->fun();
+	}
 	if(ric->edge_state == E_FALLING_EDGE && ks->keystate == true && ks->last_keystate == false) {
 	  ric->fun();
-	}
-
+	} 
 	if(ric->edge_state == E_RISING_EDGE && ks->keystate == false && ks->last_keystate == true) {
 	  ric->fun();
-	}
+	} 
 	
       } else {
 	continue;

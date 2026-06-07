@@ -81,7 +81,9 @@ public:
 
   enum EdgeState {
     E_RISING_EDGE,
-    E_FALLING_EDGE
+    E_FALLING_EDGE,
+    E_PRESSED,
+    E_UNPRESSED
   };
     
   struct RegisteredInputCallback {

@@ -26,7 +26,7 @@ int main () {
   Renderer main_renderer(1920,1080);
   main_renderer.set_fps_target(200);
 
-  main_renderer.init_scene("models/test_scene/test_scene.gltf");
+  main_renderer.init_scene("models/minimal_test_scene/minimal_test_scene.gltf");
 
   //main_renderer.init_scene("models/showroom/showroom.gltf");  
   //main_renderer.init_scene("models/material_test/material_test.gltf");
